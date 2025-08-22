@@ -4,20 +4,23 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-TAP (Testing Assistant Project) is a Bun-based CLI tool that automatically generates and executes ephemeral testing scenarios from GitHub PRs and Jira tickets. It leverages Claude Code for orchestration and Claude Desktop for test execution with screen automation.
+TAP (Testing Assistant Project) is a Bun-based CLI tool that uses AI-powered test generation and human-in-the-loop workflow to create and execute ephemeral testing scenarios from GitHub PRs and Jira tickets. It combines Claude API for intelligent test generation, Claude Code for human refinement, and Claude Desktop for test execution with screen automation.
 
 ## Development Commands
 
 ### Primary Tasks
 ```bash
-# Start the application
-bun run start <command>
+# Human-in-the-loop workflow (recommended)
+bun run start test-pr <pr-url> --generate-only    # Generate AI scenarios + export context
+bun run start execute-scenarios --file <refined>   # Execute refined scenarios
 
-# Development with file watching
-bun run dev
+# Direct execution (fallback)
+bun run start test-pr <pr-url>                     # Full execution without review
+bun run start test-current-pr                     # Auto-detect current branch PR
 
-# Setup and configuration (interactive)
-bun run start setup
+# Development and setup
+bun run dev                                        # Development with file watching
+bun run start setup                               # Setup and configuration (interactive)
 ```
 
 ### Build Commands
@@ -52,17 +55,19 @@ bun run dev:mcp
 ### Key Services
 - `GitHubService` - PR analysis and diff processing
 - `AtlassianService` - Jira ticket and Confluence page integration
-- `TestScenarioGenerator` - Dynamic test scenario creation
+- `AITestScenarioGenerator` - AI-powered intelligent test scenario creation using Claude API
+- `TestScenarioGenerator` - Fallback rule-based test scenario creation
+- `ContextExporter` - Comprehensive data export for Claude Code review
 - `ClaudeDesktopOrchestrator` - Test execution coordination
-- `QAReportGenerator` - Comprehensive test reporting
+- `QAReportGenerator` - Comprehensive test reporting with AI insights
 
-### Data Flow
-1. GitHub PR analysis → Extract diffs, metadata, Jira ticket keys
-2. Jira context gathering → Ticket details, epics, linked issues
-3. Confluence documentation → Related technical documentation
-4. Test generation → Context-aware scenarios
-5. Claude Desktop execution → Automated testing with screen capture
-6. QA report generation → Structured output with artifacts
+### Data Flow (Human-in-the-Loop)
+1. **Context Gathering** → GitHub PR analysis + Jira tickets + Confluence docs
+2. **AI Generation** → Claude API creates intelligent scenarios from full context
+3. **Context Export** → Comprehensive data export for human review
+4. **Human Refinement** → Claude Code assists with scenario review and improvement
+5. **Execution** → Claude Desktop runs refined scenarios with screen capture
+6. **QA Reporting** → Structured output with AI insights and execution artifacts
 
 ## Configuration
 
@@ -80,22 +85,42 @@ Creates `~/.tap/config.json` with your API credentials.
 - `ATLASSIAN_EMAIL` - Atlassian account email
 - `ATLASSIAN_BASE_URL` - Atlassian instance URL (e.g., https://company.atlassian.net)
 
+### 3. Claude CLI for AI Generation (Optional)
+```bash
+# Install Claude CLI for intelligent test scenario generation
+npm install -g @anthropic-ai/claude-cli
+
+# Authenticate with your Anthropic account
+claude auth
+
+# Test it's working
+claude --version
+```
+
 The system automatically tests API connectivity before running commands.
 
 ## Usage Patterns
 
-### Testing PRs
+### Testing PRs (Human-in-the-Loop Workflow)
 ```bash
-# Test specific PR
-bun run start test-pr https://github.com/company/repo/pull/123
+# Step 1: Generate AI scenarios and export context for review
+bun run start test-pr <pr-url> --generate-only --output ./tap-context
 
-# Test current branch PR (auto-detect)
-bun run start test-current-pr
+# Step 2: Use Claude Code to review and refine scenarios
+# (In separate terminal or Claude Code session)
+# Review files in ./tap-context/ and create refined scenarios
 
-# Test with focus areas
-bun run start test-pr <url> --focus="authentication,payment-flow"
+# Step 3: Execute refined scenarios
+bun run start execute-scenarios --file ./refined-scenarios.json
 
-# Generate scenarios without execution
+# Alternative: Direct execution (no human review)
+bun run start test-pr <pr-url>                    # Full execution
+bun run start test-current-pr                    # Auto-detect current branch
+
+# With focus areas
+bun run start test-pr <url> --focus="authentication,payment-flow" --generate-only
+
+# Legacy: Generate scenarios without execution
 bun run start test-pr <url> --skip-execution
 ```
 

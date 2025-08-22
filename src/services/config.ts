@@ -55,7 +55,8 @@ export class ConfigService {
       "  • GITHUB_TOKEN\n" +
       "  • ATLASSIAN_BASE_URL\n" +
       "  • ATLASSIAN_EMAIL\n" +
-      "  • ATLASSIAN_API_TOKEN"
+      "  • ATLASSIAN_API_TOKEN\n" +
+      "\nNote: Install claude CLI for AI test generation: npm install -g @anthropic-ai/claude-cli"
     );
   }
 
@@ -181,5 +182,13 @@ export class ConfigService {
   async getAtlassianAuthHeader(): Promise<string> {
     const config = await this.getConfig();
     return `Basic ${Buffer.from(`${config.atlassian.email}:${config.atlassian.apiToken}`).toString('base64')}`;
+  }
+
+  // Method for direct access to config (used by services)
+  getLoadedConfig(): TapConfig {
+    if (!this.config) {
+      throw new Error('Config not loaded. Call getConfig() first.');
+    }
+    return this.config;
   }
 }

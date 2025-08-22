@@ -1,6 +1,7 @@
 import { Command } from "commander";
 import { testPRCommand } from "./commands/test-pr";
 import { testCurrentPRCommand } from "./commands/test-current-pr";
+import { executeScenariosCommand } from "./commands/execute-scenarios";
 import { setupCommand } from "./commands/setup";
 import { ConfigService } from "./services/config";
 import { homedir } from "os";
@@ -16,6 +17,7 @@ const program = new Command()
 
 program.addCommand(testPRCommand);
 program.addCommand(testCurrentPRCommand);
+program.addCommand(executeScenariosCommand);
 program.addCommand(setupCommand);
 
 // Hook to run connectivity test before any command (except setup)
