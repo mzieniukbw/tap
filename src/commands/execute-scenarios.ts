@@ -3,7 +3,7 @@ import chalk from "chalk";
 import { ContextExporter } from "../services/context-exporter";
 import { ClaudeDesktopOrchestrator } from "../services/claude-desktop";
 import { QAReportGenerator } from "../services/qa-report";
-import { TestScenario } from "../services/test-generator";
+import { TestScenario } from "../services/ai-test-generator";
 
 async function executeScenarios(options: any) {
   const startTime = Date.now();

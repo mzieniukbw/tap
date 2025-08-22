@@ -126,16 +126,13 @@ claude-code
 bun run start execute-scenarios --file ./refined-scenarios.json
 ```
 
-#### Option 2: Direct Execution (Fallback)
+#### Option 2: Direct Execution
 ```bash
 # Execute immediately with AI-generated scenarios (no human review)
 bun run start test-pr <pr-url>
 
-# Or test current branch PR (auto-detect)
-bun run start test-current-pr
-
-# With focus areas
-bun run start test-pr <url> --focus="authentication,payment-flow"
+# Generate scenarios without execution
+bun run start test-pr <url> --skip-execution
 ```
 
 #### Option 3: Compiled Executable
@@ -317,7 +314,7 @@ deno task start test-pr <url> # Test a PR
 - **Unified Atlassian Integration**: Single API token for Jira + Confluence
 - **Context Export System**: Comprehensive data export for human review
 - **Claude CLI Helper Scripts**: Automated refinement workflows with the claude CLI
-- **Fallback Generation**: Rule-based scenarios when Claude CLI unavailable
+- **Simplified Architecture**: Clean, focused AI-first approach
 - **Modern Bun Runtime**: Fast TypeScript execution with single-executable deployment
 - **Comprehensive Reporting**: Rich QA documentation with AI insights and recordings
 - **Zero Test Maintenance**: Fresh scenarios generated per PR with human validation

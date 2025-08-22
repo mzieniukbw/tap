@@ -14,9 +14,8 @@ TAP (Testing Assistant Project) is a Bun-based CLI tool that uses AI-powered tes
 bun run start test-pr <pr-url> --generate-only    # Generate AI scenarios + export context
 bun run start execute-scenarios --file <refined>   # Execute refined scenarios
 
-# Direct execution (fallback)
+# Direct execution
 bun run start test-pr <pr-url>                     # Full execution without review
-bun run start test-current-pr                     # Auto-detect current branch PR
 
 # Development and setup
 bun run dev                                        # Development with file watching
@@ -48,15 +47,14 @@ bun run dev:mcp
 
 ### Core Structure
 - `src/main.ts` - CLI entry point using Commander.js framework
-- `src/commands/` - Command implementations (test-pr, test-current-pr, setup)
+- `src/commands/` - Command implementations (test-pr, execute-scenarios, setup)
 - `src/services/` - Business logic services
 - `src/mcp-servers/atlassian-mcp/server.ts` - Unified Atlassian MCP server
 
 ### Key Services
 - `GitHubService` - PR analysis and diff processing
 - `AtlassianService` - Jira ticket and Confluence page integration
-- `AITestScenarioGenerator` - AI-powered intelligent test scenario creation using Claude API
-- `TestScenarioGenerator` - Fallback rule-based test scenario creation
+- `AITestScenarioGenerator` - AI-powered intelligent test scenario creation using Claude CLI
 - `ContextExporter` - Comprehensive data export for Claude Code review
 - `ClaudeDesktopOrchestrator` - Test execution coordination
 - `QAReportGenerator` - Comprehensive test reporting with AI insights
@@ -109,18 +107,15 @@ bun run start test-pr <pr-url> --generate-only --output ./tap-context
 # Step 2: Use Claude Code to review and refine scenarios
 # (In separate terminal or Claude Code session)
 # Review files in ./tap-context/ and create refined scenarios
+# OR use the generated helper script: ./tap-context/claude-refine.sh
 
 # Step 3: Execute refined scenarios
 bun run start execute-scenarios --file ./refined-scenarios.json
 
 # Alternative: Direct execution (no human review)
-bun run start test-pr <pr-url>                    # Full execution
-bun run start test-current-pr                    # Auto-detect current branch
+bun run start test-pr <pr-url>                    # Full execution with AI scenarios
 
-# With focus areas
-bun run start test-pr <url> --focus="authentication,payment-flow" --generate-only
-
-# Legacy: Generate scenarios without execution
+# Generate scenarios without execution
 bun run start test-pr <url> --skip-execution
 ```
 

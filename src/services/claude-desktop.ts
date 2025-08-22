@@ -1,4 +1,4 @@
-import { TestScenario, TestStep } from "./test-generator";
+import { TestScenario, TestStep } from "./ai-test-generator";
 import { mkdir } from "fs/promises";
 import { existsSync } from "fs";
 

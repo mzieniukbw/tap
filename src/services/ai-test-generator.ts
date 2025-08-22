@@ -4,13 +4,31 @@ import { existsSync } from 'fs';
 import { join } from 'path';
 import { PRAnalysis } from './github';
 import { TicketContext, ConfluencePage } from './atlassian';
-import { TestScenario, TestGenerationRequest } from './test-generator';
+
+export interface TestScenario {
+  id: string;
+  title: string;
+  description: string;
+  priority: 'high' | 'medium' | 'low';
+  category: 'functionality' | 'regression' | 'integration' | 'ui' | 'performance' | 'security';
+  steps: TestStep[];
+  expectedOutcome: string;
+  focusAreas: string[];
+  automationLevel: 'manual' | 'semi-automated' | 'automated';
+  estimatedDuration: number; // minutes
+}
+
+export interface TestStep {
+  action: string;
+  target?: string;
+  input?: string;
+  verification: string;
+}
 
 export interface AITestGenerationContext {
   prAnalysis: PRAnalysis;
   jiraContext?: TicketContext | null;
   confluencePages: ConfluencePage[];
-  focusAreas: string[];
 }
 
 export class AITestScenarioGenerator {
@@ -65,7 +83,7 @@ export class AITestScenarioGenerator {
   }
 
   private buildGenerationPrompt(context: AITestGenerationContext): string {
-    const { prAnalysis, jiraContext, confluencePages, focusAreas } = context;
+    const { prAnalysis, jiraContext, confluencePages } = context;
     
     let prompt = `You are an expert software testing assistant. Generate comprehensive test scenarios for a GitHub PR based on the provided context.
 
@@ -117,13 +135,6 @@ ${confluencePages.map(page => `
 `).join('')}`;
     }
 
-    // Add focus areas if specified
-    if (focusAreas.length > 0) {
-      prompt += `
-
-## Focus Areas
-Please pay special attention to these areas: ${focusAreas.join(', ')}`;
-    }
 
     prompt += `
 

@@ -2,7 +2,6 @@ import { Command } from "commander";
 import chalk from "chalk";
 import { GitHubService } from "../services/github";
 import { AtlassianService } from "../services/atlassian";
-import { TestScenarioGenerator } from "../services/test-generator";
 import { AITestScenarioGenerator } from "../services/ai-test-generator";
 import { ContextExporter } from "../services/context-exporter";
 import { ClaudeDesktopOrchestrator } from "../services/claude-desktop";
@@ -121,46 +120,31 @@ async function executePRTest(prUrl: string, options: any) {
       console.log(chalk.gray(`Step 3 completed in ${Date.now() - step3Start}ms`));
     }
     
-    // Step 4: Generate test scenarios
-    console.log(chalk.yellow("🧪 Generating test scenarios..."));
-    const focusAreas = options.focus?.split(",") || [];
+    // Step 4: Generate test scenarios with AI
+    console.log(chalk.yellow("🧪 Generating AI test scenarios..."));
     
     if (options.verbose) {
-      console.log(chalk.gray(`Initializing test scenario generator...`));
-      if (focusAreas.length > 0) {
-        console.log(chalk.gray(`Focus areas: [${focusAreas.join(', ')}]`));
-      } else {
-        console.log(chalk.gray(`No specific focus areas specified`));
-      }
+      console.log(chalk.gray(`Using Claude CLI for intelligent test generation...`));
     }
 
     const step4Start = Date.now();
     let scenarios;
     let aiSummary = '';
-    let isAIGenerated = false;
 
-    // Try to use AI generation if Claude API key is available
     try {
-      if (options.verbose) {
-        console.log(chalk.gray(`Attempting AI-powered test generation...`));
-      }
-      
       const aiGenerator = new AITestScenarioGenerator();
       scenarios = await aiGenerator.generateScenarios({
         prAnalysis,
         jiraContext,
-        confluencePages,
-        focusAreas
+        confluencePages
       });
 
       aiSummary = await aiGenerator.generateTestSummary(scenarios, {
         prAnalysis,
         jiraContext,
-        confluencePages,
-        focusAreas
+        confluencePages
       });
 
-      isAIGenerated = true;
       console.log(`🤖 AI-generated ${scenarios.length} intelligent test scenarios`);
 
       if (options.verbose) {
@@ -168,26 +152,15 @@ async function executePRTest(prUrl: string, options: any) {
       }
 
     } catch (aiError) {
+      console.error(chalk.red("❌ AI test generation failed:"));
       if (options.verbose) {
-        console.log(chalk.gray(`AI generation failed: ${aiError instanceof Error ? aiError.message : String(aiError)}`));
-        console.log(chalk.gray(`Falling back to rule-based generation...`));
-      } else {
-        console.log(chalk.yellow(`⚠️  AI generation unavailable, using rule-based generation`));
+        console.error(chalk.gray(`Error: ${aiError instanceof Error ? aiError.message : String(aiError)}`));
+        console.error(chalk.gray(`Make sure Claude CLI is installed and authenticated:`));
+        console.error(chalk.gray(`  npm install -g @anthropic-ai/claude-cli`));
+        console.error(chalk.gray(`  claude auth`));
       }
-
-      // Fallback to rule-based generation
-      const generator = new TestScenarioGenerator();
-      scenarios = await generator.generate({
-        prAnalysis,
-        jiraContext,
-        confluencePages,
-        focusAreas
-      });
-
-      console.log(`📋 Generated ${scenarios.length} rule-based test scenarios`);
+      throw aiError;
     }
-    
-    console.log(`Generated ${scenarios.length} test scenarios`);
     
     if (options.verbose && scenarios.length > 0) {
       console.log(chalk.gray(`Test scenarios generated:`));
@@ -195,9 +168,6 @@ async function executePRTest(prUrl: string, options: any) {
         console.log(chalk.gray(`  ${i + 1}. ${scenario.title} (${scenario.priority} priority, ${scenario.category})`));
         console.log(chalk.gray(`     ${scenario.description}`));
         console.log(chalk.gray(`     Steps: ${scenario.steps.length}, Duration: ${scenario.estimatedDuration}min, Level: ${scenario.automationLevel}`));
-        if (scenario.focusAreas.length > 0) {
-          console.log(chalk.gray(`     Focus: [${scenario.focusAreas.join(', ')}]`));
-        }
       });
     }
     
@@ -219,8 +189,7 @@ async function executePRTest(prUrl: string, options: any) {
         metadata: {
           exportedAt: new Date().toISOString(),
           tapVersion: "1.0.0",
-          totalScenarios: scenarios.length,
-          focusAreas
+          totalScenarios: scenarios.length
         }
       };
 
@@ -237,10 +206,8 @@ async function executePRTest(prUrl: string, options: any) {
       console.log(`  2. Use Claude Code to refine scenarios based on full context`);
       console.log(`  3. Run: bun run start execute-scenarios --file <refined-scenarios.json>`);
       
-      if (isAIGenerated) {
-        console.log(chalk.gray(`\n💡 AI Summary:`));
-        console.log(chalk.gray(aiSummary));
-      }
+      console.log(chalk.gray(`\n💡 AI Summary:`));
+      console.log(chalk.gray(aiSummary));
 
       if (options.verbose) {
         console.log(chalk.gray(`Total execution time: ${Date.now() - startTime}ms`));
@@ -330,7 +297,6 @@ async function executePRTest(prUrl: string, options: any) {
 export const testPRCommand = new Command("test-pr")
   .description("Analyze and test a GitHub PR")
   .argument("<pr-url>", "GitHub PR URL")
-  .option("--focus <areas>", "Focus testing on specific areas (comma-separated)")
   .option("--generate-only", "Generate scenarios and export context for Claude Code review")
   .option("--skip-execution", "Generate scenarios but don't execute tests")
   .option("--output <path>", "Output directory for test artifacts", "./tap-output")

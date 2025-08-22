@@ -3,7 +3,7 @@ import { existsSync } from 'fs';
 import { join, dirname } from 'path';
 import { PRAnalysis } from './github';
 import { TicketContext, ConfluencePage } from './atlassian';
-import { TestScenario } from './test-generator';
+import { TestScenario } from './ai-test-generator';
 
 export interface ContextExportData {
   prAnalysis: PRAnalysis;
@@ -15,7 +15,6 @@ export interface ContextExportData {
     exportedAt: string;
     tapVersion: string;
     totalScenarios: number;
-    focusAreas: string[];
   };
 }
 
@@ -199,8 +198,6 @@ ${Object.entries(
   }, {} as Record<string, number>)
 ).map(([category, count]) => `- **${category}:** ${count} scenarios`).join('\n')}
 
-## Focus Areas
-${metadata.focusAreas.length > 0 ? metadata.focusAreas.join(', ') : 'No specific focus areas'}
 
 ---
 

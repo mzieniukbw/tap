@@ -122,47 +122,20 @@ bun run start test-pr https://github.com/company/repo/pull/143
 # ✅ Testing complete!
 ```
 
-## Workflow 3: Current Branch Testing
+## Workflow 3: Claude CLI Unavailable
 
 ### Scenario
-Testing the current working branch without knowing the PR URL.
+Claude CLI is not installed or authenticated.
 
 ```bash
-# Auto-detect and test current branch PR
-bun run start test-current-pr --generate-only --output ./current-pr-context
-
-# Then review with Claude Code and execute
-bun run start execute-scenarios --file ./refined-current-scenarios.json
-```
-
-## Workflow 4: Focus Area Testing
-
-### Scenario
-Large PR but you only want to focus on specific areas.
-
-```bash
-# Generate scenarios focused on authentication and database changes
-bun run start test-pr https://github.com/company/repo/pull/144 \
-  --generate-only \
-  --focus="authentication,database,security" \
-  --output ./focused-context
-
-# Review in Claude Code, then execute
-bun run start execute-scenarios --file ./focused-refined-scenarios.json
-```
-
-## Workflow 5: Fallback Mode (No AI API Key)
-
-### Scenario
-AI API is unavailable, using rule-based generation.
-
-```bash
-# Will automatically fallback to rule-based generation
+# Command will fail with helpful error message
 bun run start test-pr https://github.com/company/repo/pull/145 --generate-only
 
 # Output shows:
-# ⚠️  AI generation unavailable, using rule-based generation
-# 📋 Generated 5 rule-based test scenarios
+# ❌ AI test generation failed:
+# Make sure Claude CLI is installed and authenticated:
+#   npm install -g @anthropic-ai/claude-cli
+#   claude auth
 ```
 
 ## Claude Code Review Best Practices

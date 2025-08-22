@@ -1,6 +1,5 @@
 import { Command } from "commander";
 import { testPRCommand } from "./commands/test-pr";
-import { testCurrentPRCommand } from "./commands/test-current-pr";
 import { executeScenariosCommand } from "./commands/execute-scenarios";
 import { setupCommand } from "./commands/setup";
 import { ConfigService } from "./services/config";
@@ -16,7 +15,6 @@ const program = new Command()
   .option("--config <path>", "Path to config file", homedir() + "/.tap/config.json");
 
 program.addCommand(testPRCommand);
-program.addCommand(testCurrentPRCommand);
 program.addCommand(executeScenariosCommand);
 program.addCommand(setupCommand);
 

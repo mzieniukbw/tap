@@ -1,7 +1,7 @@
 import { PRAnalysis } from "./github";
 import { TicketContext } from "./atlassian";
 import { ConfluencePage } from "./atlassian";
-import { TestScenario } from "./test-generator";
+import { TestScenario } from "./ai-test-generator";
 import { TestResult } from "./claude-desktop";
 
 export interface QAReportData {
