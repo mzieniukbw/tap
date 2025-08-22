@@ -24,6 +24,12 @@ async function executePRTest(prUrl: string, options: any) {
       verbose: options.verbose
     });
     
+    // Generate output directory name based on PR number and last commit SHA
+    const lastCommitSha = prAnalysis.commits[prAnalysis.commits.length - 1]?.sha.substring(0, 7) || 'unknown';
+    const outputDir = options.output === './tap-output' 
+      ? `./${prAnalysis.number}-${lastCommitSha}`
+      : options.output;
+    
     // Step 2: Generate test scenarios with AI
     console.log(chalk.yellow("🧪 Generating AI test scenarios..."));
     
@@ -97,16 +103,16 @@ async function executePRTest(prUrl: string, options: any) {
         }
       };
 
-      const exportedFiles = await exporter.exportFullContext(contextData, options.output);
+      const exportedFiles = await exporter.exportFullContext(contextData, outputDir);
       
       console.log(chalk.green("✅ Context exported successfully!"));
-      console.log(chalk.blue(`\n📁 Files created in ${options.output}:`));
+      console.log(chalk.blue(`\n📁 Files created in ${outputDir}:`));
       exportedFiles.forEach(file => {
         console.log(`  • ${file}`);
       });
 
       console.log(chalk.blue(`\n🤖 Next steps:`));
-      console.log(`  1. Review generated scenarios in: ${options.output}/generated-scenarios.md`);
+      console.log(`  1. Review generated scenarios in: ${outputDir}/generated-scenarios.md`);
       console.log(`  2. Use Claude Code to refine scenarios based on full context`);
       console.log(`  3. Run: bun run start execute-scenarios --file <refined-scenarios.json>`);
       
@@ -126,7 +132,7 @@ async function executePRTest(prUrl: string, options: any) {
       jiraContext,
       confluencePages,
       scenarios,
-      outputDir: options.output,
+      outputDir: outputDir,
       verbose: options.verbose
     });
     
@@ -154,6 +160,6 @@ export const testPRCommand = new Command("test-pr")
   .description("Analyze and test a GitHub PR")
   .argument("<pr-url>", "GitHub PR URL")
   .option("--generate-only", "Generate scenarios and export context for Claude Code review")
-  .option("--output <path>", "Output directory for test artifacts", "./tap-output")
+  .option("--output <path>", "Output directory for test artifacts (default: ./{PR-number}-{commit-sha})")
   .option("--verbose", "Enable detailed logging")
   .action(executePRTest);
