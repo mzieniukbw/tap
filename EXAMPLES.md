@@ -55,7 +55,7 @@ claude-code
 
 # Then in Claude Code, ask:
 ```
-> Review the test scenarios in `./auth-pr-context/generated-scenarios.md`. I need you to analyze the full context and refine these scenarios for testing a user authentication PR with password reset functionality.
+> Review the test scenarios in `./15957-pr-context/generated-scenarios.md`. I need you to analyze the full context and refine these scenarios for testing a user authentication PR with password reset functionality.
 
 > Please focus on:
 > 1. Edge cases for password validation
@@ -94,13 +94,13 @@ I've reviewed the AI-generated scenarios and the full PR context. Here are my re
 
 [...additional refined scenarios...]
 
-Save these refined scenarios to: `auth-pr-refined-scenarios.json`
+Save these refined scenarios to: `refined-scenarios.json`
 ```
 
 ### Step 3: Execute Refined Scenarios
 ```bash
 # Execute the human-refined scenarios
-bun run start execute-scenarios --file ./auth-pr-refined-scenarios.json --output ./auth-test-results
+bun run start execute-scenarios --file ./refined-scenarios.json
 
 # Output shows:
 # 🤖 Executing 8 test scenarios...
@@ -184,14 +184,15 @@ bun run start test-pr https://github.com/company/repo/pull/145 --generate-only
 
 ### Typical Test Results Structure
 ```
-./tap-output/
-├── scenario-1/
-│   ├── step_1_navigate_20240815_143022.png
-│   ├── step_2_click_20240815_143025.png
-│   └── final_scenario-1_20240815_143030.png
-├── scenario-2/
-│   └── [screenshots and videos]
-└── [additional scenarios]
+./15957-abc1234/
+├── screenshots/
+│   ├── scenario_1_step_1.png
+│   ├── scenario_1_step_2.png
+│   └── scenario_2_final.png
+├── videos/
+│   └── test_execution.mp4
+├── qa-report.md
+└── test-results.json
 ```
 
 ### QA Report Interpretation
@@ -204,9 +205,9 @@ bun run start test-pr https://github.com/company/repo/pull/145 --generate-only
 ### Common Issues and Solutions
 
 1. **AI Generation Fails:**
-   - Check `ANTHROPIC_API_KEY` environment variable
-   - Verify API key validity and quota
-   - System automatically falls back to rule-based generation
+   - Ensure Claude CLI is installed: `npm install -g @anthropic-ai/claude-cli`
+   - Authenticate Claude CLI: `claude auth`
+   - Verify Claude CLI is working: `claude --version`
 
 2. **Claude Code Integration:**
    - Ensure exported context files are accessible
