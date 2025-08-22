@@ -12,7 +12,6 @@ const program = new Command()
   .name("tap")
   .version(TAP_VERSION)
   .description("Testing Assistant Project - Automated testing scenarios from GitHub PRs and Jira tickets")
-  .option("-v, --verbose", "Enable verbose output")
   .option("--config <path>", "Path to config file", homedir() + "/.tap/config.json");
 
 program.addCommand(testPRCommand);
