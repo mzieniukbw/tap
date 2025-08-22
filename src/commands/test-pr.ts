@@ -215,8 +215,8 @@ async function executePRTest(prUrl: string, options: any) {
       return;
     }
     
-    // Step 5: Execute tests (unless skipped)
-    if (!options.skipExecution) {
+    // Step 5: Execute tests with Claude Desktop
+    {
       console.log(chalk.yellow("🤖 Executing tests with Claude Desktop..."));
       if (options.verbose) {
         console.log(chalk.gray(`Initializing Claude Desktop orchestrator...`));
@@ -263,15 +263,6 @@ async function executePRTest(prUrl: string, options: any) {
       }
       console.log(chalk.gray("QA Report:"));
       console.log(report);
-    } else {
-      console.log(chalk.blue("ℹ️ Test execution skipped - scenarios generated only"));
-      scenarios.forEach((scenario, i) => {
-        console.log(`${i + 1}. ${scenario.title}`);
-        console.log(`   ${scenario.description}`);
-      });
-      if (options.verbose) {
-        console.log(chalk.gray(`Total execution time: ${Date.now() - startTime}ms`));
-      }
     }
     
   } catch (error) {
@@ -298,7 +289,6 @@ export const testPRCommand = new Command("test-pr")
   .description("Analyze and test a GitHub PR")
   .argument("<pr-url>", "GitHub PR URL")
   .option("--generate-only", "Generate scenarios and export context for Claude Code review")
-  .option("--skip-execution", "Generate scenarios but don't execute tests")
   .option("--output <path>", "Output directory for test artifacts", "./tap-output")
   .option("--verbose", "Enable detailed logging")
   .action(executePRTest);

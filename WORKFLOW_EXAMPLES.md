@@ -2,6 +2,8 @@
 
 This document provides practical examples of using TAP's AI-powered, human-in-the-loop testing workflow.
 
+**Note**: TAP now has a simplified interface - use `--generate-only` to export context for human review, or run without options for direct execution.
+
 ## Workflow 1: Full Human-in-the-Loop (Recommended)
 
 ### Scenario

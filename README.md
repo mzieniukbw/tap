@@ -1,6 +1,6 @@
 # Testing Assistant Project (TAP)
 
-A Bun-based CLI tool that automatically generates and executes ephemeral testing scenarios from GitHub PRs and Jira tickets. TAP leverages Claude Code for orchestration and Claude Desktop for test execution with screen automation.
+A Bun-based CLI tool that uses AI-powered test generation and human-in-the-loop workflow to create and execute ephemeral testing scenarios from GitHub PRs and Jira tickets. TAP combines Claude CLI for intelligent test generation, Claude Code for human refinement, and Claude Desktop for test execution with screen automation.
 
 ## Quick Setup
 
@@ -8,22 +8,33 @@ A Bun-based CLI tool that automatically generates and executes ephemeral testing
 cd tap
 bun install
 bun run start setup
+
+# Install Claude CLI for AI test generation
+npm install -g @anthropic-ai/claude-cli
+claude auth
 ```
 
 ## Usage
 
+### Human-in-the-Loop Workflow (Recommended)
 ```bash
-# Test a specific PR
-bun run start test-pr https://github.com/company/repo/pull/123
+# Step 1: Generate AI scenarios and export context for review
+bun run start test-pr <pr-url> --generate-only --output ./tap-context
 
-# Test current branch PR (auto-detect)
-bun run start test-current-pr
+# Step 2: Review and refine scenarios
+# Option A: Use the auto-generated helper script
+cd ./tap-context && ./claude-refine.sh
+# Option B: Use Claude Code to manually review the exported files
+# Option C: Use claude CLI directly with the exported context
 
-# Test with specific focus areas
-bun run start test-pr <url> --focus="authentication,payment-flow"
+# Step 3: Execute refined scenarios
+bun run start execute-scenarios --file ./refined-scenarios.json
+```
 
-# Generate scenarios without execution
-bun run start test-pr <url> --skip-execution
+### Direct Execution
+```bash
+# Execute immediately with AI-generated scenarios (no human review)
+bun run start test-pr <pr-url>
 
 # Enable detailed logging
 bun run start test-pr <url> --verbose
@@ -62,16 +73,14 @@ bun run dev:mcp               # Run MCP server in development mode
 
 ### test-pr
 - `<pr-url>` - GitHub PR URL (required)
-- `--focus <areas>` - Focus testing on specific areas (comma-separated)
-- `--skip-execution` - Generate scenarios but don't execute tests
+- `--generate-only` - Generate scenarios and export context for Claude Code review
 - `--output <path>` - Output directory for test artifacts (default: `./tap-output`)
 - `--verbose` - Enable detailed logging with timing information
 
-### test-current-pr
-- `--focus <areas>` - Focus testing on specific areas (comma-separated)
-- `--skip-execution` - Generate scenarios but don't execute tests
+### execute-scenarios
+- `--file <path>` - Path to JSON file containing test scenarios (required)
 - `--output <path>` - Output directory for test artifacts (default: `./tap-output`)
-- `--verbose` - Enable detailed logging with timing information
+- `--verbose` - Enable detailed logging
 
 ## Configuration
 
@@ -89,23 +98,50 @@ Creates `~/.tap/config.json` with your API credentials.
 - `ATLASSIAN_EMAIL` - Atlassian account email
 - `ATLASSIAN_BASE_URL` - Atlassian instance URL (e.g., https://company.atlassian.net)
 
+### 3. Claude CLI Setup
+```bash
+# Install Claude CLI for AI test generation
+npm install -g @anthropic-ai/claude-cli
+claude auth
+claude --version  # Verify installation
+```
+
 The system automatically tests API connectivity before running commands.
 
 ## Data Flow
 
-1. **GitHub PR analysis** → Extract diffs, metadata, Jira ticket keys
-2. **Jira context gathering** → Ticket details, epics, linked issues
-3. **Confluence documentation** → Related technical documentation
-4. **Test generation** → Context-aware scenarios
-5. **Claude Desktop execution** → Automated testing with screen capture
-6. **QA report generation** → Structured output with artifacts
+### Human-in-the-Loop Mode (--generate-only)
+1. **Context Gathering** → GitHub PR analysis + Jira tickets + Confluence docs  
+2. **AI Generation** → Claude CLI creates intelligent scenarios from full context
+3. **Context Export** → Comprehensive data files + helper scripts for human review
+4. **Human Refinement** → Manual review using Claude Code or automated with helper script
+5. **Execution** → `execute-scenarios` command runs refined scenarios with Claude Desktop
+6. **QA Reporting** → Structured output with test results and artifacts
+
+### Direct Execution Mode
+1. **Context Gathering** → GitHub PR analysis + Jira tickets + Confluence docs
+2. **AI Generation** → Claude CLI creates intelligent scenarios from full context  
+3. **Immediate Execution** → Claude Desktop runs AI scenarios directly
+4. **QA Reporting** → Structured output with test results and artifacts
 
 ## Output Structure
 
-Test artifacts are generated in `tap-output/` (or custom `--output` directory):
-- Screenshots: `*.png`
-- Videos: `*.mp4` 
-- QA reports: Structured console output with recommendations
+### Context Export (--generate-only mode)
+When using `--generate-only`, TAP exports comprehensive context files:
+- `pr-analysis.json` - Complete PR analysis with diffs and metadata
+- `jira-context.json` - Business context from Jira ticket (if available)
+- `confluence-docs.json` - Related documentation (if found)
+- `generated-scenarios.json` - Machine-readable AI-generated scenarios
+- `generated-scenarios.md` - Human-readable scenario descriptions
+- `context-summary.md` - Executive summary of the PR and context
+- `claude-code-instructions.md` - Instructions for Claude Code review
+- `claude-refine.sh` - Auto-generated helper script for Claude CLI refinement
+
+### Test Execution Artifacts
+Generated in `tap-output/` (or custom `--output` directory):
+- Screenshots: `*.png` 
+- Videos: `*.mp4`
+- QA reports: Structured console output with AI insights and recommendations
 
 ## Verbose Logging
 
@@ -130,13 +166,14 @@ Use the `--verbose` flag to enable detailed logging that includes:
 
 ### Core Structure
 - `src/main.ts` - CLI entry point using Commander.js framework
-- `src/commands/` - Command implementations (test-pr, test-current-pr, setup)
+- `src/commands/` - Command implementations (test-pr, execute-scenarios, setup)
 - `src/services/` - Business logic services
 - `mcp-servers/atlassian-mcp/server.ts` - Unified Atlassian MCP server
 
 ### Key Services
 - `GitHubService` - PR analysis and diff processing
 - `AtlassianService` - Jira ticket and Confluence page integration
-- `TestScenarioGenerator` - Dynamic test scenario creation
+- `AITestScenarioGenerator` - AI-powered intelligent test scenario creation using Claude CLI
+- `ContextExporter` - Comprehensive data export for Claude Code review
 - `ClaudeDesktopOrchestrator` - Test execution coordination
-- `QAReportGenerator` - Comprehensive test reporting
+- `QAReportGenerator` - Comprehensive test reporting with AI insights

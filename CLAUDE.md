@@ -115,8 +115,8 @@ bun run start execute-scenarios --file ./refined-scenarios.json
 # Alternative: Direct execution (no human review)
 bun run start test-pr <pr-url>                    # Full execution with AI scenarios
 
-# Generate scenarios without execution
-bun run start test-pr <url> --skip-execution
+# Generate scenarios and export context for review
+bun run start test-pr <url> --generate-only
 ```
 
 ### MCP Server Integration
