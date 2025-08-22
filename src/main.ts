@@ -2,7 +2,9 @@ import { Command } from "commander";
 import { testPRCommand } from "./commands/test-pr";
 import { testCurrentPRCommand } from "./commands/test-current-pr";
 import { setupCommand } from "./commands/setup";
+import { ConfigService } from "./services/config";
 import { homedir } from "os";
+import chalk from "chalk";
 
 const TAP_VERSION = "1.0.0";
 
@@ -16,5 +18,28 @@ const program = new Command()
 program.addCommand(testPRCommand);
 program.addCommand(testCurrentPRCommand);
 program.addCommand(setupCommand);
+
+// Hook to run connectivity test before any command (except setup)
+program.hook('preAction', async (thisCommand) => {
+  const commandName = thisCommand.name();
+  
+  // Skip connectivity test for setup command
+  if (commandName === 'setup') {
+    return;
+  }
+
+  try {
+    const configService = ConfigService.getInstance();
+    await configService.testConnectivity();
+  } catch (error) {
+    if (error instanceof Error && error.message.includes('No configuration found')) {
+      console.log(chalk.red("❌ Configuration not found."));
+      console.log(chalk.yellow("Please run 'bun run start setup' to configure TAP."));
+      process.exit(1);
+    } else {
+      console.log(chalk.yellow("⚠️  Connectivity test failed, but continuing..."));
+    }
+  }
+});
 
 program.parse();

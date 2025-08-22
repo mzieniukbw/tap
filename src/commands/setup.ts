@@ -3,6 +3,7 @@ import chalk from "chalk";
 import inquirer from "inquirer";
 import { mkdir, access, writeFile, chmod } from "fs/promises";
 import { homedir } from "os";
+import { ConfigService } from "../services/config";
 
 interface Config {
   github: {
@@ -92,8 +93,8 @@ async function executeSetup(options: any) {
     console.log(chalk.gray(`Config location: ${configDir}/config.json`));
     
     // Test connectivity
-    console.log(chalk.yellow("🔍 Testing connectivity..."));
-    await testConnectivity(config);
+    const configService = ConfigService.getInstance();
+    await configService.testConnectivity(config);
     
     console.log(chalk.green("🎉 Setup completed successfully!"));
     console.log("");
@@ -108,45 +109,6 @@ async function executeSetup(options: any) {
   }
 }
 
-async function testConnectivity(config: Config): Promise<void> {
-  // Test GitHub
-  try {
-    const response = await fetch("https://api.github.com/user", {
-      headers: {
-        "Authorization": `token ${config.github.token}`,
-        "Accept": "application/vnd.github.v3+json"
-      }
-    });
-    
-    if (response.ok) {
-      console.log(chalk.green("  ✅ GitHub API connection successful"));
-    } else {
-      console.log(chalk.red("  ❌ GitHub API connection failed"));
-    }
-  } catch (error) {
-    console.log(chalk.red("  ❌ GitHub API connection error"));
-  }
-
-  // Test Atlassian
-  try {
-    const authHeader = `Basic ${Buffer.from(`${config.atlassian.email}:${config.atlassian.apiToken}`).toString('base64')}`;
-    
-    const response = await fetch(`${config.atlassian.baseUrl}/rest/api/3/myself`, {
-      headers: {
-        'Authorization': authHeader,
-        'Accept': 'application/json'
-      }
-    });
-    
-    if (response.ok) {
-      console.log(chalk.green("  ✅ Atlassian API connection successful"));
-    } else {
-      console.log(chalk.red("  ❌ Atlassian API connection failed"));
-    }
-  } catch (error) {
-    console.log(chalk.red("  ❌ Atlassian API connection error"));
-  }
-}
 
 export const setupCommand = new Command("setup")
   .description("Set up Testing Assistant Project")

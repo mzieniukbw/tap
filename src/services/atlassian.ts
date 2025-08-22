@@ -1,4 +1,5 @@
 import { PRAnalysis } from "./github";
+import { ConfigService, TapConfig } from './config';
 
 export interface JiraTicket {
   key: string;
@@ -36,16 +37,18 @@ export interface TicketContext {
 }
 
 export class AtlassianService {
-  private baseUrl: string;
-  private email: string;
-  private token: string;
-  private authHeader: string;
+  private configService: ConfigService;
+  private config: TapConfig | null = null;
 
   constructor() {
-    this.baseUrl = process.env.ATLASSIAN_BASE_URL || "";
-    this.email = process.env.ATLASSIAN_EMAIL || "";
-    this.token = process.env.ATLASSIAN_API_TOKEN || "";
-    this.authHeader = `Basic ${btoa(`${this.email}:${this.token}`)}`;
+    this.configService = ConfigService.getInstance();
+  }
+
+  private async getConfig(): Promise<TapConfig> {
+    if (!this.config) {
+      this.config = await this.configService.getConfig();
+    }
+    return this.config;
   }
 
   async getTicketFromPR(prAnalysis: PRAnalysis): Promise<TicketContext | null> {
@@ -87,7 +90,8 @@ export class AtlassianService {
   }
 
   async getJiraTicket(ticketKey: string): Promise<JiraTicket> {
-    const url = `${this.baseUrl}/rest/api/3/issue/${ticketKey}`;
+    const config = await this.getConfig();
+    const url = `${config.atlassian.baseUrl}/rest/api/3/issue/${ticketKey}`;
     const response = await this.atlassianRequest(url);
 
     return {
@@ -109,7 +113,8 @@ export class AtlassianService {
 
   async getLinkedIssues(ticketKey: string): Promise<JiraTicket[]> {
     try {
-      const url = `${this.baseUrl}/rest/api/3/issue/${ticketKey}?expand=issuelinks`;
+      const config = await this.getConfig();
+      const url = `${config.atlassian.baseUrl}/rest/api/3/issue/${ticketKey}?expand=issuelinks`;
       const response = await this.atlassianRequest(url);
       
       const linkedIssues: JiraTicket[] = [];
@@ -163,8 +168,9 @@ export class AtlassianService {
   }
 
   async searchConfluencePages(query: string): Promise<ConfluencePage[]> {
+    const config = await this.getConfig();
     const encodedQuery = encodeURIComponent(query);
-    const url = `${this.baseUrl}/wiki/rest/api/content/search?cql=text~"${encodedQuery}"&expand=body.storage,version,space&limit=5`;
+    const url = `${config.atlassian.baseUrl}/wiki/rest/api/content/search?cql=text~"${encodedQuery}"&expand=body.storage,version,space&limit=5`;
     
     try {
       const response = await this.atlassianRequest(url);
@@ -178,7 +184,7 @@ export class AtlassianService {
         created: page.history?.createdDate || page.version?.when || "",
         updated: page.version?.when || "",
         author: page.version?.by?.displayName || "Unknown",
-        url: `${this.baseUrl}/wiki${page._links.webui}`
+        url: `${config.atlassian.baseUrl}/wiki${page._links.webui}`
       }));
     } catch (error) {
       console.warn(`Confluence search error:`, error);
@@ -192,10 +198,11 @@ export class AtlassianService {
   }
 
   private async atlassianRequest(url: string, options: any = {}): Promise<any> {
+    const authHeader = await this.configService.getAtlassianAuthHeader();
     const response = await fetch(url, {
       ...options,
       headers: {
-        'Authorization': this.authHeader,
+        'Authorization': authHeader,
         'Accept': 'application/json',
         'Content-Type': 'application/json',
         ...options.headers,

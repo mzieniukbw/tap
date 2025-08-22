@@ -64,13 +64,23 @@ bun run dev:mcp
 5. Claude Desktop execution → Automated testing with screen capture
 6. QA report generation → Structured output with artifacts
 
-## Environment Configuration
+## Configuration
 
-Required environment variables:
+TAP supports two configuration methods:
+
+### 1. Interactive Setup (Recommended)
+```bash
+bun run start setup
+```
+Creates `~/.tap/config.json` with your API credentials.
+
+### 2. Environment Variables (Alternative)
 - `GITHUB_TOKEN` - GitHub Personal Access Token
 - `ATLASSIAN_API_TOKEN` - Unified token for Jira and Confluence
 - `ATLASSIAN_EMAIL` - Atlassian account email
 - `ATLASSIAN_BASE_URL` - Atlassian instance URL (e.g., https://company.atlassian.net)
+
+The system automatically tests API connectivity before running commands.
 
 ## Usage Patterns
 

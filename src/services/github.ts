@@ -27,11 +27,13 @@ export interface Commit {
   date: string;
 }
 
-export class GitHubService {
-  private token: string;
+import { ConfigService } from './config';
 
-  constructor(token?: string) {
-    this.token = token || process.env.GITHUB_TOKEN || "";
+export class GitHubService {
+  private configService: ConfigService;
+
+  constructor() {
+    this.configService = ConfigService.getInstance();
   }
 
   async analyzePR(prUrl: string): Promise<PRAnalysis> {
@@ -102,9 +104,10 @@ export class GitHubService {
   }
 
   private async githubRequest(endpoint: string): Promise<any> {
+    const authHeader = await this.configService.getGitHubAuthHeader();
     const response = await fetch(`https://api.github.com${endpoint}`, {
       headers: {
-        "Authorization": `token ${this.token}`,
+        "Authorization": authHeader,
         "Accept": "application/vnd.github.v3+json"
       }
     });
