@@ -31,7 +31,7 @@ export class GitHubService {
   private token: string;
 
   constructor(token?: string) {
-    this.token = token || Deno.env.get("GITHUB_TOKEN") || "";
+    this.token = token || process.env.GITHUB_TOKEN || "";
   }
 
   async analyzePR(prUrl: string): Promise<PRAnalysis> {

@@ -1,16 +1,16 @@
-#!/usr/bin/env -S deno run --allow-all
+#!/usr/bin/env bun
 
 // MCP Server for Atlassian (Jira + Confluence) integration
 // Uses unified Atlassian API token for both services
 
-import { Server } from "npm:@modelcontextprotocol/sdk@0.6.0/server/index.js";
-import { StdioServerTransport } from "npm:@modelcontextprotocol/sdk@0.6.0/server/stdio.js";
+import { Server } from "@modelcontextprotocol/sdk/server/index.js";
+import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import {
   CallToolRequestSchema,
   ListResourcesRequestSchema,
   ListToolsRequestSchema,
   ReadResourceRequestSchema,
-} from "npm:@modelcontextprotocol/sdk@0.6.0/types.js";
+} from "@modelcontextprotocol/sdk/types.js";
 
 interface JiraTicket {
   key: string;
@@ -62,9 +62,9 @@ class AtlassianMCPServer {
     );
 
     // Get configuration from environment
-    this.baseUrl = Deno.env.get("ATLASSIAN_BASE_URL") || "";
-    this.email = Deno.env.get("ATLASSIAN_EMAIL") || "";
-    this.apiToken = Deno.env.get("ATLASSIAN_API_TOKEN") || "";
+    this.baseUrl = process.env.ATLASSIAN_BASE_URL || "";
+    this.email = process.env.ATLASSIAN_EMAIL || "";
+    this.apiToken = process.env.ATLASSIAN_API_TOKEN || "";
     this.authHeader = `Basic ${btoa(`${this.email}:${this.apiToken}`)}`;
 
     if (!this.baseUrl || !this.email || !this.apiToken) {
@@ -181,7 +181,7 @@ class AtlassianMCPServer {
       ],
     }));
 
-    this.server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
+    this.server.setRequestHandler(ReadResourceRequestSchema, async (request: any) => {
       const { uri } = request.params;
       
       if (uri.startsWith('jira://')) {
@@ -211,7 +211,7 @@ class AtlassianMCPServer {
       throw new Error(`Unknown resource: ${uri}`);
     });
 
-    this.server.setRequestHandler(CallToolRequestSchema, async (request) => {
+    this.server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
       const { name, arguments: args } = request.params;
 
       try {
@@ -280,11 +280,12 @@ class AtlassianMCPServer {
             throw new Error(`Unknown tool: ${name}`);
         }
       } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
         return {
           content: [
             {
               type: 'text',
-              text: JSON.stringify({ error: error.message }),
+              text: JSON.stringify({ error: errorMessage }),
             },
           ],
         };

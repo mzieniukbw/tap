@@ -1,21 +1,20 @@
-#!/usr/bin/env -S deno run --allow-all
-
-import { Command } from "@cliffy/command";
-import { TestPRCommand } from "./commands/test-pr.ts";
-import { TestCurrentPRCommand } from "./commands/test-current-pr.ts";
-import { SetupCommand } from "./commands/setup.ts";
+import { Command } from "commander";
+import { testPRCommand } from "./commands/test-pr";
+import { testCurrentPRCommand } from "./commands/test-current-pr";
+import { setupCommand } from "./commands/setup";
+import { homedir } from "os";
 
 const TAP_VERSION = "1.0.0";
 
-await new Command()
+const program = new Command()
   .name("tap")
   .version(TAP_VERSION)
   .description("Testing Assistant Project - Automated testing scenarios from GitHub PRs and Jira tickets")
-  .globalOption("-v, --verbose", "Enable verbose output")
-  .globalOption("--config <path:string>", "Path to config file", {
-    default: Deno.env.get("HOME") + "/.tap/config.json"
-  })
-  .command("test-pr", new TestPRCommand())
-  .command("test-current-pr", new TestCurrentPRCommand())
-  .command("setup", new SetupCommand())
-  .parse(Deno.args);
+  .option("-v, --verbose", "Enable verbose output")
+  .option("--config <path>", "Path to config file", homedir() + "/.tap/config.json");
+
+program.addCommand(testPRCommand);
+program.addCommand(testCurrentPRCommand);
+program.addCommand(setupCommand);
+
+program.parse();

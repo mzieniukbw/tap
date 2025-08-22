@@ -1,4 +1,4 @@
-import { PRAnalysis } from "./github.ts";
+import { PRAnalysis } from "./github";
 
 export interface JiraTicket {
   key: string;
@@ -42,9 +42,9 @@ export class AtlassianService {
   private authHeader: string;
 
   constructor() {
-    this.baseUrl = Deno.env.get("ATLASSIAN_BASE_URL") || "";
-    this.email = Deno.env.get("ATLASSIAN_EMAIL") || "";
-    this.token = Deno.env.get("ATLASSIAN_API_TOKEN") || "";
+    this.baseUrl = process.env.ATLASSIAN_BASE_URL || "";
+    this.email = process.env.ATLASSIAN_EMAIL || "";
+    this.token = process.env.ATLASSIAN_API_TOKEN || "";
     this.authHeader = `Basic ${btoa(`${this.email}:${this.token}`)}`;
   }
 

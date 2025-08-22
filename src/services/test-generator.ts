@@ -1,5 +1,5 @@
-import { PRAnalysis, ChangedFile } from "./github.ts";
-import { TicketContext, JiraTicket, ConfluencePage } from "./atlassian.ts";
+import { PRAnalysis, ChangedFile } from "./github";
+import { TicketContext, JiraTicket, ConfluencePage } from "./atlassian";
 
 export interface TestScenario {
   id: string;

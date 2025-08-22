@@ -1,8 +1,8 @@
-import { PRAnalysis } from "./github.ts";
-import { TicketContext } from "./atlassian.ts";
-import { ConfluencePage } from "./atlassian.ts";
-import { TestScenario } from "./test-generator.ts";
-import { TestResult } from "./claude-desktop.ts";
+import { PRAnalysis } from "./github";
+import { TicketContext } from "./atlassian";
+import { ConfluencePage } from "./atlassian";
+import { TestScenario } from "./test-generator";
+import { TestResult } from "./claude-desktop";
 
 export interface QAReportData {
   prAnalysis: PRAnalysis;
@@ -20,7 +20,7 @@ export class QAReportGenerator {
     
     // Save report to file
     const reportPath = `${data.outputDir}/qa-report.md`;
-    await Deno.writeTextFile(reportPath, report);
+    await import('fs/promises').then(fs => fs.writeFile(reportPath, report));
     
     return report;
   }

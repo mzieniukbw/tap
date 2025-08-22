@@ -1,0 +1,33 @@
+{
+  "name": "testing-assistant-project",
+  "version": "1.0.0",
+  "description": "Developer Testing Assistant Kit - Automated testing scenarios from GitHub PRs and Jira tickets",
+  "type": "module",
+  "main": "src/main.ts",
+  "scripts": {
+    "start": "bun run src/main.ts",
+    "dev": "bun run --watch src/main.ts",
+    "build": "mkdir -p dist && bun build --compile --outfile=dist/tap src/main.ts",
+    "build:mcp": "mkdir -p dist && bun build --compile --outfile=dist/mcp-server src/mcp-servers/atlassian-mcp/server.ts",
+    "build:all": "bun run build && bun run build:mcp",
+    "clean": "rm -rf dist/ .env",
+    "dev:mcp": "bun run --watch src/mcp-servers/atlassian-mcp/server.ts",
+    "format": "bun x prettier --write .",
+    "lint": "bun x eslint src/"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.17.4",
+    "chalk": "5.6.0",
+    "commander": "14.0.0",
+    "inquirer": "12.9.3"
+  },
+  "devDependencies": {
+    "@types/node": "24.3.0",
+    "eslint": "9.33.0",
+    "prettier": "3.6.2",
+    "typescript": "5.9.2"
+  },
+  "engines": {
+    "bun": ">=1.2.0"
+  }
+}

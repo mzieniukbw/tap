@@ -4,53 +4,50 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-TAP (Testing Assistant Project) is a Deno-based CLI tool that automatically generates and executes ephemeral testing scenarios from GitHub PRs and Jira tickets. It leverages Claude Code for orchestration and Claude Desktop for test execution with screen automation.
+TAP (Testing Assistant Project) is a Bun-based CLI tool that automatically generates and executes ephemeral testing scenarios from GitHub PRs and Jira tickets. It leverages Claude Code for orchestration and Claude Desktop for test execution with screen automation.
 
 ## Development Commands
 
 ### Primary Tasks
 ```bash
 # Start the application
-deno task start <command>
+bun run start <command>
 
 # Development with file watching
-deno task dev
+bun run dev
 
-# Setup and configuration
-deno task setup
-
-# Test API connectivity
-deno task test-connectivity
+# Setup and configuration (interactive)
+bun run start setup
 ```
 
 ### Build Commands
 ```bash
 # Build main TAP executable
-deno task build
+bun run build
 
 # Build MCP server executable
-deno task build:mcp
+bun run build:mcp
 
 # Build both executables
-deno task build:all
+bun run build:all
 
 # Clean build artifacts
-deno task clean
+bun run clean
 ```
 
 ### MCP Development
 ```bash
 # Run MCP server in development mode
-deno task dev:mcp
+bun run dev:mcp
 ```
 
 ## Code Architecture
 
 ### Core Structure
-- `src/main.ts` - CLI entry point using Cliffy command framework
+- `src/main.ts` - CLI entry point using Commander.js framework
 - `src/commands/` - Command implementations (test-pr, test-current-pr, setup)
 - `src/services/` - Business logic services
-- `mcp-servers/atlassian-mcp/server.ts` - Unified Atlassian MCP server
+- `src/mcp-servers/atlassian-mcp/server.ts` - Unified Atlassian MCP server
 
 ### Key Services
 - `GitHubService` - PR analysis and diff processing
@@ -80,16 +77,16 @@ Required environment variables:
 ### Testing PRs
 ```bash
 # Test specific PR
-deno task start test-pr https://github.com/company/repo/pull/123
+bun run start test-pr https://github.com/company/repo/pull/123
 
 # Test current branch PR (auto-detect)
-deno task start test-current-pr
+bun run start test-current-pr
 
 # Test with focus areas
-deno task start test-pr <url> --focus="authentication,payment-flow"
+bun run start test-pr <url> --focus="authentication,payment-flow"
 
 # Generate scenarios without execution
-deno task start test-pr <url> --skip-execution
+bun run start test-pr <url> --skip-execution
 ```
 
 ### MCP Server Integration
@@ -102,18 +99,18 @@ The Atlassian MCP server provides:
 ## TypeScript Configuration
 
 - Strict mode enabled
-- Deno standard library imports via `@std/`
-- Cliffy library for CLI framework
+- Node.js standard library imports
+- Commander.js library for CLI framework
 - Modern ES modules with top-level await
 
 ## Code Formatting
 
-Deno fmt configuration:
+Prettier configuration:
 - 2-space indentation
 - 100 character line width
 - Semicolons required
 - Double quotes preferred
-- Includes: src/, scripts/
+- Includes: src/
 - Excludes: dist/, node_modules/
 
 ## Output Structure
@@ -125,8 +122,8 @@ Test artifacts are generated in `tap-output/` (or custom `--output` directory):
 
 ## Development Notes
 
-- This is a Deno project, not Node.js - use Deno APIs and imports
-- All external dependencies use URL imports from deno.land
-- MCP server uses npm: imports for Model Context Protocol SDK
+- This is a Bun project with Node.js compatibility - use Node.js APIs and npm packages
+- All external dependencies are managed via package.json and npm registry
+- MCP server uses @modelcontextprotocol/sdk for Model Context Protocol integration
 - No permanent test cases - all scenarios are dynamically generated
 - Unified Atlassian authentication uses single API token for both Jira and Confluence

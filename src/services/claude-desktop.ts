@@ -1,5 +1,6 @@
-import { TestScenario, TestStep } from "./test-generator.ts";
-import { ensureDir } from "@std/fs/mod.ts";
+import { TestScenario, TestStep } from "./test-generator";
+import { mkdir } from "fs/promises";
+import { existsSync } from "fs";
 
 export interface TestResult {
   scenarioId: string;
@@ -29,7 +30,9 @@ export interface Artifact {
 export class ClaudeDesktopOrchestrator {
   
   async executeScenarios(scenarios: TestScenario[], outputDir: string): Promise<TestResult[]> {
-    await ensureDir(outputDir);
+    if (!existsSync(outputDir)) {
+      await mkdir(outputDir, { recursive: true });
+    }
     const results: TestResult[] = [];
     
     console.log(`🤖 Executing ${scenarios.length} test scenarios...`);
@@ -53,7 +56,7 @@ export class ClaudeDesktopOrchestrator {
     const timestamp = new Date().toISOString();
     const scenarioDir = `${outputDir}/${scenario.id}`;
     
-    await ensureDir(scenarioDir);
+    await mkdir(scenarioDir, { recursive: true });
     
     const result: TestResult = {
       scenarioId: scenario.id,
@@ -97,8 +100,9 @@ export class ClaudeDesktopOrchestrator {
       
     } catch (error) {
       result.status = 'failed';
-      result.notes = `Execution failed: ${error.message}`;
-      console.log(`    ❌ Failed: ${error.message}`);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      result.notes = `Execution failed: ${errorMessage}`;
+      console.log(`    ❌ Failed: ${errorMessage}`);
     }
     
     return result;
@@ -148,7 +152,8 @@ export class ClaudeDesktopOrchestrator {
       
     } catch (error) {
       stepResult.status = 'failed';
-      stepResult.actualResult = `Step failed: ${error.message}`;
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      stepResult.actualResult = `Step failed: ${errorMessage}`;
     }
     
     stepResult.duration = Math.round((Date.now() - startTime) / 1000 * 100) / 100;
@@ -207,7 +212,7 @@ export class ClaudeDesktopOrchestrator {
       const path = `${scenarioDir}/${filename}`;
       
       // Create a placeholder file (in real implementation, this would be actual screenshot)
-      await Deno.writeTextFile(path + '.txt', `Screenshot placeholder: ${name} at ${timestamp}`);
+      await import('fs/promises').then(fs => fs.writeFile(path + '.txt', `Screenshot placeholder: ${name} at ${timestamp}`));
       
       return {
         type: 'screenshot',
@@ -216,7 +221,8 @@ export class ClaudeDesktopOrchestrator {
         timestamp: new Date().toISOString()
       };
     } catch (error) {
-      console.warn(`Failed to take screenshot ${name}: ${error.message}`);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.warn(`Failed to take screenshot ${name}: ${errorMessage}`);
       return null;
     }
   }
@@ -232,7 +238,8 @@ export class ClaudeDesktopOrchestrator {
       
       return path;
     } catch (error) {
-      console.warn(`Failed to start video recording: ${error.message}`);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.warn(`Failed to start video recording: ${errorMessage}`);
       return null;
     }
   }
@@ -242,7 +249,7 @@ export class ClaudeDesktopOrchestrator {
     
     try {
       // In real implementation, this would stop video recording
-      await Deno.writeTextFile(videoPath + '.txt', `Video recording placeholder for ${videoPath}`);
+      await import('fs/promises').then(fs => fs.writeFile(videoPath + '.txt', `Video recording placeholder for ${videoPath}`));
       
       return {
         type: 'video',
@@ -251,7 +258,8 @@ export class ClaudeDesktopOrchestrator {
         timestamp: new Date().toISOString()
       };
     } catch (error) {
-      console.warn(`Failed to stop video recording: ${error.message}`);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.warn(`Failed to stop video recording: ${errorMessage}`);
       return null;
     }
   }
