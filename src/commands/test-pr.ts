@@ -4,8 +4,7 @@ import { GitHubService } from "../services/github";
 import { AtlassianService } from "../services/atlassian";
 import { AITestScenarioGenerator } from "../services/ai-test-generator";
 import { ContextExporter } from "../services/context-exporter";
-import { ClaudeDesktopOrchestrator } from "../services/claude-desktop";
-import { QAReportGenerator } from "../services/qa-report";
+import { TestExecutionService } from "../services/test-execution";
 
 async function executePRTest(prUrl: string, options: any) {
   const startTime = Date.now();
@@ -215,55 +214,16 @@ async function executePRTest(prUrl: string, options: any) {
       return;
     }
     
-    // Step 5: Execute tests with Claude Desktop
-    {
-      console.log(chalk.yellow("🤖 Executing tests with Claude Desktop..."));
-      if (options.verbose) {
-        console.log(chalk.gray(`Initializing Claude Desktop orchestrator...`));
-        console.log(chalk.gray(`Output directory: ${options.output}`));
-        console.log(chalk.gray(`Scenarios to execute: ${scenarios.length}`));
-      }
-      const orchestrator = new ClaudeDesktopOrchestrator();
-      const step5Start = Date.now();
-      const results = await orchestrator.executeScenarios(scenarios, options.output);
-      
-      if (options.verbose) {
-        console.log(chalk.gray(`Test execution completed`));
-        console.log(chalk.gray(`Results summary: ${results ? 'Available' : 'No results returned'}`));
-        console.log(chalk.gray(`Step 5 completed in ${Date.now() - step5Start}ms`));
-      }
-      
-      // Step 6: Generate QA report
-      console.log(chalk.yellow("📋 Generating QA report..."));
-      if (options.verbose) {
-        console.log(chalk.gray(`Initializing QA report generator...`));
-        console.log(chalk.gray(`Including ${scenarios.length} scenarios in report`));
-        console.log(chalk.gray(`Report will be generated for output directory: ${options.output}`));
-      }
-      const reportGenerator = new QAReportGenerator();
-      const step6Start = Date.now();
-      const report = await reportGenerator.generate({
-        prAnalysis,
-        jiraContext,
-        confluencePages,
-        scenarios,
-        results,
-        outputDir: options.output
-      });
-      
-      if (options.verbose) {
-        console.log(chalk.gray(`QA report generation completed`));
-        console.log(chalk.gray(`Report length: ${report.length} characters`));
-        console.log(chalk.gray(`Step 6 completed in ${Date.now() - step6Start}ms`));
-      }
-      
-      console.log(chalk.green("✅ Testing complete!"));
-      if (options.verbose) {
-        console.log(chalk.gray(`Total execution time: ${Date.now() - startTime}ms`));
-      }
-      console.log(chalk.gray("QA Report:"));
-      console.log(report);
-    }
+    // Step 5: Execute tests with shared execution service
+    const executionService = new TestExecutionService();
+    await executionService.executeTestScenarios({
+      prAnalysis,
+      jiraContext,
+      confluencePages,
+      scenarios,
+      outputDir: options.output,
+      verbose: options.verbose
+    });
     
   } catch (error) {
     console.error(chalk.red("❌ Error during PR testing:"));

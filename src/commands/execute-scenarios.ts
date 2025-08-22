@@ -1,9 +1,13 @@
 import { Command } from "commander";
 import chalk from "chalk";
 import { ContextExporter } from "../services/context-exporter";
-import { ClaudeDesktopOrchestrator } from "../services/claude-desktop";
-import { QAReportGenerator } from "../services/qa-report";
+import { TestExecutionService } from "../services/test-execution";
 import { TestScenario } from "../services/ai-test-generator";
+import { PRAnalysis } from "../services/github";
+import { TicketContext, ConfluencePage } from "../services/atlassian";
+import { readFile } from "fs/promises";
+import { existsSync } from "fs";
+import { join, dirname } from "path";
 
 async function executeScenarios(options: any) {
   const startTime = Date.now();
@@ -24,7 +28,7 @@ async function executeScenarios(options: any) {
   }
   
   try {
-    // Load test scenarios from file
+    // Step 1: Load test scenarios from file
     console.log(chalk.yellow("📄 Loading test scenarios..."));
     if (options.verbose) {
       console.log(chalk.gray(`Reading scenarios from: ${options.file}`));
@@ -48,64 +52,21 @@ async function executeScenarios(options: any) {
       process.exit(0);
     }
 
-    // Execute scenarios
+    // Step 2: Load original context files (from the same directory as scenarios file)
+    const scenariosDir = dirname(options.file);
+    const context = await loadOriginalContext(scenariosDir, options.verbose);
+
+    // Step 3: Execute scenarios using shared execution service
     console.log(chalk.yellow("🤖 Executing test scenarios..."));
-    if (options.verbose) {
-      console.log(chalk.gray(`Initializing Claude Desktop orchestrator...`));
-      console.log(chalk.gray(`Output directory: ${options.output}`));
-    }
-    
-    const orchestrator = new ClaudeDesktopOrchestrator();
-    const results = await orchestrator.executeScenarios(scenarios, options.output);
-    
-    if (options.verbose) {
-      console.log(chalk.gray(`Test execution completed`));
-      console.log(chalk.gray(`Results: ${results.length} scenario results generated`));
-    }
-    
-    // Generate QA report
-    console.log(chalk.yellow("📋 Generating QA report..."));
-    if (options.verbose) {
-      console.log(chalk.gray(`Initializing QA report generator...`));
-    }
-    
-    const reportGenerator = new QAReportGenerator();
-    const report = await reportGenerator.generate({
-      // Note: These would ideally come from the original context files
-      prAnalysis: {
-        title: "Executed from refined scenarios",
-        description: `Executed ${scenarios.length} test scenarios`,
-        author: "TAP",
-        number: 0,
-        branch: "unknown",
-        baseBranch: "unknown",
-        labels: [],
-        commits: [],
-        changedFiles: [],
-        jiraTicketKeys: []
-      },
-      jiraContext: null,
-      confluencePages: [],
+    const executionService = new TestExecutionService();
+    await executionService.executeTestScenarios({
+      prAnalysis: context.prAnalysis,
+      jiraContext: context.jiraContext,
+      confluencePages: context.confluencePages,
       scenarios,
-      results,
-      outputDir: options.output
+      outputDir: options.output,
+      verbose: options.verbose
     });
-    
-    console.log(chalk.green("✅ Test execution complete!"));
-    
-    if (options.verbose) {
-      console.log(chalk.gray(`Total execution time: ${Date.now() - startTime}ms`));
-      console.log(chalk.gray(`Results summary:`));
-      const passed = results.filter(r => r.status === 'passed').length;
-      const failed = results.filter(r => r.status === 'failed').length;
-      const warnings = results.filter(r => r.status === 'warning').length;
-      console.log(chalk.gray(`  - Passed: ${passed}`));
-      console.log(chalk.gray(`  - Failed: ${failed}`));
-      console.log(chalk.gray(`  - Warnings: ${warnings}`));
-    }
-    
-    console.log(chalk.gray("\n📋 QA Report:"));
-    console.log(report);
     
   } catch (error) {
     console.error(chalk.red("❌ Error during scenario execution:"));
@@ -125,6 +86,76 @@ async function executeScenarios(options: any) {
     console.error(error);
     process.exit(1);
   }
+}
+
+async function loadOriginalContext(contextDir: string, verbose?: boolean): Promise<{
+  prAnalysis: PRAnalysis;
+  jiraContext: TicketContext | null;
+  confluencePages: ConfluencePage[];
+}> {
+  if (verbose) {
+    console.log(chalk.gray(`Loading original context from: ${contextDir}`));
+  }
+
+  // Load PR analysis (required)
+  const prAnalysisPath = join(contextDir, 'pr-analysis.json');
+  let prAnalysis: PRAnalysis;
+  
+  if (existsSync(prAnalysisPath)) {
+    const prAnalysisContent = await readFile(prAnalysisPath, 'utf-8');
+    prAnalysis = JSON.parse(prAnalysisContent);
+    if (verbose) {
+      console.log(chalk.gray(`✅ Loaded PR analysis: ${prAnalysis.title}`));
+    }
+  } else {
+    // Create dummy PR analysis if not found
+    prAnalysis = {
+      url: "unknown",
+      title: "Executed from refined scenarios",
+      description: "Test execution from refined scenarios",
+      author: "TAP",
+      number: 0,
+      branch: "unknown",
+      baseBranch: "unknown",
+      labels: [],
+      commits: [],
+      changedFiles: [],
+      jiraTicketKeys: []
+    };
+    if (verbose) {
+      console.log(chalk.gray(`⚠️  PR analysis not found, using dummy data`));
+    }
+  }
+
+  // Load Jira context (optional)
+  const jiraContextPath = join(contextDir, 'jira-context.json');
+  let jiraContext: TicketContext | null = null;
+  
+  if (existsSync(jiraContextPath)) {
+    const jiraContextContent = await readFile(jiraContextPath, 'utf-8');
+    jiraContext = JSON.parse(jiraContextContent);
+    if (verbose) {
+      console.log(chalk.gray(`✅ Loaded Jira context: ${jiraContext?.ticket.key}`));
+    }
+  } else if (verbose) {
+    console.log(chalk.gray(`ℹ️  No Jira context found`));
+  }
+
+  // Load Confluence docs (optional)
+  const confluenceDocsPath = join(contextDir, 'confluence-docs.json');
+  let confluencePages: ConfluencePage[] = [];
+  
+  if (existsSync(confluenceDocsPath)) {
+    const confluenceDocsContent = await readFile(confluenceDocsPath, 'utf-8');
+    confluencePages = JSON.parse(confluenceDocsContent);
+    if (verbose) {
+      console.log(chalk.gray(`✅ Loaded ${confluencePages.length} Confluence pages`));
+    }
+  } else if (verbose) {
+    console.log(chalk.gray(`ℹ️  No Confluence documentation found`));
+  }
+
+  return { prAnalysis, jiraContext, confluencePages };
 }
 
 export const executeScenariosCommand = new Command("execute-scenarios")
