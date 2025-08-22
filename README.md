@@ -19,11 +19,11 @@ claude auth
 ### Human-in-the-Loop Workflow (Recommended)
 ```bash
 # Step 1: Generate AI scenarios and export context for review
-bun run start test-pr <pr-url> --generate-only --output ./tap-context
+bun run start test-pr <pr-url> --generate-only    # Creates ./{PR-number}-{commit-sha}/ directory
 
 # Step 2: Review and refine scenarios
 # Option A: Use the auto-generated helper script
-cd ./tap-context && ./claude-refine.sh
+cd ./{PR-number}-{commit-sha} && ./claude-refine.sh
 # Option B: Use Claude Code to manually review the exported files
 # Option C: Use claude CLI directly with the exported context
 
@@ -39,7 +39,7 @@ bun run start test-pr <pr-url>
 # Enable detailed logging
 bun run start test-pr <url> --verbose
 
-# Custom output directory
+# Custom output directory (overrides default {PR-number}-{commit-sha} naming)
 bun run start test-pr <url> --output ./custom-output
 
 # Or use compiled executable
@@ -74,12 +74,12 @@ bun run dev:mcp               # Run MCP server in development mode
 ### test-pr
 - `<pr-url>` - GitHub PR URL (required)
 - `--generate-only` - Generate scenarios and export context for Claude Code review
-- `--output <path>` - Output directory for test artifacts (default: `./tap-output`)
+- `--output <path>` - Output directory for test artifacts (default: `./{PR-number}-{commit-sha}`)
 - `--verbose` - Enable detailed logging with timing information
 
 ### execute-scenarios
 - `--file <path>` - Path to JSON file containing test scenarios (required)
-- `--output <path>` - Output directory for test artifacts (default: `./tap-output`)
+- `--output <path>` - Output directory for test artifacts (default: `./{PR-number}-{commit-sha}`)
 - `--verbose` - Enable detailed logging
 
 ## Configuration
@@ -138,10 +138,11 @@ When using `--generate-only`, TAP exports comprehensive context files:
 - `claude-refine.sh` - Auto-generated helper script for Claude CLI refinement
 
 ### Test Execution Artifacts
-Generated in `tap-output/` (or custom `--output` directory):
-- Screenshots: `*.png` 
-- Videos: `*.mp4`
-- QA reports: Structured console output with AI insights and recommendations
+Generated in `./{PR-number}-{commit-sha}/` directory by default:
+- **Default naming**: `./{PR-number}-{7-char-commit-sha}/` (e.g., `./123-abc1234/`)
+- **Custom output**: Use `--output <path>` to override default naming
+- **Artifacts**: Screenshots (`*.png`), Videos (`*.mp4`), QA reports
+- **Context files**: All exported context and refinement files
 
 ## Verbose Logging
 

@@ -43,13 +43,13 @@ Developer Machine
 - **Application interaction**: Web browsers, desktop apps, CLI terminals
 - **Real-time execution**: Runs generated scenarios immediately
 
-**MCP Server (Deno/TypeScript) - Unified**
+**MCP Server (Bun/TypeScript) - Unified**
 ```
 mcp-servers/
 └── atlassian-mcp/
     └── server.ts            # Unified Jira + Confluence integration
                             # Uses single Atlassian API token
-                            # Built with Deno for modern runtime
+                            # Built with Bun for modern runtime
 ```
 
 ## Data Flow
@@ -85,8 +85,9 @@ mcp-servers/
 ### Deliverable Structure
 ```
 testing-assistant-project/
-├── deno.json                          # Deno configuration and tasks
-├── README.md                          # Setup and usage instructions  
+├── package.json                       # Bun configuration and dependencies
+├── tsconfig.json                      # TypeScript configuration
+├── CLAUDE.md                          # Project instructions for Claude Code
 ├── src/                               # TAP CLI source code
 │   ├── main.ts                        # CLI entry point
 │   ├── commands/                      # Command implementations
@@ -94,19 +95,16 @@ testing-assistant-project/
 ├── mcp-servers/
 │   └── atlassian-mcp/
 │       └── server.ts                  # Unified Atlassian integration
-├── scripts/
-│   ├── setup.ts                       # Deno-based setup
-│   └── test-connectivity.ts           # API verification
 └── dist/                              # Compiled executables (after build)
     ├── tap                            # Main CLI executable
-    └── mcp-server                     # MCP server executable
+    └── atlassian-mcp-server           # MCP server executable
 ```
 
 ### Setup Script Capabilities
 - Configure API credentials for GitHub/Atlassian (unified token)
 - Test connectivity to all services (GitHub, Jira, Confluence)
 - Compile executables for deployment
-- Validate prerequisites (Deno, Git)
+- Validate prerequisites (Bun, Git)
 - Create secure configuration files
 
 ## Developer Workflow
@@ -116,11 +114,11 @@ testing-assistant-project/
 #### Option 1: Generate + Review + Execute
 ```bash
 # Step 1: Generate AI scenarios and export context
-bun run start test-pr <pr-url> --generate-only --output ./tap-context
+bun run start test-pr <pr-url> --generate-only    # Creates ./{PR-number}-{commit-sha}/ directory
 
 # Step 2: Review with Claude Code (in separate terminal)
 claude-code
-# Then in Claude Code: "Review the test scenarios in ./tap-context/generated-scenarios.md and refine them"
+# Then in Claude Code: "Review the test scenarios in ./{PR-number}-{commit-sha}/generated-scenarios.md and refine them"
 
 # Step 3: Execute refined scenarios  
 bun run start execute-scenarios --file ./refined-scenarios.json
@@ -131,7 +129,7 @@ bun run start execute-scenarios --file ./refined-scenarios.json
 # Execute immediately with AI-generated scenarios (no human review)
 bun run start test-pr <pr-url>
 
-# Generate scenarios and export context for review
+# Generate scenarios and export context for review (creates ./{PR-number}-{commit-sha}/ directory)
 bun run start test-pr <url> --generate-only
 ```
 
@@ -249,8 +247,8 @@ Files Created:
 {
   "mcpServers": {
     "atlassian": {
-      "command": "deno",
-      "args": ["run", "--allow-all", "./mcp-servers/atlassian-mcp/server.ts"],
+      "command": "bun",
+      "args": ["run", "./mcp-servers/atlassian-mcp/server.ts"],
       "env": {
         "ATLASSIAN_API_TOKEN": "${ATLASSIAN_API_TOKEN}",
         "ATLASSIAN_EMAIL": "${ATLASSIAN_EMAIL}", 
@@ -266,7 +264,7 @@ Files Created:
 {
   "mcpServers": {
     "atlassian": {
-      "command": "./dist/mcp-server",
+      "command": "./dist/atlassian-mcp-server",
       "env": {
         "ATLASSIAN_API_TOKEN": "${ATLASSIAN_API_TOKEN}",
         "ATLASSIAN_EMAIL": "${ATLASSIAN_EMAIL}",
@@ -286,7 +284,6 @@ export ATLASSIAN_EMAIL="your-email@company.com"
 
 # Company-Specific URLs
 export ATLASSIAN_BASE_URL="https://company.atlassian.net"
-export COMPANY_HELP_DOCS="https://help.company.com"
 
 # AI Test Generation (Claude CLI)
 # Install Claude CLI: npm install -g @anthropic-ai/claude-cli
@@ -297,15 +294,14 @@ export COMPANY_HELP_DOCS="https://help.company.com"
 
 **Status**: ✅ IMPLEMENTATION COMPLETE  
 **Target Audience**: Internal Development Team  
-**Deployment Model**: Self-contained Deno executable per developer machine  
+**Deployment Model**: Self-contained Bun executable per developer machine  
 **Maintenance**: Minimal - ephemeral testing approach eliminates test suite maintenance
 
 ## Quick Start
 ```bash
 cd tap
-deno task setup              # Initial configuration
-deno task test-connectivity  # Verify API access
-deno task start test-pr <url> # Test a PR
+bun run start setup          # Initial configuration
+bun run start test-pr <url>  # Test a PR
 ```
 
 ## Key Features Implemented
