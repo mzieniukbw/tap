@@ -1,9 +1,6 @@
-import { execSync } from 'child_process';
-import { writeFile, readFile } from 'fs/promises';
-import { existsSync } from 'fs';
-import { join } from 'path';
-import { PRAnalysis } from './github';
-import { TicketContext, ConfluencePage } from './atlassian';
+import {ClaudeCLI, ClaudeCLIWrapper} from './claude-cli';
+import {PRAnalysis} from './github';
+import {ConfluencePage, TicketContext} from './atlassian';
 
 export interface TestScenario {
   id: string;
@@ -32,39 +29,18 @@ export interface AITestGenerationContext {
 }
 
 export class AITestScenarioGenerator {
+  private claudeCLI: ClaudeCLI;
 
-  constructor() {
-    // Check if claude CLI is available
-    this.checkClaudeCLI();
-  }
-
-  private checkClaudeCLI(): void {
-    try {
-      execSync('claude --version', { stdio: 'pipe' });
-    } catch (error) {
-      throw new Error('Claude CLI not found. Please install it with: npm install -g @anthropic-ai/claude-cli');
-    }
+  constructor(claudeCLI?: ClaudeCLI) {
+    this.claudeCLI = claudeCLI || new ClaudeCLIWrapper();
   }
 
   async generateScenarios(context: AITestGenerationContext): Promise<TestScenario[]> {
-    // Create a temporary directory for claude CLI interaction
-    const tempDir = '/tmp/tap-claude-generation';
-    await this.ensureDirectory(tempDir);
-    
-    // Write the prompt to a file
-    const prompt = this.buildGenerationPrompt(context);
-    const promptFile = join(tempDir, 'prompt.txt');
-    await writeFile(promptFile, prompt, 'utf-8');
+    const contextPrompt = this.buildGenerationPrompt(context);
+    const taskPrompt = 'Generate comprehensive test scenarios for this GitHub PR based on the provided context';
     
     try {
-      // Use claude CLI to generate scenarios
-      const claudeResponse = execSync(
-        `claude --file "${promptFile}" --model haiku`,
-        { 
-          encoding: 'utf-8',
-          maxBuffer: 1024 * 1024 // 1MB buffer for large responses
-        }
-      );
+      const claudeResponse = await this.claudeCLI.generateResponse(contextPrompt, taskPrompt);
 
       // Parse the AI response into TestScenario objects
       return this.parseAIResponse(claudeResponse, context);
@@ -74,13 +50,6 @@ export class AITestScenarioGenerator {
     }
   }
 
-  private async ensureDirectory(dirPath: string): Promise<void> {
-    try {
-      await import('fs/promises').then(fs => fs.mkdir(dirPath, { recursive: true }));
-    } catch (error) {
-      // Directory might already exist, which is fine
-    }
-  }
 
   private buildGenerationPrompt(context: AITestGenerationContext): string {
     const { prAnalysis, jiraContext, confluencePages } = context;
@@ -131,7 +100,7 @@ ${jiraContext.linkedIssues.map(issue => `- ${issue.key}: ${issue.summary}`).join
 ${confluencePages.map(page => `
 **${page.title}** (${page.space})
 - Author: ${page.author} | Created: ${page.created} | Updated: ${page.updated}
-- Excerpt: ${page.excerpt || 'No excerpt available'}
+- Content Preview: ${page.content.slice(0, 200)}${page.content.length > 200 ? '...' : ''}
 `).join('')}`;
     }
 
@@ -222,9 +191,7 @@ Focus on quality over quantity - create scenarios that are truly valuable for te
   }
 
   async generateTestSummary(scenarios: TestScenario[], context: AITestGenerationContext): Promise<string> {
-    const prompt = `Based on the following ${scenarios.length} test scenarios, generate a concise executive summary for developers and QA team:
-
-## Generated Test Scenarios:
+    const summaryContext = `## Generated Test Scenarios:
 ${scenarios.map((scenario, i) => `
 ${i + 1}. **${scenario.title}** (${scenario.priority} priority, ${scenario.category})
    - ${scenario.description}
@@ -236,33 +203,12 @@ ${i + 1}. **${scenario.title}** (${scenario.priority} priority, ${scenario.categ
 ## Context:
 - **PR:** ${context.prAnalysis.title}
 - **Files Changed:** ${context.prAnalysis.changedFiles.length}
-- **Jira:** ${context.jiraContext?.ticket.key || 'None'} - ${context.jiraContext?.ticket.summary || 'N/A'}
+- **Jira:** ${context.jiraContext?.ticket.key || 'None'} - ${context.jiraContext?.ticket.summary || 'N/A'}`;
 
-Generate a 2-3 paragraph summary that explains:
-1. What these test scenarios cover
-2. Key risks and areas of focus
-3. Recommended testing priorities
-
-Keep it concise and actionable for both developers and QA team.`;
+    const taskPrompt = 'Generate a concise 2-3 paragraph executive summary for developers and QA team explaining what these test scenarios cover, key risks, and recommended testing priorities';
 
     try {
-      // Create temporary directory and prompt file
-      const tempDir = '/tmp/tap-claude-generation';
-      await this.ensureDirectory(tempDir);
-      
-      const summaryPromptFile = join(tempDir, 'summary-prompt.txt');
-      await writeFile(summaryPromptFile, prompt, 'utf-8');
-
-      // Use claude CLI to generate summary
-      const claudeResponse = execSync(
-        `claude --file "${summaryPromptFile}" --model haiku`,
-        { 
-          encoding: 'utf-8',
-          maxBuffer: 512 * 1024 // 512KB buffer for summary
-        }
-      );
-
-      return claudeResponse.trim();
+      return await this.claudeCLI.generateResponse(summaryContext, taskPrompt);
     } catch (error) {
       console.error('Error generating test summary:', error);
       return `Generated ${scenarios.length} test scenarios covering ${scenarios.filter(s => s.priority === 'high').length} high-priority, ${scenarios.filter(s => s.priority === 'medium').length} medium-priority, and ${scenarios.filter(s => s.priority === 'low').length} low-priority test cases.`;

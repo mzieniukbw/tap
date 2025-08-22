@@ -241,9 +241,8 @@ When you're done reviewing, create a refined test scenarios JSON file named \`re
 You can also use the claude CLI to further refine scenarios:
 
 \`\`\`bash
-# Create a refinement prompt and use claude CLI
-echo "Review and improve these test scenarios, focusing on edge cases and security..." > refinement-prompt.txt
-claude --file refinement-prompt.txt --file generated-scenarios.md
+# Use claude CLI with stdin input
+cat generated-scenarios.md | claude -p "Review and improve these test scenarios, focusing on edge cases and security considerations"
 \`\`\`
 
 ## Current AI Summary
@@ -307,7 +306,7 @@ echo "🚀 Running Claude CLI refinement..."
 echo "   This may take a few moments..."
 echo ""
 
-claude --file refinement-prompt.txt --file generated-scenarios.md --model haiku > refined-scenarios-raw.txt
+cat generated-scenarios.md | claude -p "$(cat refinement-prompt.txt)" > refined-scenarios-raw.txt
 
 if [ $? -eq 0 ]; then
     echo "✅ Claude CLI completed successfully"
@@ -358,7 +357,6 @@ echo ""
 echo "🔧 Troubleshooting:"
 echo "   - If JSON extraction failed, manually copy the JSON array from refined-scenarios-raw.txt"
 echo "   - Make sure claude CLI is authenticated: claude auth"
-echo "   - Try a different model: edit this script and change --model haiku to --model sonnet"
 `;
   }
 
