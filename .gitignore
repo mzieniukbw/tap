@@ -11,6 +11,7 @@ config.json
 dist/
 build/
 *.exe
+*.bun-build
 
 # Deno cache
 .deno/
