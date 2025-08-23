@@ -29,11 +29,20 @@ bun run start setup                               # Setup and configuration (int
 # Build main TAP executable
 bun run build
 
-# Build both executables
-bun run build:all
+# Build for multiple platforms
+bun run build:cross
+
+# Platform-specific builds
+bun run build:linux
+bun run build:windows
+bun run build:macos
 
 # Clean build artifacts
 bun run clean
+
+# Code formatting and linting
+bun run format
+bun run lint
 ```
 
 ## Code Architecture
@@ -48,10 +57,10 @@ bun run clean
 
 - `GitHubService` - PR analysis and diff processing
 - `AtlassianService` - Jira ticket and Confluence page integration
-- `AITestScenarioGenerator` - AI-powered intelligent test scenario creation using Claude CLI
-- `ContextExporter` - Comprehensive data export for Claude Code review
-- `ClaudeDesktopOrchestrator` - Test execution coordination
-- `QAReportGenerator` - Comprehensive test reporting with AI insights
+- `ContextGatheringService` - Comprehensive context collection from multiple sources
+- `OnyxContextService` - Enhanced product context from Onyx AI (optional)
+- `TestExecutionService` - Test execution coordination and management
+- `ConfigService` - Configuration management for API credentials
 
 ### Data Flow (Human-in-the-Loop)
 
@@ -80,8 +89,12 @@ Creates `~/.tap/config.json` with your API credentials.
 - `ATLASSIAN_API_TOKEN` - Unified token for Jira and Confluence
 - `ATLASSIAN_EMAIL` - Atlassian account email
 - `ATLASSIAN_BASE_URL` - Atlassian instance URL (e.g., https://company.atlassian.net)
+- `ONYX_BASE_URL` - Onyx instance URL (optional - defaults to https://api.onyx.app)
+- `ONYX_API_KEY` - Onyx AI API key (optional - for enhanced product context)
 
-### 3. Claude CLI for AI Generation (Optional)
+### 3. Claude CLI for AI Generation (Required)
+
+TAP requires Claude CLI for AI-powered test scenario generation. Install and authenticate:
 
 ```bash
 # Install Claude CLI for intelligent test scenario generation
@@ -90,7 +103,7 @@ npm install -g @anthropic-ai/claude-cli
 # Authenticate with your Anthropic account
 claude auth
 
-# Test it's working
+# Verify installation
 claude --version
 ```
 
