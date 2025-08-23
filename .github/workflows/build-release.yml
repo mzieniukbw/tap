@@ -10,7 +10,7 @@ on:
       - main
 
 env:
-  BUN_VERSION: '1.1.38'
+  BUN_VERSION: 'latest'
 
 jobs:
   build:

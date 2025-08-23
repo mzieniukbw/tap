@@ -106,7 +106,7 @@ sha256sum -c checksums.txt
 
 ## Development Notes
 
-- **Bun Version**: 1.1.38+ required for cross-compilation
+- **Bun Version**: Latest version (1.2.0+ minimum for cross-compilation)
 - **Build time**: ~2-3 minutes for all platforms
 - **Bundle size**: Includes all dependencies and runtime
 - **No dependencies**: Executables run standalone without Node.js/Bun
@@ -114,7 +114,7 @@ sha256sum -c checksums.txt
 ## Troubleshooting
 
 ### Build Issues
-- Ensure Bun 1.1.38+ is installed
+- Ensure latest Bun version is installed (1.2.0+ minimum)
 - Check TypeScript compilation: `bun x tsc --noEmit`
 - Verify all dependencies are installed: `bun install`
 
