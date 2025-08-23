@@ -40,23 +40,19 @@ export class GitHubService {
     const { owner, repo, number } = this.parsePRUrl(prUrl);
 
     // Get PR details
-    const prResponse = await this.githubRequest(
-      `/repos/${owner}/${repo}/pulls/${number}`,
-    );
+    const prResponse = await this.githubRequest(`/repos/${owner}/${repo}/pulls/${number}`);
 
     // Get PR files
-    const filesResponse = await this.githubRequest(
-      `/repos/${owner}/${repo}/pulls/${number}/files`,
-    );
+    const filesResponse = await this.githubRequest(`/repos/${owner}/${repo}/pulls/${number}/files`);
 
     // Get PR commits
     const commitsResponse = await this.githubRequest(
-      `/repos/${owner}/${repo}/pulls/${number}/commits`,
+      `/repos/${owner}/${repo}/pulls/${number}/commits`
     );
 
     // Extract Jira ticket keys from PR title and description
     const jiraTicketKeys = this.extractJiraTicketKeys(
-      prResponse.title + " " + (prResponse.body || ""),
+      prResponse.title + " " + (prResponse.body || "")
     );
 
     const changedFiles: ChangedFile[] = filesResponse.map((file: any) => ({
@@ -93,14 +89,8 @@ export class GitHubService {
    * This method simulates what Claude Code CLI would do internally
    * In reality, Claude Code CLI would handle this automatically
    */
-  async getCodeDiffs(
-    owner: string,
-    repo: string,
-    number: number,
-  ): Promise<string[]> {
-    const files = await this.githubRequest(
-      `/repos/${owner}/${repo}/pulls/${number}/files`,
-    );
+  async getCodeDiffs(owner: string, repo: string, number: number): Promise<string[]> {
+    const files = await this.githubRequest(`/repos/${owner}/${repo}/pulls/${number}/files`);
     return files.map((file: any) => file.patch || "").filter(Boolean);
   }
 
@@ -131,9 +121,7 @@ export class GitHubService {
     });
 
     if (!response.ok) {
-      throw new Error(
-        `GitHub API error: ${response.status} ${response.statusText}`,
-      );
+      throw new Error(`GitHub API error: ${response.status} ${response.statusText}`);
     }
 
     return response.json();

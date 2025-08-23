@@ -8,13 +8,7 @@ export interface TestScenario {
   title: string;
   description: string;
   priority: "high" | "medium" | "low";
-  category:
-    | "functionality"
-    | "regression"
-    | "integration"
-    | "ui"
-    | "performance"
-    | "security";
+  category: "functionality" | "regression" | "integration" | "ui" | "performance" | "security";
   steps: TestStep[];
   expectedOutcome: string;
   focusAreas: string[];
@@ -43,25 +37,20 @@ export class AITestScenarioGenerator {
     this.claudeCLI = claudeCLI || new ClaudeCLIWrapper();
   }
 
-  async generateScenarios(
-    context: AITestGenerationContext,
-  ): Promise<TestScenario[]> {
+  async generateScenarios(context: AITestGenerationContext): Promise<TestScenario[]> {
     const contextPrompt = this.buildGenerationPrompt(context);
     const taskPrompt =
       "Generate comprehensive test scenarios for this GitHub PR based on the provided context";
 
     try {
-      const claudeResponse = await this.claudeCLI.generateResponse(
-        contextPrompt,
-        taskPrompt,
-      );
+      const claudeResponse = await this.claudeCLI.generateResponse(contextPrompt, taskPrompt);
 
       // Parse the AI response into TestScenario objects
       return this.parseAIResponse(claudeResponse, context);
     } catch (error) {
       console.error("Error calling Claude CLI:", error);
       throw new Error(
-        `Failed to generate AI test scenarios: ${error instanceof Error ? error.message : String(error)}`,
+        `Failed to generate AI test scenarios: ${error instanceof Error ? error.message : String(error)}`
       );
     }
   }
@@ -82,7 +71,7 @@ export class AITestScenarioGenerator {
 ${prAnalysis.changedFiles
   .map(
     (file) =>
-      `- **${file.status.toUpperCase()}**: \`${file.path}\` (+${file.additions}/-${file.deletions} lines)`,
+      `- **${file.status.toUpperCase()}**: \`${file.path}\` (+${file.additions}/-${file.deletions} lines)`
   )
   .join("\n")}
 
@@ -125,7 +114,7 @@ ${confluencePages
 **${page.title}** (${page.space})
 - Author: ${page.author} | Created: ${page.created} | Updated: ${page.updated}
 - Content Preview: ${page.content.slice(0, 200)}${page.content.length > 200 ? "..." : ""}
-`,
+`
   )
   .join("")}`;
     }
@@ -143,7 +132,7 @@ ${onyxContext.responses
 **Q${i + 1}: ${response.query}**
 **AI Insight:** ${response.answer}
 
-`,
+`
   )
   .join("")}`;
     }
@@ -211,10 +200,7 @@ Based on the above context, generate 5-8 comprehensive test scenarios as a JSON 
     return prompt;
   }
 
-  private parseAIResponse(
-    aiResponse: string,
-    context: AITestGenerationContext,
-  ): TestScenario[] {
+  private parseAIResponse(aiResponse: string, context: AITestGenerationContext): TestScenario[] {
     try {
       let jsonStr: string;
 
@@ -235,23 +221,18 @@ Based on the above context, generate 5-8 comprehensive test scenarios as a JSON 
       }
 
       // Validate and enhance the scenarios
-      return scenarios.map((scenario) =>
-        this.validateAndEnhanceScenario(scenario, context),
-      );
+      return scenarios.map((scenario) => this.validateAndEnhanceScenario(scenario, context));
     } catch (error) {
-      console.error(
-        "Failed to parse AI response:",
-        aiResponse.substring(0, 500) + "...",
-      );
+      console.error("Failed to parse AI response:", aiResponse.substring(0, 500) + "...");
       throw new Error(
-        `Failed to parse AI-generated scenarios: ${error instanceof Error ? error.message : String(error)}`,
+        `Failed to parse AI-generated scenarios: ${error instanceof Error ? error.message : String(error)}`
       );
     }
   }
 
   private validateAndEnhanceScenario(
     scenario: TestScenario,
-    context: AITestGenerationContext,
+    context: AITestGenerationContext
   ): TestScenario {
     // Ensure all required fields are present and valid
     const validPriorities = ["high", "medium", "low"];
@@ -267,15 +248,9 @@ Based on the above context, generate 5-8 comprehensive test scenarios as a JSON 
 
     return {
       ...scenario,
-      id:
-        scenario.id ||
-        `generated-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
-      priority: validPriorities.includes(scenario.priority)
-        ? scenario.priority
-        : "medium",
-      category: validCategories.includes(scenario.category)
-        ? scenario.category
-        : "functionality",
+      id: scenario.id || `generated-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
+      priority: validPriorities.includes(scenario.priority) ? scenario.priority : "medium",
+      category: validCategories.includes(scenario.category) ? scenario.category : "functionality",
       automationLevel: validAutomationLevels.includes(scenario.automationLevel)
         ? scenario.automationLevel
         : "manual",
@@ -291,7 +266,7 @@ Based on the above context, generate 5-8 comprehensive test scenarios as a JSON 
 
   async generateTestSummary(
     scenarios: TestScenario[],
-    context: AITestGenerationContext,
+    context: AITestGenerationContext
   ): Promise<string> {
     const summaryContext = `## Generated Test Scenarios:
 ${scenarios
@@ -302,7 +277,7 @@ ${i + 1}. **${scenario.title}** (${scenario.priority} priority, ${scenario.categ
    - Duration: ${scenario.estimatedDuration} minutes
    - Automation: ${scenario.automationLevel}
    - Steps: ${scenario.steps.length}
-`,
+`
   )
   .join("")}
 

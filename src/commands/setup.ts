@@ -119,10 +119,7 @@ async function executeSetup(options: any) {
     }
 
     // Save config
-    await writeFile(
-      configDir + "/config.json",
-      JSON.stringify(config, null, 2),
-    );
+    await writeFile(configDir + "/config.json", JSON.stringify(config, null, 2));
     await chmod(configDir + "/config.json", 0o600);
 
     console.log(chalk.green("✅ Configuration saved successfully!"));

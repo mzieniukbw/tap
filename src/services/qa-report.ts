@@ -73,8 +73,7 @@ export class QAReportGenerator {
       lines.push(
         "",
         "Description:",
-        pr.description.substring(0, 300) +
-          (pr.description.length > 300 ? "..." : ""),
+        pr.description.substring(0, 300) + (pr.description.length > 300 ? "..." : "")
       );
     }
 
@@ -83,11 +82,9 @@ export class QAReportGenerator {
 
   private buildJiraSection(context?: TicketContext | null): string {
     if (!context) {
-      return [
-        "🎫 JIRA CONTEXT",
-        "-".repeat(20),
-        "⚠️  No Jira ticket found in PR description",
-      ].join("\n");
+      return ["🎫 JIRA CONTEXT", "-".repeat(20), "⚠️  No Jira ticket found in PR description"].join(
+        "\n"
+      );
     }
 
     const lines = [
@@ -112,11 +109,7 @@ export class QAReportGenerator {
     }
 
     if (context.ticket.description) {
-      lines.push(
-        "",
-        "Description:",
-        context.ticket.description.substring(0, 200) + "...",
-      );
+      lines.push("", "Description:", context.ticket.description.substring(0, 200) + "...");
     }
 
     return lines.join("\n");
@@ -124,11 +117,9 @@ export class QAReportGenerator {
 
   private buildDocumentationSection(pages: ConfluencePage[]): string {
     if (pages.length === 0) {
-      return [
-        "📚 RELATED DOCUMENTATION",
-        "-".repeat(30),
-        "No related Confluence pages found",
-      ].join("\n");
+      return ["📚 RELATED DOCUMENTATION", "-".repeat(30), "No related Confluence pages found"].join(
+        "\n"
+      );
     }
 
     const lines = ["📚 RELATED DOCUMENTATION", "-".repeat(30)];
@@ -155,46 +146,35 @@ export class QAReportGenerator {
           file.additions > 0 || file.deletions > 0
             ? ` (+${file.additions}/-${file.deletions})`
             : "";
-        lines.push(
-          `  • ${file.status.toUpperCase()}: ${file.path}${changeInfo}`,
-        );
+        lines.push(`  • ${file.status.toUpperCase()}: ${file.path}${changeInfo}`);
       });
     });
 
     return lines.join("\n");
   }
 
-  private buildTestExecutionSection(
-    scenarios: TestScenario[],
-    results: TestResult[],
-  ): string {
+  private buildTestExecutionSection(scenarios: TestScenario[], results: TestResult[]): string {
     const lines = ["🧪 TEST SCENARIOS EXECUTED", "-".repeat(35)];
 
     results.forEach((result, index) => {
       const scenario = scenarios.find((s) => s.id === result.scenarioId);
       const statusIcon = this.getStatusIcon(result.status);
 
-      lines.push(
-        `\n${statusIcon} ${index + 1}. ${scenario?.title || "Unknown Scenario"}`,
-      );
+      lines.push(`\n${statusIcon} ${index + 1}. ${scenario?.title || "Unknown Scenario"}`);
       lines.push(`   Duration: ${result.executionTime} minutes`);
       lines.push(
-        `   Steps: ${result.steps.length} (${result.steps.filter((s) => s.status === "passed").length} passed)`,
+        `   Steps: ${result.steps.length} (${result.steps.filter((s) => s.status === "passed").length} passed)`
       );
 
       if (result.status === "failed" || result.status === "warning") {
         const failedSteps = result.steps.filter((s) => s.status === "failed");
         if (failedSteps.length > 0) {
-          lines.push(
-            `   ⚠️  Failed steps: ${failedSteps.map((s) => s.stepIndex + 1).join(", ")}`,
-          );
+          lines.push(`   ⚠️  Failed steps: ${failedSteps.map((s) => s.stepIndex + 1).join(", ")}`);
         }
       }
 
       if (result.artifacts.length > 0) {
-        const screenshots = result.artifacts.filter(
-          (a) => a.type === "screenshot",
-        );
+        const screenshots = result.artifacts.filter((a) => a.type === "screenshot");
         const videos = result.artifacts.filter((a) => a.type === "video");
 
         if (screenshots.length > 0) {
@@ -251,13 +231,13 @@ export class QAReportGenerator {
     } else {
       if (failed.length > 0) {
         lines.push(
-          `❌ Address ${failed.length} failing test scenario${failed.length === 1 ? "" : "s"} before deployment`,
+          `❌ Address ${failed.length} failing test scenario${failed.length === 1 ? "" : "s"} before deployment`
         );
       }
 
       if (warnings.length > 0) {
         lines.push(
-          `⚠️  Review ${warnings.length} test scenario${warnings.length === 1 ? "" : "s"} with warnings`,
+          `⚠️  Review ${warnings.length} test scenario${warnings.length === 1 ? "" : "s"} with warnings`
         );
       }
 
@@ -279,26 +259,14 @@ export class QAReportGenerator {
     return lines.join("\n");
   }
 
-  private buildArtifactsSection(
-    results: TestResult[],
-    outputDir: string,
-  ): string {
+  private buildArtifactsSection(results: TestResult[], outputDir: string): string {
     const allArtifacts = results.flatMap((r) => r.artifacts);
 
     if (allArtifacts.length === 0) {
-      return [
-        "📁 TEST ARTIFACTS",
-        "-".repeat(20),
-        "No artifacts generated",
-      ].join("\n");
+      return ["📁 TEST ARTIFACTS", "-".repeat(20), "No artifacts generated"].join("\n");
     }
 
-    const lines = [
-      "📁 TEST ARTIFACTS",
-      "-".repeat(20),
-      `Output Directory: ${outputDir}`,
-      "",
-    ];
+    const lines = ["📁 TEST ARTIFACTS", "-".repeat(20), `Output Directory: ${outputDir}`, ""];
 
     const artifactsByType = this.groupArtifactsByType(allArtifacts);
 
@@ -344,11 +312,7 @@ export class QAReportGenerator {
         path.includes(".go")
       ) {
         groups.backend.push(file);
-      } else if (
-        path.includes("database") ||
-        path.includes("migration") ||
-        path.includes(".sql")
-      ) {
+      } else if (path.includes("database") || path.includes("migration") || path.includes(".sql")) {
         groups.database.push(file);
       } else if (
         path.includes("config") ||
@@ -357,11 +321,7 @@ export class QAReportGenerator {
         path.includes(".toml")
       ) {
         groups.configuration.push(file);
-      } else if (
-        path.includes("readme") ||
-        path.includes(".md") ||
-        path.includes("doc")
-      ) {
+      } else if (path.includes("readme") || path.includes(".md") || path.includes("doc")) {
         groups.documentation.push(file);
       } else if (path.includes("test") || path.includes("spec")) {
         groups.tests.push(file);
@@ -371,9 +331,7 @@ export class QAReportGenerator {
     });
 
     // Filter out empty groups
-    return Object.fromEntries(
-      Object.entries(groups).filter(([_, files]) => files.length > 0),
-    );
+    return Object.fromEntries(Object.entries(groups).filter(([_, files]) => files.length > 0));
   }
 
   private groupArtifactsByType(artifacts: any[]) {

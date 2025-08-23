@@ -23,7 +23,7 @@ export interface ContextExportData {
 export class ContextExporter {
   async exportFullContext(
     data: ContextExportData,
-    outputDir: string = "./tap-context",
+    outputDir: string = "./tap-context"
   ): Promise<string[]> {
     // Ensure output directory exists
     if (!existsSync(outputDir)) {
@@ -89,9 +89,7 @@ export class ContextExporter {
 
     // Make the helper script executable
     try {
-      await import("fs/promises").then((fs) =>
-        fs.chmod(helperScriptPath, "755"),
-      );
+      await import("fs/promises").then((fs) => fs.chmod(helperScriptPath, "755"));
     } catch (error) {
       console.warn(`Could not make ${helperScriptPath} executable:`, error);
     }
@@ -104,17 +102,12 @@ export class ContextExporter {
     await writeFile(filePath, JSON.stringify(data, null, 2), "utf-8");
   }
 
-  private async writeTextFile(
-    filePath: string,
-    content: string,
-  ): Promise<void> {
+  private async writeTextFile(filePath: string, content: string): Promise<void> {
     await mkdir(dirname(filePath), { recursive: true });
     await writeFile(filePath, content, "utf-8");
   }
 
-  private async generateScenariosMarkdown(
-    data: ContextExportData,
-  ): Promise<string> {
+  private async generateScenariosMarkdown(data: ContextExportData): Promise<string> {
     const { generatedScenarios, prAnalysis, jiraContext } = data;
 
     let markdown = `# AI-Generated Test Scenarios
@@ -147,7 +140,7 @@ ${scenario.steps
   .map(
     (step, stepIndex) =>
       `${stepIndex + 1}. **${step.action.charAt(0).toUpperCase() + step.action.slice(1)}** ${step.target ? `"${step.target}"` : ""}${step.input ? ` with "${step.input}"` : ""}
-   - *Verify:* ${step.verification}`,
+   - *Verify:* ${step.verification}`
   )
   .join("\n")}
 
@@ -161,17 +154,9 @@ ${scenario.steps
     return markdown;
   }
 
-  private async generateContextSummary(
-    data: ContextExportData,
-  ): Promise<string> {
-    const {
-      prAnalysis,
-      jiraContext,
-      confluencePages,
-      onyxContext,
-      generatedScenarios,
-      metadata,
-    } = data;
+  private async generateContextSummary(data: ContextExportData): Promise<string> {
+    const { prAnalysis, jiraContext, confluencePages, onyxContext, generatedScenarios, metadata } =
+      data;
 
     return `# TAP Testing Context Summary
 
@@ -186,7 +171,7 @@ ${scenario.steps
 ${prAnalysis.changedFiles
   .map(
     (file) =>
-      `- **${file.status.toUpperCase()}:** \`${file.path}\` (+${file.additions}/-${file.deletions})`,
+      `- **${file.status.toUpperCase()}:** \`${file.path}\` (+${file.additions}/-${file.deletions})`
   )
   .join("\n")}
 
@@ -232,7 +217,7 @@ ${onyxContext.responses
   .map(
     (response, i) =>
       `${i + 1}. **${response.query}**
-   - *AI Insight:* ${response.answer.substring(0, 150)}${response.answer.length > 150 ? "..." : ""}`,
+   - *AI Insight:* ${response.answer.substring(0, 150)}${response.answer.length > 150 ? "..." : ""}`
   )
   .join("\n")}
 `
@@ -255,8 +240,8 @@ ${Object.entries(
       acc[scenario.category] = (acc[scenario.category] || 0) + 1;
       return acc;
     },
-    {} as Record<string, number>,
-  ),
+    {} as Record<string, number>
+  )
 )
   .map(([category, count]) => `- **${category}:** ${count} scenarios`)
   .join("\n")}
@@ -413,22 +398,17 @@ rm -f interactive-prompt.txt
 `;
   }
 
-  async exportScenariosOnly(
-    scenarios: TestScenario[],
-    outputPath: string,
-  ): Promise<void> {
+  async exportScenariosOnly(scenarios: TestScenario[], outputPath: string): Promise<void> {
     await this.writeJsonFile(outputPath, scenarios);
   }
 
   async loadScenariosFromFile(filePath: string): Promise<TestScenario[]> {
     try {
-      const content = await import("fs/promises").then((fs) =>
-        fs.readFile(filePath, "utf-8"),
-      );
+      const content = await import("fs/promises").then((fs) => fs.readFile(filePath, "utf-8"));
       return JSON.parse(content);
     } catch (error) {
       throw new Error(
-        `Failed to load scenarios from ${filePath}: ${error instanceof Error ? error.message : String(error)}`,
+        `Failed to load scenarios from ${filePath}: ${error instanceof Error ? error.message : String(error)}`
       );
     }
   }

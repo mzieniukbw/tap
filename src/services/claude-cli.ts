@@ -9,7 +9,7 @@ export class ClaudeCLIWrapper implements ClaudeCLI {
   constructor() {
     if (!this.isAvailable()) {
       throw new Error(
-        "Claude CLI not found. Please install it with: npm install -g @anthropic-ai/claude-cli",
+        "Claude CLI not found. Please install it with: npm install -g @anthropic-ai/claude-cli"
       );
     }
   }
@@ -35,7 +35,7 @@ export class ClaudeCLIWrapper implements ClaudeCLI {
       return claudeResponse.trim();
     } catch (error) {
       throw new Error(
-        `Failed to generate Claude response: ${error instanceof Error ? error.message : String(error)}`,
+        `Failed to generate Claude response: ${error instanceof Error ? error.message : String(error)}`
       );
     }
   }

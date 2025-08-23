@@ -138,9 +138,7 @@ export class AtlassianService {
     }
   }
 
-  async findRelatedConfluencePages(
-    ticket: JiraTicket,
-  ): Promise<ConfluencePage[]> {
+  async findRelatedConfluencePages(ticket: JiraTicket): Promise<ConfluencePage[]> {
     const searchTerms = [
       ticket.key,
       ...ticket.labels,
@@ -164,7 +162,7 @@ export class AtlassianService {
 
     // Remove duplicates based on page ID
     const uniquePages = pages.filter(
-      (page, index, self) => index === self.findIndex((p) => p.id === page.id),
+      (page, index, self) => index === self.findIndex((p) => p.id === page.id)
     );
 
     return uniquePages.slice(0, 10); // Limit to 10 total pages
@@ -181,9 +179,7 @@ export class AtlassianService {
       return response.results.map((page: any) => ({
         id: page.id,
         title: page.title,
-        content: this.extractTextFromConfluenceContent(
-          page.body?.storage?.value || "",
-        ),
+        content: this.extractTextFromConfluenceContent(page.body?.storage?.value || ""),
         space: page.space.name,
         version: page.version?.number || 1,
         created: page.history?.createdDate || page.version?.when || "",
@@ -197,9 +193,7 @@ export class AtlassianService {
     }
   }
 
-  async getRelatedDocumentation(
-    context: TicketContext,
-  ): Promise<ConfluencePage[]> {
+  async getRelatedDocumentation(context: TicketContext): Promise<ConfluencePage[]> {
     // Already populated in getTicketFromPR
     return context.relatedPages;
   }
@@ -217,9 +211,7 @@ export class AtlassianService {
     });
 
     if (!response.ok) {
-      throw new Error(
-        `Atlassian API error: ${response.status} ${response.statusText}`,
-      );
+      throw new Error(`Atlassian API error: ${response.status} ${response.statusText}`);
     }
 
     return response.json();

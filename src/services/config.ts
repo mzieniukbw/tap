@@ -62,7 +62,7 @@ export class ConfigService {
         "  • ATLASSIAN_API_TOKEN\n" +
         "  • ONYX_BASE_URL (optional - for self-hosted Onyx instances)\n" +
         "  • ONYX_API_KEY (optional - for enhanced product context)\n" +
-        "\nNote: Install claude CLI for AI test generation: npm install -g @anthropic-ai/claude-cli",
+        "\nNote: Install claude CLI for AI test generation: npm install -g @anthropic-ai/claude-cli"
     );
   }
 
@@ -79,9 +79,7 @@ export class ConfigService {
       }
 
       console.warn(
-        chalk.yellow(
-          "⚠️  Invalid config file format, falling back to environment variables",
-        ),
+        chalk.yellow("⚠️  Invalid config file format, falling back to environment variables")
       );
       return null;
     } catch {
@@ -97,12 +95,7 @@ export class ConfigService {
     const onyxBaseUrl = process.env.ONYX_BASE_URL;
     const onyxApiKey = process.env.ONYX_API_KEY;
 
-    if (
-      !githubToken ||
-      !atlassianBaseUrl ||
-      !atlassianEmail ||
-      !atlassianApiToken
-    ) {
+    if (!githubToken || !atlassianBaseUrl || !atlassianEmail || !atlassianApiToken) {
       return null;
     }
 
@@ -172,15 +165,12 @@ export class ConfigService {
     try {
       const authHeader = `Basic ${Buffer.from(`${testConfig.atlassian.email}:${testConfig.atlassian.apiToken}`).toString("base64")}`;
 
-      const response = await fetch(
-        `${testConfig.atlassian.baseUrl}/rest/api/3/myself`,
-        {
-          headers: {
-            Authorization: authHeader,
-            Accept: "application/json",
-          },
+      const response = await fetch(`${testConfig.atlassian.baseUrl}/rest/api/3/myself`, {
+        headers: {
+          Authorization: authHeader,
+          Accept: "application/json",
         },
-      );
+      });
 
       if (response.ok) {
         const user = await response.json();
@@ -215,15 +205,11 @@ export class ConfigService {
           console.log(chalk.green("  ✅ Onyx AI API"));
         } else {
           console.log(chalk.red(`  ❌ Onyx AI API (HTTP ${response.status})`));
-          console.log(
-            chalk.gray("    Note: Onyx AI is optional for enhanced context"),
-          );
+          console.log(chalk.gray("    Note: Onyx AI is optional for enhanced context"));
         }
       } catch (error) {
         console.log(chalk.red("  ❌ Onyx AI API (Connection error)"));
-        console.log(
-          chalk.gray("    Note: Onyx AI is optional for enhanced context"),
-        );
+        console.log(chalk.gray("    Note: Onyx AI is optional for enhanced context"));
       }
     } else {
       console.log(chalk.gray("  ⚪ Onyx AI API (not configured - optional)"));
@@ -231,9 +217,7 @@ export class ConfigService {
 
     if (!allTestsPassed) {
       console.log(
-        chalk.yellow(
-          "\n⚠️  Some API connections failed. Commands may not work properly.",
-        ),
+        chalk.yellow("\n⚠️  Some API connections failed. Commands may not work properly.")
       );
       console.log(chalk.gray("   Run 'tap setup --force' to reconfigure."));
     }

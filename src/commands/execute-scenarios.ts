@@ -17,9 +17,7 @@ async function executeScenarios(options: any) {
 
   if (!options.file) {
     console.error(chalk.red("❌ Error: --file parameter is required"));
-    console.log(
-      chalk.yellow("Usage: tap execute-scenarios --file <scenarios.json>"),
-    );
+    console.log(chalk.yellow("Usage: tap execute-scenarios --file <scenarios.json>"));
     process.exit(1);
   }
 
@@ -38,9 +36,7 @@ async function executeScenarios(options: any) {
     }
 
     const exporter = new ContextExporter();
-    const scenarios: TestScenario[] = await exporter.loadScenariosFromFile(
-      options.file,
-    );
+    const scenarios: TestScenario[] = await exporter.loadScenariosFromFile(options.file);
 
     console.log(`Loaded ${scenarios.length} test scenarios`);
 
@@ -49,13 +45,13 @@ async function executeScenarios(options: any) {
       scenarios.forEach((scenario, i) => {
         console.log(
           chalk.gray(
-            `  ${i + 1}. ${scenario.title} (${scenario.priority} priority, ${scenario.category})`,
-          ),
+            `  ${i + 1}. ${scenario.title} (${scenario.priority} priority, ${scenario.category})`
+          )
         );
         console.log(
           chalk.gray(
-            `     Steps: ${scenario.steps.length}, Duration: ${scenario.estimatedDuration}min, Level: ${scenario.automationLevel}`,
-          ),
+            `     Steps: ${scenario.steps.length}, Duration: ${scenario.estimatedDuration}min, Level: ${scenario.automationLevel}`
+          )
         );
       });
     }
@@ -84,12 +80,8 @@ async function executeScenarios(options: any) {
   } catch (error) {
     console.error(chalk.red("❌ Error during scenario execution:"));
     if (options.verbose) {
-      console.error(
-        chalk.gray(`Error occurred at: ${new Date().toISOString()}`),
-      );
-      console.error(
-        chalk.gray(`Total runtime before error: ${Date.now() - startTime}ms`),
-      );
+      console.error(chalk.gray(`Error occurred at: ${new Date().toISOString()}`));
+      console.error(chalk.gray(`Total runtime before error: ${Date.now() - startTime}ms`));
       console.error(chalk.gray(`Scenarios file: ${options.file}`));
       if (error instanceof Error) {
         console.error(chalk.gray(`Error name: ${error.name}`));
@@ -107,7 +99,7 @@ async function executeScenarios(options: any) {
 
 async function loadOriginalContext(
   contextDir: string,
-  verbose?: boolean,
+  verbose?: boolean
 ): Promise<{
   prAnalysis: PRAnalysis;
   jiraContext: TicketContext | null;
@@ -156,9 +148,7 @@ async function loadOriginalContext(
     const jiraContextContent = await readFile(jiraContextPath, "utf-8");
     jiraContext = JSON.parse(jiraContextContent);
     if (verbose) {
-      console.log(
-        chalk.gray(`✅ Loaded Jira context: ${jiraContext?.ticket.key}`),
-      );
+      console.log(chalk.gray(`✅ Loaded Jira context: ${jiraContext?.ticket.key}`));
     }
   } else if (verbose) {
     console.log(chalk.gray(`ℹ️  No Jira context found`));
@@ -172,9 +162,7 @@ async function loadOriginalContext(
     const confluenceDocsContent = await readFile(confluenceDocsPath, "utf-8");
     confluencePages = JSON.parse(confluenceDocsContent);
     if (verbose) {
-      console.log(
-        chalk.gray(`✅ Loaded ${confluencePages.length} Confluence pages`),
-      );
+      console.log(chalk.gray(`✅ Loaded ${confluencePages.length} Confluence pages`));
     }
   } else if (verbose) {
     console.log(chalk.gray(`ℹ️  No Confluence documentation found`));
@@ -189,9 +177,7 @@ async function loadOriginalContext(
     onyxContext = JSON.parse(onyxContextContent);
     if (verbose) {
       console.log(
-        chalk.gray(
-          `✅ Loaded Onyx AI context with ${onyxContext?.responses.length || 0} insights`,
-        ),
+        chalk.gray(`✅ Loaded Onyx AI context with ${onyxContext?.responses.length || 0} insights`)
       );
     }
   } else if (verbose) {
@@ -204,10 +190,6 @@ async function loadOriginalContext(
 export const executeScenariosCommand = new Command("execute-scenarios")
   .description("Execute test scenarios from a file")
   .option("--file <path>", "Path to JSON file containing test scenarios")
-  .option(
-    "--output <path>",
-    "Output directory for test artifacts",
-    "./tap-output",
-  )
+  .option("--output <path>", "Output directory for test artifacts", "./tap-output")
   .option("--verbose", "Enable detailed logging")
   .action(executeScenarios);

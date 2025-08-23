@@ -28,10 +28,7 @@ export interface Artifact {
 }
 
 export class ClaudeDesktopOrchestrator {
-  async executeScenarios(
-    scenarios: TestScenario[],
-    outputDir: string,
-  ): Promise<TestResult[]> {
+  async executeScenarios(scenarios: TestScenario[], outputDir: string): Promise<TestResult[]> {
     if (!existsSync(outputDir)) {
       await mkdir(outputDir, { recursive: true });
     }
@@ -41,9 +38,7 @@ export class ClaudeDesktopOrchestrator {
 
     for (let i = 0; i < scenarios.length; i++) {
       const scenario = scenarios[i];
-      console.log(
-        `\n📋 Scenario ${i + 1}/${scenarios.length}: ${scenario.title}`,
-      );
+      console.log(`\n📋 Scenario ${i + 1}/${scenarios.length}: ${scenario.title}`);
 
       const result = await this.executeScenario(scenario, outputDir);
       results.push(result);
@@ -55,10 +50,7 @@ export class ClaudeDesktopOrchestrator {
     return results;
   }
 
-  private async executeScenario(
-    scenario: TestScenario,
-    outputDir: string,
-  ): Promise<TestResult> {
+  private async executeScenario(scenario: TestScenario, outputDir: string): Promise<TestResult> {
     const startTime = Date.now();
     const timestamp = new Date().toISOString();
     const scenarioDir = `${outputDir}/${scenario.id}`;
@@ -81,34 +73,21 @@ export class ClaudeDesktopOrchestrator {
       // Execute each step
       for (let i = 0; i < scenario.steps.length; i++) {
         const step = scenario.steps[i];
-        console.log(
-          `    ${i + 1}. ${step.action}${step.target ? ` ${step.target}` : ""}`,
-        );
+        console.log(`    ${i + 1}. ${step.action}${step.target ? ` ${step.target}` : ""}`);
 
-        const stepResult = await this.executeStep(
-          step,
-          i,
-          scenarioDir,
-          scenario,
-        );
+        const stepResult = await this.executeStep(step, i, scenarioDir, scenario);
         result.steps.push(stepResult);
 
         // If step failed, mark scenario as failed
         if (stepResult.status === "failed") {
           result.status = "failed";
-        } else if (
-          stepResult.status === "warning" &&
-          result.status !== "failed"
-        ) {
+        } else if (stepResult.status === "warning" && result.status !== "failed") {
           result.status = "warning";
         }
       }
 
       // Take final screenshot for the scenario
-      const finalScreenshot = await this.takeScreenshot(
-        scenarioDir,
-        `final_${scenario.id}`,
-      );
+      const finalScreenshot = await this.takeScreenshot(scenarioDir, `final_${scenario.id}`);
       if (finalScreenshot) {
         result.artifacts.push(finalScreenshot);
       }
@@ -119,8 +98,7 @@ export class ClaudeDesktopOrchestrator {
       console.log(`    ✅ Completed in ${result.executionTime} minutes`);
     } catch (error) {
       result.status = "failed";
-      const errorMessage =
-        error instanceof Error ? error.message : String(error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
       result.notes = `Execution failed: ${errorMessage}`;
       console.log(`    ❌ Failed: ${errorMessage}`);
     }
@@ -132,7 +110,7 @@ export class ClaudeDesktopOrchestrator {
     step: TestStep,
     stepIndex: number,
     scenarioDir: string,
-    scenario: TestScenario,
+    scenario: TestScenario
   ): Promise<StepResult> {
     const startTime = Date.now();
 
@@ -156,14 +134,10 @@ export class ClaudeDesktopOrchestrator {
       }
 
       // Take screenshot after each significant step
-      if (
-        step.action === "navigate" ||
-        step.action === "click" ||
-        step.action === "verify"
-      ) {
+      if (step.action === "navigate" || step.action === "click" || step.action === "verify") {
         const screenshot = await this.takeScreenshot(
           scenarioDir,
-          `step_${stepIndex}_${step.action}`,
+          `step_${stepIndex}_${step.action}`
         );
         if (screenshot) {
           stepResult.screenshot = screenshot.path;
@@ -178,13 +152,11 @@ export class ClaudeDesktopOrchestrator {
       }
     } catch (error) {
       stepResult.status = "failed";
-      const errorMessage =
-        error instanceof Error ? error.message : String(error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
       stepResult.actualResult = `Step failed: ${errorMessage}`;
     }
 
-    stepResult.duration =
-      Math.round(((Date.now() - startTime) / 1000) * 100) / 100;
+    stepResult.duration = Math.round(((Date.now() - startTime) / 1000) * 100) / 100;
     return stepResult;
   }
 
@@ -230,10 +202,7 @@ export class ClaudeDesktopOrchestrator {
     return Math.random() > 0.1; // 90% success rate
   }
 
-  private async takeScreenshot(
-    scenarioDir: string,
-    name: string,
-  ): Promise<Artifact | null> {
+  private async takeScreenshot(scenarioDir: string, name: string): Promise<Artifact | null> {
     try {
       // In real implementation, this would use Claude Desktop's screen capture
       // For now, we simulate creating a screenshot file
@@ -244,10 +213,7 @@ export class ClaudeDesktopOrchestrator {
 
       // Create a placeholder file (in real implementation, this would be actual screenshot)
       await import("fs/promises").then((fs) =>
-        fs.writeFile(
-          path + ".txt",
-          `Screenshot placeholder: ${name} at ${timestamp}`,
-        ),
+        fs.writeFile(path + ".txt", `Screenshot placeholder: ${name} at ${timestamp}`)
       );
 
       return {
@@ -257,8 +223,7 @@ export class ClaudeDesktopOrchestrator {
         timestamp: new Date().toISOString(),
       };
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : String(error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
       console.warn(`Failed to take screenshot ${name}: ${errorMessage}`);
       return null;
     }
@@ -266,7 +231,7 @@ export class ClaudeDesktopOrchestrator {
 
   private async startVideoRecording(
     scenarioDir: string,
-    scenarioId: string,
+    scenarioId: string
   ): Promise<string | null> {
     try {
       const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
@@ -278,25 +243,19 @@ export class ClaudeDesktopOrchestrator {
 
       return path;
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : String(error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
       console.warn(`Failed to start video recording: ${errorMessage}`);
       return null;
     }
   }
 
-  private async stopVideoRecording(
-    videoPath: string | null,
-  ): Promise<Artifact | null> {
+  private async stopVideoRecording(videoPath: string | null): Promise<Artifact | null> {
     if (!videoPath) return null;
 
     try {
       // In real implementation, this would stop video recording
       await import("fs/promises").then((fs) =>
-        fs.writeFile(
-          videoPath + ".txt",
-          `Video recording placeholder for ${videoPath}`,
-        ),
+        fs.writeFile(videoPath + ".txt", `Video recording placeholder for ${videoPath}`)
       );
 
       return {
@@ -306,8 +265,7 @@ export class ClaudeDesktopOrchestrator {
         timestamp: new Date().toISOString(),
       };
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : String(error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
       console.warn(`Failed to stop video recording: ${errorMessage}`);
       return null;
     }
@@ -326,10 +284,7 @@ export class ClaudeDesktopOrchestrator {
    * - Screen capture
    * - Application launching
    */
-  private async invokeClaudeDesktop(
-    action: string,
-    parameters: any,
-  ): Promise<any> {
+  private async invokeClaudeDesktop(action: string, parameters: any): Promise<any> {
     // Placeholder for actual Claude Desktop integration
     // This would use IPC, HTTP API, or another communication method
 

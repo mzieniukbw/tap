@@ -41,16 +41,14 @@ export class OnyxContextService {
   async gatherProductContext(
     prAnalysis: PRAnalysis,
     jiraContext: TicketContext | null,
-    options: { verbose?: boolean } = {},
+    options: { verbose?: boolean } = {}
   ): Promise<OnyxContext | null> {
     const config = await this.getConfig();
 
     // Skip if Onyx is not configured
     if (!config.onyx?.apiKey) {
       if (options.verbose) {
-        console.log(
-          "Onyx AI not configured, skipping product context gathering",
-        );
+        console.log("Onyx AI not configured, skipping product context gathering");
       }
       return null;
     }
@@ -69,7 +67,7 @@ export class OnyxContextService {
           queryObj,
           config.onyx.baseUrl,
           config.onyx.apiKey,
-          prAnalysis.number,
+          prAnalysis.number
         );
         responses.push({
           query: queryObj.query,
@@ -98,14 +96,12 @@ export class OnyxContextService {
 
   private generateContextQueries(
     prAnalysis: PRAnalysis,
-    jiraContext: TicketContext | null,
+    jiraContext: TicketContext | null
   ): OnyxQuery[] {
     const queries: OnyxQuery[] = [];
 
     // Extract component/feature names from changed files
-    const changedComponents = this.extractComponentNames(
-      prAnalysis.changedFiles,
-    );
+    const changedComponents = this.extractComponentNames(prAnalysis.changedFiles);
     const contextInfo = this.buildContextInfo(prAnalysis, jiraContext);
 
     // Query 1: User workflows involving changed components
@@ -140,9 +136,7 @@ export class OnyxContextService {
     return queries;
   }
 
-  private extractComponentNames(
-    changedFiles: Array<{ path: string; status: string }>,
-  ): string[] {
+  private extractComponentNames(changedFiles: Array<{ path: string; status: string }>): string[] {
     const components = new Set<string>();
 
     changedFiles.forEach((file) => {
@@ -153,16 +147,9 @@ export class OnyxContextService {
       pathParts.forEach((part) => {
         // Skip common non-component directories
         if (
-          ![
-            "src",
-            "components",
-            "pages",
-            "utils",
-            "lib",
-            "styles",
-            "tests",
-            "__tests__",
-          ].includes(part) &&
+          !["src", "components", "pages", "utils", "lib", "styles", "tests", "__tests__"].includes(
+            part
+          ) &&
           !part.includes(".") &&
           part.length > 2
         ) {
@@ -183,10 +170,7 @@ export class OnyxContextService {
     return Array.from(components).slice(0, 5); // Limit to top 5 components
   }
 
-  private buildContextInfo(
-    prAnalysis: PRAnalysis,
-    jiraContext: TicketContext | null,
-  ): string {
+  private buildContextInfo(prAnalysis: PRAnalysis, jiraContext: TicketContext | null): string {
     let context = `PR: ${prAnalysis.title}\n`;
     context += `Changed files: ${prAnalysis.changedFiles.map((f) => f.path).join(", ")}\n`;
 
@@ -204,7 +188,7 @@ export class OnyxContextService {
   private async createChatSession(
     baseUrl: string,
     apiKey: string,
-    prNumber: number,
+    prNumber: number
   ): Promise<string> {
     const createSessionUrl = `${baseUrl}/api/chat/create-chat-session`;
     const response = await fetch(createSessionUrl, {
@@ -222,7 +206,7 @@ export class OnyxContextService {
     if (!response.ok) {
       const errorText = await response.text();
       throw new Error(
-        `Failed to create Onyx chat session: ${response.status} ${response.statusText}. Response: ${errorText}`,
+        `Failed to create Onyx chat session: ${response.status} ${response.statusText}. Response: ${errorText}`
       );
     }
 
@@ -234,14 +218,10 @@ export class OnyxContextService {
     queryObj: OnyxQuery,
     baseUrl: string,
     apiKey: string,
-    prNumber: number,
+    prNumber: number
   ): Promise<string> {
     // Create a new chat session for this query
-    const chatSessionId = await this.createChatSession(
-      baseUrl,
-      apiKey,
-      prNumber,
-    );
+    const chatSessionId = await this.createChatSession(baseUrl, apiKey, prNumber);
 
     const sendMessageUrl = `${baseUrl}/api/chat/send-message`;
     const response = await fetch(sendMessageUrl, {
@@ -264,7 +244,7 @@ export class OnyxContextService {
     if (!response.ok) {
       const errorText = await response.text();
       throw new Error(
-        `Onyx AI API request failed: ${response.status} ${response.statusText}. Response: ${errorText.substring(0, 200)}`,
+        `Onyx AI API request failed: ${response.status} ${response.statusText}. Response: ${errorText.substring(0, 200)}`
       );
     }
 
@@ -297,7 +277,7 @@ export class OnyxContextService {
       return finalAnswer || "No answer received from Onyx AI";
     } catch (parseError) {
       console.warn(
-        `Failed to parse streaming JSON response from Onyx API: ${parseError instanceof Error ? parseError.message : String(parseError)}`,
+        `Failed to parse streaming JSON response from Onyx API: ${parseError instanceof Error ? parseError.message : String(parseError)}`
       );
       console.warn(`Raw response: ${responseText.substring(0, 200)}...`);
       return responseText;
