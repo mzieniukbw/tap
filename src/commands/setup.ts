@@ -131,8 +131,7 @@ async function executeSetup(options: any) {
     console.log(chalk.green("🎉 Setup completed successfully!"));
     console.log("");
     console.log(chalk.blue("Next steps:"));
-    console.log("  • Run 'bun run start test-pr <PR_URL>' to test a specific PR");
-    console.log("  • Run 'bun run start test-current-pr' to test the current branch");
+    console.log("  • Run 'tap test-pr <PR_URL>' to test a specific PR");
     
   } catch (error) {
     console.error(chalk.red("❌ Setup failed:"));

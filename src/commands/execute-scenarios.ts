@@ -17,7 +17,7 @@ async function executeScenarios(options: any) {
   
   if (!options.file) {
     console.error(chalk.red("❌ Error: --file parameter is required"));
-    console.log(chalk.yellow("Usage: bun run start execute-scenarios --file <scenarios.json>"));
+    console.log(chalk.yellow("Usage: tap execute-scenarios --file <scenarios.json>"));
     process.exit(1);
   }
 

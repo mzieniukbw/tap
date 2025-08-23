@@ -55,7 +55,7 @@ export class ConfigService {
     }
 
     throw new Error(
-      "No configuration found. Please run 'bun run start setup' or set environment variables:\n" +
+      "No configuration found. Please run 'tap setup' or set environment variables:\n" +
       "  • GITHUB_TOKEN\n" +
       "  • ATLASSIAN_BASE_URL\n" +
       "  • ATLASSIAN_EMAIL\n" +
@@ -215,7 +215,7 @@ export class ConfigService {
 
     if (!allTestsPassed) {
       console.log(chalk.yellow("\n⚠️  Some API connections failed. Commands may not work properly."));
-      console.log(chalk.gray("   Run 'bun run start setup --force' to reconfigure."));
+      console.log(chalk.gray("   Run 'tap setup --force' to reconfigure."));
     }
 
     return allTestsPassed;

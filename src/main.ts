@@ -33,7 +33,7 @@ program.hook('preAction', async (thisCommand) => {
   } catch (error) {
     if (error instanceof Error && error.message.includes('No configuration found')) {
       console.log(chalk.red("❌ Configuration not found."));
-      console.log(chalk.yellow("Please run 'bun run start setup' to configure TAP."));
+      console.log(chalk.yellow("Please run 'tap setup' to configure TAP."));
       process.exit(1);
     } else {
       console.log(chalk.yellow("⚠️  Connectivity test failed, but continuing..."));

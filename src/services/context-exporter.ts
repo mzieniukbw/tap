@@ -361,7 +361,7 @@ echo "   □ Does it contain valid JSON with all required fields?"
 echo "   □ Are you satisfied with the scenario improvements?"
 echo ""
 echo "🎯 Next step (if refined-scenarios.json exists):"
-echo "   bun run start execute-scenarios --file refined-scenarios.json"
+echo "   tap execute-scenarios --file refined-scenarios.json"
 
 # Clean up prompt file
 rm -f interactive-prompt.txt
