@@ -275,108 +275,96 @@ Focus on quality and completeness - your human insight is valuable for catching 
   private generateClaudeCLIHelper(data: ContextExportData): string {
     return `#!/bin/bash
 
-# Claude CLI Helper Script for TAP Test Scenario Refinement
-# This script helps you refine test scenarios using the claude CLI
+# Claude Code CLI Interactive Helper Script for TAP Test Scenario Refinement
+# This script opens Claude Code in interactive mode with all the context loaded
 
-echo "🤖 TAP Claude CLI Refinement Helper"
-echo "=================================="
+echo "🤖 TAP Claude Code Interactive Refinement Helper"
+echo "==============================================="
 echo ""
 
 # Check if claude CLI is installed
 if ! command -v claude &> /dev/null; then
     echo "❌ Claude CLI not found. Install with:"
     echo "   npm install -g @anthropic-ai/claude-cli"
+    echo ""
+    echo "🔧 Alternative: Use Claude Code web interface"
+    echo "   1. Upload all the generated files to Claude Code"
+    echo "   2. Ask Claude Code to refine the test scenarios"
     exit 1
 fi
 
 echo "✅ Claude CLI found"
 echo ""
 
-# Create refinement prompt
-cat > refinement-prompt.txt << 'EOF'
-You are a senior QA engineer reviewing AI-generated test scenarios for a GitHub PR.
+# Create an interactive prompt that loads all context
+cat > interactive-prompt.txt << 'EOF'
+You are a senior QA engineer helping refine AI-generated test scenarios for a GitHub PR.
 
-## Context Summary
+## Context Overview
 - **PR**: ${data.prAnalysis.title}
 - **Files Changed**: ${data.prAnalysis.changedFiles.length}
 - **Jira**: ${data.jiraContext?.ticket.key || 'None'} - ${data.jiraContext?.ticket.summary || 'N/A'}
+- **Generated Scenarios**: ${data.generatedScenarios.length}
 
-## Your Task
-Review the test scenarios below and improve them by:
-1. Adding missing edge cases and security considerations
-2. Improving test step clarity and specificity
-3. Adjusting priorities based on risk assessment
-4. Adding or removing scenarios as needed
-5. Ensuring comprehensive coverage of the code changes
+## Available Files in This Directory
+- \`pr-analysis.json\` - Complete PR analysis with diffs
+- \`jira-context.json\` - Business context${data.jiraContext ? '' : ' (not available)'}
+- \`confluence-docs.json\` - Related documentation${data.confluencePages.length > 0 ? '' : ' (none found)'}
+- \`onyx-product-context.json\` - AI product insights${data.onyxContext ? '' : ' (not available)'}
+- \`generated-scenarios.json\` - Machine-readable scenarios
+- \`generated-scenarios.md\` - Human-readable scenarios
+- \`context-summary.md\` - Executive summary
 
-## Requirements for Output
-- Return ONLY a valid JSON array of test scenarios
-- Follow the exact same structure as the input scenarios
-- Each scenario must have: id, title, description, priority, category, steps, expectedOutcome, focusAreas, automationLevel, estimatedDuration
-- Be specific and actionable in your improvements
+## Your Mission
+I need you to help me refine the AI-generated test scenarios. Please:
+1. First, read and understand all the available context files
+2. Review the generated test scenarios thoroughly 
+3. Work with me interactively to improve them by discussing:
+   - Missing edge cases or security considerations
+   - Test step clarity and specificity
+   - Priority adjustments based on risk
+   - Additional scenarios we might need
+   - Scenarios we can remove or combine
 
-Please review and refine these test scenarios:
+## Interactive Approach
+Let's work together step by step. Start by reading the context files and then we'll discuss the scenarios one by one.
+
+When we're done refining, you'll help me create a final \`refined-scenarios.json\` file.
+
+Ready to start? Please read the context files first and give me your initial assessment.
 EOF
 
-echo "📝 Created refinement prompt"
+echo "📝 Starting interactive Claude Code session..."
+echo ""
+echo "💡 This will open an interactive session where you can:"
+echo "   - Discuss scenarios with Claude in real-time"
+echo "   - Get suggestions and ask questions"
+echo "   - Refine scenarios collaboratively"
+echo ""
+echo "📁 All context files are available in this directory"
+echo "   Claude Code can read them automatically"
 echo ""
 
-# Run claude CLI with the prompt and scenarios
-echo "🚀 Running Claude CLI refinement..."
-echo "   This may take a few moments..."
+# Launch Claude CLI in interactive mode with the working directory set
+echo "🚀 Launching Claude Code interactive session..."
+echo "   Press Ctrl+C to exit when done"
+echo "   Remember to save your refined scenarios as 'refined-scenarios.json'"
 echo ""
 
-cat generated-scenarios.md | claude -p "$(cat refinement-prompt.txt)" > refined-scenarios-raw.txt
-
-if [ $? -eq 0 ]; then
-    echo "✅ Claude CLI completed successfully"
-    echo ""
-    
-    # Try to extract JSON from the response
-    echo "🔍 Extracting JSON from response..."
-    
-    # Look for JSON array in the response
-    sed -n '/\\[/,/\\]/p' refined-scenarios-raw.txt > refined-scenarios.json
-    
-    if [ -s refined-scenarios.json ]; then
-        # Validate JSON
-        if python3 -m json.tool refined-scenarios.json >/dev/null 2>&1; then
-            echo "✅ Refined scenarios saved to refined-scenarios.json"
-            echo ""
-            echo "📊 Summary:"
-            echo "   Original scenarios: ${data.generatedScenarios.length}"
-            echo "   Refined scenarios: $(python3 -c 'import json; print(len(json.load(open("refined-scenarios.json"))))' 2>/dev/null || echo 'Unknown')"
-            echo ""
-            echo "🎯 Next step:"
-            echo "   bun run start execute-scenarios --file refined-scenarios.json"
-        else
-            echo "⚠️  Generated JSON is invalid. Check refined-scenarios-raw.txt for the raw response."
-            echo "   You may need to manually extract the JSON array."
-        fi
-    else
-        echo "⚠️  No JSON array found in response. Check refined-scenarios-raw.txt"
-        echo "   You may need to re-run with a different prompt."
-    fi
-else
-    echo "❌ Claude CLI failed. Check your authentication and try again."
-    echo "   Make sure you have run: claude auth"
-fi
+# Use claude in interactive mode with the prompt
+claude --interactive < interactive-prompt.txt
 
 echo ""
-echo "📁 Files generated:"
-echo "   - refinement-prompt.txt (the prompt used)"
-echo "   - refined-scenarios-raw.txt (raw Claude response)"
-if [ -f refined-scenarios.json ]; then
-    echo "   - refined-scenarios.json (ready for execution)"
-fi
+echo "📋 Post-Session Checklist:"
+echo "   □ Did you create refined-scenarios.json?"
+echo "   □ Does it contain valid JSON with all required fields?"
+echo "   □ Are you satisfied with the scenario improvements?"
+echo ""
+echo "🎯 Next step (if refined-scenarios.json exists):"
+echo "   bun run start execute-scenarios --file refined-scenarios.json"
 
 # Clean up prompt file
-rm -f refinement-prompt.txt
-
-echo ""
-echo "🔧 Troubleshooting:"
-echo "   - If JSON extraction failed, manually copy the JSON array from refined-scenarios-raw.txt"
-echo "   - Make sure claude CLI is authenticated: claude auth"
+rm -f interactive-prompt.txt
 `;
   }
 
