@@ -51,12 +51,39 @@ jobs:
           echo "Built: $(date)" >> dist/BUILD_INFO.txt
           echo "Bun Version: ${{ env.BUN_VERSION }}" >> dist/BUILD_INFO.txt
 
-      - name: Upload build artifacts
+      - name: Upload Linux x64 artifact
         uses: actions/upload-artifact@v4
         with:
-          name: tap-executables
-          path: |
-            dist/*
+          name: tap-linux-x64
+          path: dist/tap-linux-x64
+          retention-days: 30
+
+      - name: Upload Linux ARM64 artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tap-linux-arm64
+          path: dist/tap-linux-arm64
+          retention-days: 30
+
+      - name: Upload Windows x64 artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tap-windows-x64.exe
+          path: dist/tap-windows-x64.exe
+          retention-days: 30
+
+      - name: Upload macOS ARM64 artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tap-macos-arm64
+          path: dist/tap-macos-arm64
+          retention-days: 30
+
+      - name: Upload build info
+        uses: actions/upload-artifact@v4
+        with:
+          name: BUILD_INFO.txt
+          path: dist/BUILD_INFO.txt
           retention-days: 30
 
   release:
@@ -70,14 +97,22 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Download build artifacts
+      - name: Download all build artifacts
         uses: actions/download-artifact@v4
         with:
-          name: tap-executables
-          path: release-assets
+          path: artifacts
 
-      - name: Create checksums and prepare release
+      - name: Prepare release assets
         run: |
+          mkdir -p release-assets
+          
+          # Move executables to release-assets
+          cp artifacts/tap-linux-x64/tap-linux-x64 release-assets/
+          cp artifacts/tap-linux-arm64/tap-linux-arm64 release-assets/
+          cp artifacts/tap-windows-x64.exe/tap-windows-x64.exe release-assets/
+          cp artifacts/tap-macos-arm64/tap-macos-arm64 release-assets/
+          cp artifacts/BUILD_INFO.txt/BUILD_INFO.txt release-assets/
+          
           cd release-assets
           
           # Create checksums (exclude BUILD_INFO.txt from checksums)
