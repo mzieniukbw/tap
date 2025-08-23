@@ -1,0 +1,171 @@
+name: Build and Release
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+  pull_request:
+    branches:
+      - main
+
+env:
+  BUN_VERSION: '1.1.38'
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: bun-linux-x64
+            name: tap-linux-x64
+            mcp-name: mcp-server-linux-x64
+          - os: ubuntu-latest
+            target: bun-linux-arm64
+            name: tap-linux-arm64
+            mcp-name: mcp-server-linux-arm64
+          - os: windows-latest
+            target: bun-windows-x64
+            name: tap-windows-x64.exe
+            mcp-name: mcp-server-windows-x64.exe
+          - os: windows-latest
+            target: bun-windows-x64-baseline
+            name: tap-windows-x64-baseline.exe
+            mcp-name: mcp-server-windows-x64-baseline.exe
+          - os: macos-latest
+            target: bun-darwin-x64
+            name: tap-macos-x64
+            mcp-name: mcp-server-macos-x64
+          - os: macos-latest
+            target: bun-darwin-arm64
+            name: tap-macos-arm64
+            mcp-name: mcp-server-macos-arm64
+
+    runs-on: ${{ matrix.os }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Type check
+        run: bun x tsc --noEmit
+
+      - name: Build TAP executable
+        run: |
+          mkdir -p dist
+          bun build --compile --target=${{ matrix.target }} --outfile=dist/${{ matrix.name }} src/main.ts
+
+      - name: Build MCP Server executable
+        run: |
+          bun build --compile --target=${{ matrix.target }} --outfile=dist/${{ matrix.mcp-name }} src/mcp-servers/atlassian-mcp/server.ts
+
+      - name: Create build info
+        run: |
+          echo "Build Information" > dist/BUILD_INFO.txt
+          echo "=================" >> dist/BUILD_INFO.txt
+          echo "Version: ${{ github.ref_name || github.sha }}" >> dist/BUILD_INFO.txt
+          echo "Target: ${{ matrix.target }}" >> dist/BUILD_INFO.txt
+          echo "OS: ${{ matrix.os }}" >> dist/BUILD_INFO.txt
+          echo "Built: $(date)" >> dist/BUILD_INFO.txt
+          echo "Bun Version: ${{ env.BUN_VERSION }}" >> dist/BUILD_INFO.txt
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: tap-${{ matrix.target }}
+          path: |
+            dist/${{ matrix.name }}
+            dist/${{ matrix.mcp-name }}
+            dist/BUILD_INFO.txt
+          retention-days: 30
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Prepare release assets
+        run: |
+          mkdir -p release-assets
+          
+          # Copy all executables to release-assets
+          find artifacts -name "tap-*" -o -name "mcp-server-*" | while read file; do
+            cp "$file" release-assets/
+          done
+          
+          # Create checksums
+          cd release-assets
+          sha256sum * > checksums.txt
+          
+          # List what we're releasing
+          echo "Release assets:"
+          ls -la
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release-assets/*
+          draft: false
+          prerelease: ${{ contains(github.ref_name, 'beta') || contains(github.ref_name, 'alpha') || contains(github.ref_name, 'rc') }}
+          generate_release_notes: true
+          body: |
+            ## TAP - Testing Assistant Project
+            
+            ### Installation
+            
+            **Quick Install (Linux/macOS):**
+            ```bash
+            curl -fsSL https://raw.githubusercontent.com/${{ github.repository }}/main/install.sh | bash
+            ```
+            
+            **Manual Installation:**
+            1. Download the appropriate binary for your platform
+            2. Make it executable: `chmod +x tap-*`
+            3. Move to PATH: `sudo mv tap-* /usr/local/bin/tap`
+            
+            ### Supported Platforms
+            - **Linux**: x64, ARM64
+            - **Windows**: x64 (modern CPUs), x64-baseline (older CPUs)
+            - **macOS**: x64 (Intel), ARM64 (Apple Silicon)
+            
+            ### What's Included
+            - `tap`: Main CLI executable
+            - `mcp-server`: MCP server for Atlassian integration
+            - `checksums.txt`: SHA256 checksums for verification
+            
+            ### Usage
+            ```bash
+            # Setup configuration
+            tap setup
+            
+            # Test a GitHub PR
+            tap test-pr https://github.com/owner/repo/pull/123
+            
+            # Execute refined scenarios
+            tap execute-scenarios --file ./scenarios.json
+            ```
+            
+            **Note**: These are standalone executables with no dependencies on Node.js or Bun.
+
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
