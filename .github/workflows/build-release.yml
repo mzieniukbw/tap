@@ -14,29 +14,7 @@ env:
 
 jobs:
   build:
-    strategy:
-      matrix:
-        include:
-          - os: ubuntu-latest
-            target: bun-linux-x64
-            name: tap-linux-x64
-          - os: ubuntu-latest
-            target: bun-linux-arm64
-            name: tap-linux-arm64
-          - os: windows-latest
-            target: bun-windows-x64
-            name: tap-windows-x64.exe
-          - os: windows-latest
-            target: bun-windows-x64-baseline
-            name: tap-windows-x64-baseline.exe
-          - os: macos-latest
-            target: bun-darwin-x64
-            name: tap-macos-x64
-          - os: macos-latest
-            target: bun-darwin-arm64
-            name: tap-macos-arm64
-
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
     
     steps:
       - name: Checkout code
@@ -53,29 +31,32 @@ jobs:
       - name: Type check
         run: bun x tsc --noEmit
 
-      - name: Build TAP executable
+      - name: Build TAP executables for all targets
         run: |
           mkdir -p dist
-          bun build --compile --target=${{ matrix.target }} --outfile=dist/${{ matrix.name }} src/main.ts
-
+          
+          # Build for modern platforms
+          bun build --compile --target=bun-linux-x64 --outfile=dist/tap-linux-x64 src/main.ts
+          bun build --compile --target=bun-linux-arm64 --outfile=dist/tap-linux-arm64 src/main.ts
+          bun build --compile --target=bun-windows-x64 --outfile=dist/tap-windows-x64.exe src/main.ts
+          bun build --compile --target=bun-darwin-arm64 --outfile=dist/tap-macos-arm64 src/main.ts
 
       - name: Create build info
         run: |
           echo "Build Information" > dist/BUILD_INFO.txt
           echo "=================" >> dist/BUILD_INFO.txt
           echo "Version: ${{ github.ref_name || github.sha }}" >> dist/BUILD_INFO.txt
-          echo "Target: ${{ matrix.target }}" >> dist/BUILD_INFO.txt
-          echo "OS: ${{ matrix.os }}" >> dist/BUILD_INFO.txt
+          echo "Targets: linux-x64, linux-arm64, windows-x64, macos-arm64" >> dist/BUILD_INFO.txt
+          echo "OS: ubuntu-latest" >> dist/BUILD_INFO.txt
           echo "Built: $(date)" >> dist/BUILD_INFO.txt
           echo "Bun Version: ${{ env.BUN_VERSION }}" >> dist/BUILD_INFO.txt
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: tap-${{ matrix.target }}
+          name: tap-executables
           path: |
-            dist/${{ matrix.name }}
-            dist/BUILD_INFO.txt
+            dist/*
           retention-days: 30
 
   release:
@@ -89,23 +70,18 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Download all artifacts
+      - name: Download build artifacts
         uses: actions/download-artifact@v4
         with:
-          path: artifacts
+          name: tap-executables
+          path: release-assets
 
-      - name: Prepare release assets
+      - name: Create checksums and prepare release
         run: |
-          mkdir -p release-assets
-          
-          # Copy all executables to release-assets
-          find artifacts -name "tap-*" | while read file; do
-            cp "$file" release-assets/
-          done
-          
-          # Create checksums
           cd release-assets
-          sha256sum * > checksums.txt
+          
+          # Create checksums (exclude BUILD_INFO.txt from checksums)
+          sha256sum tap-* > checksums.txt
           
           # List what we're releasing
           echo "Release assets:"
@@ -135,8 +111,8 @@ jobs:
             
             ### Supported Platforms
             - **Linux**: x64, ARM64
-            - **Windows**: x64 (modern CPUs), x64-baseline (older CPUs)
-            - **macOS**: x64 (Intel), ARM64 (Apple Silicon)
+            - **Windows**: x64
+            - **macOS**: ARM64 (Apple Silicon)
             
             ### What's Included
             - `tap`: Main CLI executable
