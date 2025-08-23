@@ -125,9 +125,8 @@ async function executePRTest(prUrl: string, options: any) {
       });
 
       console.log(chalk.blue(`\n🤖 Next steps:`));
-      console.log(`  1. Review generated scenarios in: ${outputDir}/generated-scenarios.md`);
-      console.log(`  2. Use Claude Code to refine scenarios based on full context`);
-      console.log(`  3. Run: bun run start execute-scenarios --file <refined-scenarios.json>`);
+      console.log(`  1. Use Claude Code to refine scenarios based on full context by running: ${outputDir}/claude-refine.sh`);
+      console.log(`  2. Run: bun run start execute-scenarios --file refined-scenarios.json`);
       
       console.log(chalk.gray(`\n💡 AI Summary:`));
       console.log(chalk.gray(aiSummary));
