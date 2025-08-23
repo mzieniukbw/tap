@@ -109,7 +109,9 @@ ${confluencePages.map(page => `
 
 ## Task: Generate Test Scenarios
 
-Based on the above context, generate 5-8 comprehensive test scenarios in the following JSON format:
+**CRITICAL: You must respond with ONLY valid JSON. No additional text, explanation, or markdown formatting outside the JSON.**
+
+Based on the above context, generate 5-8 comprehensive test scenarios as a JSON array with the exact structure shown below:
 
 \`\`\`json
 [
@@ -117,53 +119,78 @@ Based on the above context, generate 5-8 comprehensive test scenarios in the fol
     "id": "unique-scenario-id",
     "title": "Clear, descriptive scenario title",
     "description": "Detailed description of what this scenario tests and why it's important",
-    "priority": "high|medium|low",
-    "category": "functionality|regression|integration|ui|performance|security",
+    "priority": "high",
+    "category": "functionality",
     "steps": [
       {
-        "action": "navigate|click|input|verify|call|test",
+        "action": "navigate",
         "target": "specific element, page, or endpoint",
-        "input": "data to input (if applicable)", 
+        "input": "data to input (if applicable)",
         "verification": "what to verify after this step"
       }
     ],
     "expectedOutcome": "clear description of expected result",
     "focusAreas": ["relevant", "focus", "areas"],
-    "automationLevel": "manual|semi-automated|automated",
+    "automationLevel": "manual",
     "estimatedDuration": 15
   }
 ]
 \`\`\`
 
-## Requirements:
+## Field Requirements:
+- **id**: Unique string identifier (lowercase with dashes)
+- **title**: Clear, concise test scenario name
+- **description**: 2-3 sentences explaining what this tests and why
+- **priority**: Must be exactly "high", "medium", or "low" 
+- **category**: Must be exactly one of: "functionality", "regression", "integration", "ui", "performance", "security"
+- **steps**: Array of test steps (minimum 3 steps)
+  - **action**: Must be one of: "navigate", "click", "input", "verify", "call", "test"
+  - **target**: Specific UI element, page, API endpoint, or file path
+  - **input**: Data/values to use (optional - use null if not needed)
+  - **verification**: What to check/verify after this step
+- **expectedOutcome**: Clear description of expected result
+- **focusAreas**: Array of strings (relevant technical areas)
+- **automationLevel**: Must be exactly "manual", "semi-automated", or "automated"
+- **estimatedDuration**: Number (minutes as integer)
+
+## Content Requirements:
 1. **Be Specific**: Use actual file paths, component names, and technical details from the context
-2. **Be Intelligent**: Don't just create generic tests - analyze the actual code changes and business context
-3. **Cover Edge Cases**: Think about what could go wrong with these specific changes
+2. **Be Intelligent**: Analyze the actual code changes and business context - don't create generic tests
+3. **Cover Edge Cases**: Consider what could go wrong with these specific changes
 4. **Prioritize Well**: Mark critical functionality as high priority, nice-to-have as low
 5. **Business Context**: Incorporate understanding from Jira tickets and documentation
-6. **Realistic Steps**: Create actionable, specific test steps that a human or automation tool could follow
-7. **Appropriate Duration**: Estimate realistic time (in minutes) for each scenario
+6. **Realistic Steps**: Create actionable, specific test steps that can be executed
+7. **Appropriate Duration**: Estimate realistic time (5-60 minutes per scenario)
 
-Focus on quality over quantity - create scenarios that are truly valuable for testing this specific PR.`;
+**RESPONSE FORMAT: Return ONLY the JSON array. No markdown code blocks, no explanatory text, no additional formatting.**`;
 
     return prompt;
   }
 
   private parseAIResponse(aiResponse: string, context: AITestGenerationContext): TestScenario[] {
     try {
-      // Extract JSON from the AI response (it should be wrapped in ```json```)
-      const jsonMatch = aiResponse.match(/```json\n([\s\S]*?)\n```/);
-      if (!jsonMatch) {
-        throw new Error('No JSON found in AI response');
+      let jsonStr: string;
+
+      // Try to extract JSON from markdown code blocks first
+      const jsonMatch = aiResponse.match(/```json\s*\n([\s\S]*?)\n```/);
+      if (jsonMatch) {
+        jsonStr = jsonMatch[1].trim();
+      } else {
+        // If no code blocks, try to parse the response directly as JSON
+        jsonStr = aiResponse.trim();
       }
 
-      const jsonStr = jsonMatch[1];
       const scenarios: TestScenario[] = JSON.parse(jsonStr);
+
+      // Validate that we got an array
+      if (!Array.isArray(scenarios)) {
+        throw new Error('Expected JSON array of test scenarios');
+      }
 
       // Validate and enhance the scenarios
       return scenarios.map(scenario => this.validateAndEnhanceScenario(scenario, context));
     } catch (error) {
-      console.error('Failed to parse AI response:', aiResponse);
+      console.error('Failed to parse AI response:', aiResponse.substring(0, 500) + '...');
       throw new Error(`Failed to parse AI-generated scenarios: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
@@ -176,7 +203,7 @@ Focus on quality over quantity - create scenarios that are truly valuable for te
 
     return {
       ...scenario,
-      id: scenario.id || `generated-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      id: scenario.id || `generated-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
       priority: validPriorities.includes(scenario.priority) ? scenario.priority : 'medium',
       category: validCategories.includes(scenario.category) ? scenario.category : 'functionality',
       automationLevel: validAutomationLevels.includes(scenario.automationLevel) ? scenario.automationLevel : 'manual',
