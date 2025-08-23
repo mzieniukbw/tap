@@ -224,16 +224,38 @@ export class OnyxContextService {
 
     if (!response.ok) {
       const errorText = await response.text();
-      throw new Error(`Onyx AI API request failed: ${response.status} ${response.statusText}. Response: ${errorText}`);
+      throw new Error(`Onyx AI API request failed: ${response.status} ${response.statusText}. Response: ${errorText.substring(0, 200)}`);
     }
 
     const responseText = await response.text();
     
     try {
-      const data = JSON.parse(responseText);
-      return data.answer || data.message || data.response || JSON.stringify(data);
+      // Handle streaming JSON responses - split by newlines and parse each line
+      const lines = responseText.split('\n').filter(line => line.trim());
+      let finalAnswer = '';
+      
+      for (const line of lines) {
+        try {
+          const data = JSON.parse(line);
+          
+          // Look for the final answer or accumulate streaming content
+          if (data.answer) {
+            finalAnswer = data.answer;
+          } else if (data.message) {
+            finalAnswer += data.message;
+          } else if (data.content) {
+            finalAnswer += data.content;
+          } else if (data.text) {
+            finalAnswer += data.text;
+          }
+        } catch (lineParseError) {
+          // Skip lines that aren't valid JSON
+        }
+      }
+      
+      return finalAnswer || 'No answer received from Onyx AI';
     } catch (parseError) {
-      console.warn(`Failed to parse JSON response from Onyx API: ${parseError instanceof Error ? parseError.message : String(parseError)}`);
+      console.warn(`Failed to parse streaming JSON response from Onyx API: ${parseError instanceof Error ? parseError.message : String(parseError)}`);
       console.warn(`Raw response: ${responseText.substring(0, 200)}...`);
       return responseText;
     }
