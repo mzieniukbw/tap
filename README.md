@@ -2,7 +2,26 @@
 
 A Bun-based CLI tool that uses AI-powered test generation and human-in-the-loop workflow to create and execute ephemeral testing scenarios from GitHub PRs and Jira tickets. TAP combines Claude CLI for intelligent test generation, Claude Code for human refinement, and Claude Desktop for test execution with screen automation.
 
-## Quick Setup
+## Installation
+
+### Homebrew (macOS - Recommended)
+```bash
+brew install --formula https://raw.githubusercontent.com/mzieniuk/tap/main/Formula/tap.rb
+```
+
+### Quick Install Script (Linux/macOS)
+```bash
+curl -fsSL https://raw.githubusercontent.com/mzieniuk/tap/main/install.sh | bash
+```
+
+### Manual Installation
+1. Download the appropriate binary for your platform from [releases](https://github.com/mzieniuk/tap/releases)
+2. Make it executable: `chmod +x tap-*`
+3. Move to PATH: `sudo mv tap-* /usr/local/bin/tap`
+
+### Development Setup
+
+Install bun https://bun.sh
 
 ```bash
 cd tap
