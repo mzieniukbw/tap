@@ -254,7 +254,6 @@ export class AtlassianService {
     return html
       .replace(/<[^>]*>/g, " ") // Remove HTML tags
       .replace(/\s+/g, " ")     // Normalize whitespace
-      .trim()
-      .substring(0, 1000);      // Limit to 1000 characters
+      .trim();                  // Keep full content
   }
 }
