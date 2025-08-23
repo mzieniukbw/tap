@@ -120,6 +120,22 @@ export class ContextExporter {
 ## AI Summary
 ${data.aiSummary}
 
+## General Testing Guidelines
+
+**⚠️ Testing Philosophy:** These scenarios focus on testing what the PR actually changes. For basic UI interactions (button clicks, form submissions, checkbox toggles), assume they work as expected unless they're directly related to the changes being tested.
+
+**🚫 Fail the test if:**
+- Any step produces an error or unexpected behavior
+- The application crashes or becomes unresponsive  
+- Data is corrupted or lost
+- Security boundaries are violated
+- Performance degrades significantly
+
+**✅ Skip explicit verification for:**
+- Basic UI element visibility after navigation
+- Standard form field acceptance of valid input
+- Simple state changes (toggles, dropdowns) unless central to the test
+
 ---
 
 ## Test Scenarios
@@ -139,8 +155,7 @@ ${data.aiSummary}
 ${scenario.steps
   .map(
     (step, stepIndex) =>
-      `${stepIndex + 1}. **${step.action.charAt(0).toUpperCase() + step.action.slice(1)}** ${step.target ? `"${step.target}"` : ""}${step.input ? ` with "${step.input}"` : ""}
-   - *Verify:* ${step.verification}`
+      `${stepIndex + 1}. **${step.action.charAt(0).toUpperCase() + step.action.slice(1)}** ${step.target ? `"${step.target}"` : ""}${step.input ? ` with "${step.input}"` : ""}${step.verification ? `\n   - *Verify:* ${step.verification}` : ""}`
   )
   .join("\n")}
 

@@ -20,7 +20,7 @@ export interface TestStep {
   action: string;
   target?: string;
   input?: string;
-  verification: string;
+  verification?: string | null;
 }
 
 export interface AITestGenerationContext {
@@ -158,7 +158,7 @@ Based on the above context, generate 5-8 comprehensive test scenarios as a JSON 
         "action": "navigate",
         "target": "specific element, page, or endpoint",
         "input": "data to input (if applicable)",
-        "verification": "what to verify after this step"
+        "verification": "what to verify after this step (only if critical to the test)"
       }
     ],
     "expectedOutcome": "clear description of expected result",
@@ -179,7 +179,7 @@ Based on the above context, generate 5-8 comprehensive test scenarios as a JSON 
   - **action**: Must be one of: "navigate", "click", "input", "verify", "call", "test"
   - **target**: Specific UI element, page, API endpoint, or file path
   - **input**: Data/values to use (optional - use null if not needed)
-  - **verification**: What to check/verify after this step
+  - **verification**: What to verify after this step (ONLY for critical validations - omit for obvious UI interactions)
 - **expectedOutcome**: Clear description of expected result
 - **focusAreas**: Array of strings (relevant technical areas)
 - **automationLevel**: Must be exactly "manual", "semi-automated", or "automated"
@@ -187,13 +187,15 @@ Based on the above context, generate 5-8 comprehensive test scenarios as a JSON 
 
 ## Content Requirements:
 1. **E2E Focus**: Prioritize end-to-end user scenarios over technical implementation details
-2. **User Perspective**: Write test steps from a non-technical QA perspective (clear UI elements, user actions)
-3. **Leverage AI Insights**: Use Onyx AI product knowledge to understand user workflows and business context
-4. **Be Specific**: Reference actual UI elements, user flows, and business processes
-5. **Cover Edge Cases**: Consider what could go wrong from the user's perspective
-6. **Prioritize Well**: Mark critical user journeys as high priority, nice-to-have features as low
-7. **Business Value**: Focus on scenarios that validate business requirements and user experience
+2. **Human-Friendly Steps**: Write concise test steps focusing on key user actions, not obvious verifications
+3. **Focus on Change Impact**: Test only what the PR actually changes - avoid testing unrelated functionality
+4. **Leverage AI Insights**: Use Onyx AI product knowledge to understand user workflows and business context
+5. **Be Specific**: Reference actual UI elements, user flows, and business processes affected by the changes
+6. **Cover Edge Cases**: Consider what could go wrong from the user's perspective related to the changes
+7. **Prioritize Well**: Mark critical user journeys as high priority, nice-to-have features as low
 8. **Realistic Steps**: Create actionable steps that manual testers can understand and execute
+9. **Avoid Redundancy**: Skip verification steps for basic UI interactions (button clicks, form submissions) unless they're central to the test
+10. **Trust Base Functionality**: Don't test features unrelated to the PR changes - assume base functionality works unless the changes affect it
 
 **RESPONSE FORMAT: Return ONLY the JSON array. No markdown code blocks, no explanatory text, no additional formatting.**`;
 
@@ -256,7 +258,7 @@ Based on the above context, generate 5-8 comprehensive test scenarios as a JSON 
       steps: scenario.steps.map((step) => ({
         ...step,
         action: step.action || "test",
-        verification: step.verification || "Verify step completed successfully",
+        verification: step.verification || null, // Allow null verification for basic UI interactions
       })),
     };
   }

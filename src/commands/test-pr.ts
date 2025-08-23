@@ -46,7 +46,7 @@ async function executePRTest(prUrl: string, options: any) {
       verbose: options.verbose,
       prAnalysis,
     });
-    
+
     const { jiraContext, confluencePages, onyxContext } = contextResult;
 
     // Step 2: Generate test scenarios with AI

@@ -22,7 +22,7 @@ export class ContextGatheringService {
     // Use pre-analyzed PR data
     console.log(`PR: ${prAnalysis.title}`);
     console.log(`Files changed: ${prAnalysis.changedFiles.length}`);
-    
+
     if (verbose) {
       console.log(chalk.gray(`Using pre-analyzed PR data`));
       console.log(chalk.gray(`PR Analysis details:`));
