@@ -102,15 +102,14 @@ The system automatically tests API connectivity before running commands.
 ### Testing PRs (Human-in-the-Loop Workflow)
 ```bash
 # Step 1: Generate AI scenarios and export context for review
-bun run start test-pr <pr-url> --generate-only    # Creates ./{PR-number}-{commit-sha}/ directory
+bun run start test-pr <pr-url> --generate-only    # Creates ./test-pr-{PR-number}-{commit-sha}/ directory
 
-# Step 2: Use Claude Code to review and refine scenarios
-# (In separate terminal or Claude Code session)
-# Review files in ./{PR-number}-{commit-sha}/ and create refined scenarios
-# OR use the generated helper script: ./{PR-number}-{commit-sha}/claude-refine.sh
+# Step 2: Use Claude Code to refine scenarios interactively
+# Run the generated interactive helper script:
+./test-pr-{PR-number}-{commit-sha}/claude-refine.sh
 
 # Step 3: Execute refined scenarios
-bun run start execute-scenarios --file ./refined-scenarios.json
+bun run start execute-scenarios --file ./test-pr-{PR-number}-{commit-sha}/refined-scenarios.json
 
 # Alternative: Direct execution (no human review)
 bun run start test-pr <pr-url>                    # Full execution with AI scenarios
@@ -145,8 +144,8 @@ Prettier configuration:
 
 ## Output Structure
 
-Test artifacts are generated in `./{PR-number}-{commit-sha}/` directory by default:
-- **Default naming**: `./{PR-number}-{7-char-commit-sha}/` (e.g., `./123-abc1234/`)
+Test artifacts are generated in `./test-pr-{PR-number}-{commit-sha}/` directory by default:
+- **Default naming**: `./test-pr-{PR-number}-{7-char-commit-sha}/` (e.g., `./test-pr-123-abc1234/`)
 - **Custom output**: Use `--output <path>` to override default naming
 - **Artifacts**: Screenshots (`*.png`), Videos (`*.mp4`), QA reports
 - **Context files**: `pr-analysis.json`, `generated-scenarios.json`, refinement guides

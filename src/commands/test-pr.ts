@@ -29,7 +29,7 @@ async function executePRTest(prUrl: string, options: any) {
     const lastCommitSha = prAnalysis.commits[prAnalysis.commits.length - 1]?.sha.substring(0, 7) || 'unknown';
     const outputDir = options.output 
       ? options.output
-      : `./${prAnalysis.number}-${lastCommitSha}`;
+      : `./test-pr-${prAnalysis.number}-${lastCommitSha}`;
     
     // Check if output directory already exists to prevent accidental re-runs
     if (existsSync(outputDir)) {

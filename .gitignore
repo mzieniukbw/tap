@@ -27,8 +27,7 @@ build/
 logs/
 
 # Test outputs
-tap-output/
-test-artifacts/
+test-pr-*/
 
 # Temporary files
 tmp/
