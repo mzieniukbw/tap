@@ -26,9 +26,9 @@ async function executePRTest(prUrl: string, options: any) {
     
     // Generate output directory name based on PR number and last commit SHA
     const lastCommitSha = prAnalysis.commits[prAnalysis.commits.length - 1]?.sha.substring(0, 7) || 'unknown';
-    const outputDir = options.output === './tap-output' 
-      ? `./${prAnalysis.number}-${lastCommitSha}`
-      : options.output;
+    const outputDir = options.output 
+      ? options.output
+      : `./${prAnalysis.number}-${lastCommitSha}`;
     
     // Step 2: Generate test scenarios with AI
     console.log(chalk.yellow("🧪 Generating AI test scenarios..."));
