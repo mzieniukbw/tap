@@ -63,7 +63,7 @@ export class OnyxContextService {
           console.log(`  Querying Onyx AI: ${queryObj.query}`);
         }
 
-        const response = await this.queryOnyxAI(queryObj, config.onyx.baseUrl, config.onyx.apiKey);
+        const response = await this.queryOnyxAI(queryObj, config.onyx.baseUrl, config.onyx.apiKey, prAnalysis.number);
         responses.push({
           query: queryObj.query,
           answer: response,
@@ -176,9 +176,35 @@ export class OnyxContextService {
     return context;
   }
 
-  private async queryOnyxAI(queryObj: OnyxQuery, baseUrl: string, apiKey: string): Promise<string> {
-    const onyxUrl = `${baseUrl}/chat/send-message`;
-    const response = await fetch(onyxUrl, {
+  private async createChatSession(baseUrl: string, apiKey: string, prNumber: number): Promise<string> {
+    const createSessionUrl = `${baseUrl}/api/chat/create-chat-session`;
+    const response = await fetch(createSessionUrl, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${apiKey}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        persona_id: 0,
+        description: `TAP test scenario generation for PR #${prNumber}`
+      })
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Failed to create Onyx chat session: ${response.status} ${response.statusText}. Response: ${errorText}`);
+    }
+
+    const data = await response.json();
+    return data.chat_session_id;
+  }
+
+  private async queryOnyxAI(queryObj: OnyxQuery, baseUrl: string, apiKey: string, prNumber: number): Promise<string> {
+    // Create a new chat session for this query
+    const chatSessionId = await this.createChatSession(baseUrl, apiKey, prNumber);
+    
+    const sendMessageUrl = `${baseUrl}/api/chat/send-message`;
+    const response = await fetch(sendMessageUrl, {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${apiKey}`,
@@ -186,18 +212,30 @@ export class OnyxContextService {
       },
       body: JSON.stringify({
         message: `${queryObj.query}\n\nContext:\n${queryObj.context}`,
-        chat_session_id: null
+        chat_session_id: chatSessionId,
+        parent_message_id: null,
+        file_descriptors: [],
+        prompt_id: null,
+        search_doc_ids: null,
+        retrieval_options: {
+        }
       })
     });
 
     if (!response.ok) {
-      throw new Error(`Onyx AI API request failed: ${response.status} ${response.statusText}`);
+      const errorText = await response.text();
+      throw new Error(`Onyx AI API request failed: ${response.status} ${response.statusText}. Response: ${errorText}`);
     }
 
-    const data = await response.json();
+    const responseText = await response.text();
     
-    // Extract the answer from Onyx response structure
-    // This may need adjustment based on actual Onyx API response format
-    return data.answer || data.message || data.response || JSON.stringify(data);
+    try {
+      const data = JSON.parse(responseText);
+      return data.answer || data.message || data.response || JSON.stringify(data);
+    } catch (parseError) {
+      console.warn(`Failed to parse JSON response from Onyx API: ${parseError instanceof Error ? parseError.message : String(parseError)}`);
+      console.warn(`Raw response: ${responseText.substring(0, 200)}...`);
+      return responseText;
+    }
   }
 }
