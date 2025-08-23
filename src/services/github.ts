@@ -94,7 +94,7 @@ export class GitHubService {
     return files.map((file: any) => file.patch || "").filter(Boolean);
   }
 
-  private parsePRUrl(url: string): {
+  public parsePRUrl(url: string): {
     owner: string;
     repo: string;
     number: number;

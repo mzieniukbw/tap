@@ -12,26 +12,19 @@ export interface PRContext {
 
 export interface ContextGatheringOptions {
   verbose?: boolean;
+  prAnalysis: PRAnalysis; // Required pre-analyzed PR data
 }
 
 export class ContextGatheringService {
-  async gatherPRContext(prUrl: string, options: ContextGatheringOptions = {}): Promise<PRContext> {
-    const { verbose } = options;
+  async gatherPRContext(options: ContextGatheringOptions): Promise<PRContext> {
+    const { verbose, prAnalysis } = options;
 
-    // Step 1: Analyze PR with GitHub integration
-    console.log(chalk.yellow("📊 Analyzing GitHub PR..."));
-    if (verbose) {
-      console.log(chalk.gray(`Initializing GitHub service...`));
-    }
-    const githubService = new GitHubService();
-    const step1Start = Date.now();
-    const prAnalysis = await githubService.analyzePR(prUrl);
-
+    // Use pre-analyzed PR data
     console.log(`PR: ${prAnalysis.title}`);
     console.log(`Files changed: ${prAnalysis.changedFiles.length}`);
-
+    
     if (verbose) {
-      console.log(chalk.gray(`Step 1 completed in ${Date.now() - step1Start}ms`));
+      console.log(chalk.gray(`Using pre-analyzed PR data`));
       console.log(chalk.gray(`PR Analysis details:`));
       console.log(chalk.gray(`  - Number: ${prAnalysis.number}`));
       console.log(chalk.gray(`  - Author: ${prAnalysis.author}`));

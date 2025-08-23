@@ -5,6 +5,7 @@ import { ContextGatheringService } from "../services/context-gathering";
 import { AITestScenarioGenerator } from "../services/ai-test-generator";
 import { ContextExporter } from "../services/context-exporter";
 import { TestExecutionService } from "../services/test-execution";
+import { GitHubService } from "../services/github";
 
 async function executePRTest(prUrl: string, options: any) {
   const startTime = Date.now();
@@ -19,14 +20,11 @@ async function executePRTest(prUrl: string, options: any) {
   }
 
   try {
-    // Gather PR context (Steps 1-4: GitHub PR, Jira, Confluence, and Onyx AI)
-    const contextService = new ContextGatheringService();
-    const { prAnalysis, jiraContext, confluencePages, onyxContext } =
-      await contextService.gatherPRContext(prUrl, {
-        verbose: options.verbose,
-      });
+    // Get basic PR info (GitHub API only) to determine output directory before expensive context gathering
+    const githubService = new GitHubService();
+    const prAnalysis = await githubService.analyzePR(prUrl);
 
-    // Generate output directory name based on PR number and last commit SHA
+    // Generate output directory name and check if it exists early
     const lastCommitSha =
       prAnalysis.commits[prAnalysis.commits.length - 1]?.sha.substring(0, 7) || "unknown";
     const outputDir = options.output
@@ -41,6 +39,15 @@ async function executePRTest(prUrl: string, options: any) {
       console.error(`  • Or specify a different output path: --output <new-path>`);
       process.exit(1);
     }
+
+    // Now gather expensive context (Jira, Confluence, Onyx AI) after directory validation
+    const contextService = new ContextGatheringService();
+    const contextResult = await contextService.gatherPRContext({
+      verbose: options.verbose,
+      prAnalysis,
+    });
+    
+    const { jiraContext, confluencePages, onyxContext } = contextResult;
 
     // Step 2: Generate test scenarios with AI
     console.log(chalk.yellow("🧪 Generating AI test scenarios..."));
