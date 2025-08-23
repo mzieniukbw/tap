@@ -5,6 +5,7 @@ import { TestExecutionService } from "../services/test-execution";
 import { TestScenario } from "../services/ai-test-generator";
 import { PRAnalysis } from "../services/github";
 import { TicketContext, ConfluencePage } from "../services/atlassian";
+import { OnyxContext } from "../services/onyx-context";
 import { readFile } from "fs/promises";
 import { existsSync } from "fs";
 import { join, dirname } from "path";
@@ -63,6 +64,7 @@ async function executeScenarios(options: any) {
       prAnalysis: context.prAnalysis,
       jiraContext: context.jiraContext,
       confluencePages: context.confluencePages,
+      onyxContext: context.onyxContext,
       scenarios,
       outputDir: options.output,
       verbose: options.verbose
@@ -92,6 +94,7 @@ async function loadOriginalContext(contextDir: string, verbose?: boolean): Promi
   prAnalysis: PRAnalysis;
   jiraContext: TicketContext | null;
   confluencePages: ConfluencePage[];
+  onyxContext: OnyxContext | null;
 }> {
   if (verbose) {
     console.log(chalk.gray(`Loading original context from: ${contextDir}`));
@@ -155,7 +158,21 @@ async function loadOriginalContext(contextDir: string, verbose?: boolean): Promi
     console.log(chalk.gray(`ℹ️  No Confluence documentation found`));
   }
 
-  return { prAnalysis, jiraContext, confluencePages };
+  // Load Onyx AI context (optional)
+  const onyxContextPath = join(contextDir, 'onyx-product-context.json');
+  let onyxContext: OnyxContext | null = null;
+  
+  if (existsSync(onyxContextPath)) {
+    const onyxContextContent = await readFile(onyxContextPath, 'utf-8');
+    onyxContext = JSON.parse(onyxContextContent);
+    if (verbose) {
+      console.log(chalk.gray(`✅ Loaded Onyx AI context with ${onyxContext?.responses.length || 0} insights`));
+    }
+  } else if (verbose) {
+    console.log(chalk.gray(`ℹ️  No Onyx AI product context found`));
+  }
+
+  return { prAnalysis, jiraContext, confluencePages, onyxContext };
 }
 
 export const executeScenariosCommand = new Command("execute-scenarios")

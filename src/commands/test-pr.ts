@@ -18,9 +18,9 @@ async function executePRTest(prUrl: string, options: any) {
   }
   
   try {
-    // Gather PR context (Steps 1-3: GitHub PR, Jira, and Confluence)
+    // Gather PR context (Steps 1-4: GitHub PR, Jira, Confluence, and Onyx AI)
     const contextService = new ContextGatheringService();
-    const { prAnalysis, jiraContext, confluencePages } = await contextService.gatherPRContext(prUrl, {
+    const { prAnalysis, jiraContext, confluencePages, onyxContext } = await contextService.gatherPRContext(prUrl, {
       verbose: options.verbose
     });
     
@@ -46,13 +46,15 @@ async function executePRTest(prUrl: string, options: any) {
       scenarios = await aiGenerator.generateScenarios({
         prAnalysis,
         jiraContext,
-        confluencePages
+        confluencePages,
+        onyxContext
       });
 
       aiSummary = await aiGenerator.generateTestSummary(scenarios, {
         prAnalysis,
         jiraContext,
-        confluencePages
+        confluencePages,
+        onyxContext
       });
 
       console.log(`🤖 AI-generated ${scenarios.length} intelligent test scenarios`);
@@ -94,6 +96,7 @@ async function executePRTest(prUrl: string, options: any) {
         prAnalysis,
         jiraContext,
         confluencePages,
+        onyxContext,
         generatedScenarios: scenarios,
         aiSummary,
         metadata: {
@@ -131,6 +134,7 @@ async function executePRTest(prUrl: string, options: any) {
       prAnalysis,
       jiraContext,
       confluencePages,
+      onyxContext,
       scenarios,
       outputDir: outputDir,
       verbose: options.verbose

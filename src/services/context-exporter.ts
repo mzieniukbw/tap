@@ -4,11 +4,13 @@ import { join, dirname } from 'path';
 import { PRAnalysis } from './github';
 import { TicketContext, ConfluencePage } from './atlassian';
 import { TestScenario } from './ai-test-generator';
+import { OnyxContext } from './onyx-context';
 
 export interface ContextExportData {
   prAnalysis: PRAnalysis;
   jiraContext?: TicketContext | null;
   confluencePages: ConfluencePage[];
+  onyxContext?: OnyxContext | null;
   generatedScenarios: TestScenario[];
   aiSummary: string;
   metadata: {
@@ -48,6 +50,13 @@ export class ContextExporter {
       const confluenceDocsPath = join(outputDir, 'confluence-docs.json');
       await this.writeJsonFile(confluenceDocsPath, data.confluencePages);
       exportedFiles.push(confluenceDocsPath);
+    }
+
+    // 3.5. Export Onyx AI Product Context
+    if (data.onyxContext) {
+      const onyxContextPath = join(outputDir, 'onyx-product-context.json');
+      await this.writeJsonFile(onyxContextPath, data.onyxContext);
+      exportedFiles.push(onyxContextPath);
     }
 
     // 4. Export Generated Scenarios as JSON
@@ -144,7 +153,7 @@ ${scenario.steps.map((step, stepIndex) =>
   }
 
   private async generateContextSummary(data: ContextExportData): Promise<string> {
-    const { prAnalysis, jiraContext, confluencePages, generatedScenarios, metadata } = data;
+    const { prAnalysis, jiraContext, confluencePages, onyxContext, generatedScenarios, metadata } = data;
 
     return `# TAP Testing Context Summary
 
@@ -180,6 +189,15 @@ ${confluencePages.length > 0 ? `
 Found ${confluencePages.length} related documentation pages:
 ${confluencePages.map(page => `- **${page.title}** (${page.space}) - ${page.author}`).join('\n')}
 ` : 'No related documentation found'}
+
+## Onyx AI Product Knowledge
+${onyxContext ? `
+Gathered ${onyxContext.responses.length} AI-processed insights about product context and user workflows:
+${onyxContext.responses.map((response, i) => 
+  `${i + 1}. **${response.query}**
+   - *AI Insight:* ${response.answer.substring(0, 150)}${response.answer.length > 150 ? '...' : ''}`
+).join('\n')}
+` : 'No Onyx AI context available (not configured)'}
 
 ## AI-Generated Test Scenarios
 - **Total Scenarios:** ${generatedScenarios.length}
@@ -224,6 +242,7 @@ You are reviewing AI-generated test scenarios for a GitHub PR. Use this context 
 - \`pr-analysis.json\` - Complete PR analysis with diffs and metadata
 - \`jira-context.json\` - Business context from Jira ticket${data.jiraContext ? '' : ' (not available for this PR)'}
 - \`confluence-docs.json\` - Related documentation${data.confluencePages.length > 0 ? '' : ' (none found)'}
+- \`onyx-product-context.json\` - AI-processed product knowledge and user workflows${data.onyxContext ? '' : ' (not available)'}
 - \`generated-scenarios.json\` - Machine-readable scenarios
 - \`generated-scenarios.md\` - Human-readable scenarios
 - \`context-summary.md\` - Executive summary
@@ -231,8 +250,9 @@ You are reviewing AI-generated test scenarios for a GitHub PR. Use this context 
 ## Key Areas to Consider
 1. **Code Changes:** Focus on the ${data.prAnalysis.changedFiles.length} changed files
 2. **Business Impact:** ${data.jiraContext ? `Consider Jira ticket ${data.jiraContext.ticket.key} requirements` : 'No specific business context available'}
-3. **Risk Assessment:** Prioritize scenarios based on potential impact
-4. **Test Coverage:** Ensure all critical paths are covered
+3. **Product Knowledge:** ${data.onyxContext ? `Review Onyx AI insights about user workflows and E2E scenarios` : 'No AI product context available'}
+4. **Risk Assessment:** Prioritize scenarios based on potential impact
+5. **Test Coverage:** Ensure all critical paths are covered
 
 ## Output Format
 When you're done reviewing, create a refined test scenarios JSON file named \`refined-scenarios.json\` that follows the same structure as \`generated-scenarios.json\` but with your improvements.

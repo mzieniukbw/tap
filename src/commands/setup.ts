@@ -14,6 +14,10 @@ interface Config {
     email: string;
     apiToken: string;
   };
+  onyx?: {
+    baseUrl: string;
+    apiKey: string;
+  };
 }
 
 async function executeSetup(options: any) {
@@ -67,6 +71,26 @@ async function executeSetup(options: any) {
         name: 'atlassianApiToken',
         message: 'Atlassian API Token:',
         mask: '*'
+      },
+      {
+        type: 'confirm',
+        name: 'useOnyx',
+        message: 'Configure Onyx AI for enhanced product context? (optional)',
+        default: false
+      },
+      {
+        type: 'input',
+        name: 'onyxBaseUrl',
+        message: 'Onyx Base URL (e.g., https://your-onyx.company.com):',
+        default: 'https://api.onyx.app',
+        when: (answers) => answers.useOnyx
+      },
+      {
+        type: 'password',
+        name: 'onyxApiKey',
+        message: 'Onyx AI API Key:',
+        mask: '*',
+        when: (answers) => answers.useOnyx
       }
     ]);
 
@@ -81,6 +105,14 @@ async function executeSetup(options: any) {
         apiToken: answers.atlassianApiToken
       }
     };
+
+    // Add Onyx config if provided
+    if (answers.useOnyx && answers.onyxApiKey) {
+      config.onyx = {
+        baseUrl: answers.onyxBaseUrl || 'https://api.onyx.app',
+        apiKey: answers.onyxApiKey
+      };
+    }
 
     // Save config
     await writeFile(

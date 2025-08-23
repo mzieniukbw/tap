@@ -4,11 +4,13 @@ import { TicketContext, ConfluencePage } from "./atlassian";
 import { TestScenario } from "./ai-test-generator";
 import { ClaudeDesktopOrchestrator, TestResult } from "./claude-desktop";
 import { QAReportGenerator } from "./qa-report";
+import { OnyxContext } from "./onyx-context";
 
 export interface TestExecutionContext {
   prAnalysis: PRAnalysis;
   jiraContext?: TicketContext | null;
   confluencePages: ConfluencePage[];
+  onyxContext?: OnyxContext | null;
   scenarios: TestScenario[];
   outputDir: string;
   verbose?: boolean;
@@ -17,7 +19,7 @@ export interface TestExecutionContext {
 export class TestExecutionService {
   
   async executeTestScenarios(context: TestExecutionContext): Promise<void> {
-    const { scenarios, outputDir, verbose, prAnalysis, jiraContext, confluencePages } = context;
+    const { scenarios, outputDir, verbose, prAnalysis, jiraContext, confluencePages, onyxContext } = context;
     const startTime = Date.now();
 
     // Step 1: Execute tests with Claude Desktop
@@ -52,6 +54,7 @@ export class TestExecutionService {
       prAnalysis,
       jiraContext,
       confluencePages,
+      onyxContext,
       scenarios,
       results,
       outputDir

@@ -1,6 +1,7 @@
 import {ClaudeCLI, ClaudeCLIWrapper} from './claude-cli';
 import {PRAnalysis} from './github';
 import {ConfluencePage, TicketContext} from './atlassian';
+import {OnyxContext} from './onyx-context';
 
 export interface TestScenario {
   id: string;
@@ -26,6 +27,7 @@ export interface AITestGenerationContext {
   prAnalysis: PRAnalysis;
   jiraContext?: TicketContext | null;
   confluencePages: ConfluencePage[];
+  onyxContext?: OnyxContext | null;
 }
 
 export class AITestScenarioGenerator {
@@ -52,7 +54,7 @@ export class AITestScenarioGenerator {
 
 
   private buildGenerationPrompt(context: AITestGenerationContext): string {
-    const { prAnalysis, jiraContext, confluencePages } = context;
+    const { prAnalysis, jiraContext, confluencePages, onyxContext } = context;
     
     let prompt = `You are an expert software testing assistant. Generate comprehensive test scenarios for a GitHub PR based on the provided context.
 
@@ -101,6 +103,20 @@ ${confluencePages.map(page => `
 **${page.title}** (${page.space})
 - Author: ${page.author} | Created: ${page.created} | Updated: ${page.updated}
 - Content Preview: ${page.content.slice(0, 200)}${page.content.length > 200 ? '...' : ''}
+`).join('')}`;
+    }
+
+    // Add Onyx AI product context
+    if (onyxContext && onyxContext.responses.length > 0) {
+      prompt += `
+
+## AI-Processed Product Knowledge
+*The following insights were gathered by Onyx AI about user workflows and E2E scenarios:*
+
+${onyxContext.responses.map((response, i) => `
+**Q${i + 1}: ${response.query}**
+**AI Insight:** ${response.answer}
+
 `).join('')}`;
     }
 
@@ -154,13 +170,14 @@ Based on the above context, generate 5-8 comprehensive test scenarios as a JSON 
 - **estimatedDuration**: Number (minutes as integer)
 
 ## Content Requirements:
-1. **Be Specific**: Use actual file paths, component names, and technical details from the context
-2. **Be Intelligent**: Analyze the actual code changes and business context - don't create generic tests
-3. **Cover Edge Cases**: Consider what could go wrong with these specific changes
-4. **Prioritize Well**: Mark critical functionality as high priority, nice-to-have as low
-5. **Business Context**: Incorporate understanding from Jira tickets and documentation
-6. **Realistic Steps**: Create actionable, specific test steps that can be executed
-7. **Appropriate Duration**: Estimate realistic time (5-60 minutes per scenario)
+1. **E2E Focus**: Prioritize end-to-end user scenarios over technical implementation details
+2. **User Perspective**: Write test steps from a non-technical QA perspective (clear UI elements, user actions)
+3. **Leverage AI Insights**: Use Onyx AI product knowledge to understand user workflows and business context
+4. **Be Specific**: Reference actual UI elements, user flows, and business processes
+5. **Cover Edge Cases**: Consider what could go wrong from the user's perspective
+6. **Prioritize Well**: Mark critical user journeys as high priority, nice-to-have features as low
+7. **Business Value**: Focus on scenarios that validate business requirements and user experience
+8. **Realistic Steps**: Create actionable steps that manual testers can understand and execute
 
 **RESPONSE FORMAT: Return ONLY the JSON array. No markdown code blocks, no explanatory text, no additional formatting.**`;
 

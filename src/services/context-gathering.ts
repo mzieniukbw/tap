@@ -1,11 +1,13 @@
 import chalk from "chalk";
 import { GitHubService, PRAnalysis } from "./github";
 import { AtlassianService, TicketContext, ConfluencePage } from "./atlassian";
+import { OnyxContextService, OnyxContext } from "./onyx-context";
 
 export interface PRContext {
   prAnalysis: PRAnalysis;
   jiraContext: TicketContext | null;
   confluencePages: ConfluencePage[];
+  onyxContext: OnyxContext | null;
 }
 
 export interface ContextGatheringOptions {
@@ -117,10 +119,39 @@ export class ContextGatheringService {
       console.log(chalk.gray(`Step 3 completed in ${Date.now() - step3Start}ms`));
     }
 
+    // Step 4: Get Onyx AI Product Context
+    console.log(chalk.yellow("🧠 Gathering Onyx AI product knowledge..."));
+    if (verbose) {
+      console.log(chalk.gray(`Querying Onyx AI for product context and user workflows...`));
+    }
+    const step4Start = Date.now();
+    const onyxService = new OnyxContextService();
+    const onyxContext = await onyxService.gatherProductContext(prAnalysis, jiraContext, { verbose });
+    
+    if (onyxContext) {
+      console.log(`Gathered ${onyxContext.responses.length} Onyx AI insights`);
+      if (verbose && onyxContext.responses.length > 0) {
+        console.log(chalk.gray(`Onyx AI insights:`));
+        onyxContext.responses.forEach((response, i) => {
+          console.log(chalk.gray(`  ${i + 1}. ${response.query}`));
+          console.log(chalk.gray(`     Answer preview: ${response.answer.substring(0, 100)}${response.answer.length > 100 ? '...' : ''}`));
+        });
+      }
+    } else {
+      if (verbose) {
+        console.log(chalk.gray(`Onyx AI not configured or unavailable`));
+      }
+    }
+    
+    if (verbose) {
+      console.log(chalk.gray(`Step 4 completed in ${Date.now() - step4Start}ms`));
+    }
+
     return {
       prAnalysis,
       jiraContext,
-      confluencePages
+      confluencePages,
+      onyxContext
     };
   }
 }

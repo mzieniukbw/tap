@@ -3,11 +3,13 @@ import { TicketContext } from "./atlassian";
 import { ConfluencePage } from "./atlassian";
 import { TestScenario } from "./ai-test-generator";
 import { TestResult } from "./claude-desktop";
+import { OnyxContext } from "./onyx-context";
 
 export interface QAReportData {
   prAnalysis: PRAnalysis;
   jiraContext?: TicketContext | null;
   confluencePages: ConfluencePage[];
+  onyxContext?: OnyxContext | null;
   scenarios: TestScenario[];
   results: TestResult[];
   outputDir: string;

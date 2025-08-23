@@ -11,6 +11,10 @@ export interface TapConfig {
     email: string;
     apiToken: string;
   };
+  onyx?: {
+    baseUrl: string;
+    apiKey: string;
+  };
 }
 
 export class ConfigService {
@@ -56,6 +60,8 @@ export class ConfigService {
       "  • ATLASSIAN_BASE_URL\n" +
       "  • ATLASSIAN_EMAIL\n" +
       "  • ATLASSIAN_API_TOKEN\n" +
+      "  • ONYX_BASE_URL (optional - for self-hosted Onyx instances)\n" +
+      "  • ONYX_API_KEY (optional - for enhanced product context)\n" +
       "\nNote: Install claude CLI for AI test generation: npm install -g @anthropic-ai/claude-cli"
     );
   }
@@ -84,12 +90,14 @@ export class ConfigService {
     const atlassianBaseUrl = process.env.ATLASSIAN_BASE_URL;
     const atlassianEmail = process.env.ATLASSIAN_EMAIL;
     const atlassianApiToken = process.env.ATLASSIAN_API_TOKEN;
+    const onyxBaseUrl = process.env.ONYX_BASE_URL;
+    const onyxApiKey = process.env.ONYX_API_KEY;
 
     if (!githubToken || !atlassianBaseUrl || !atlassianEmail || !atlassianApiToken) {
       return null;
     }
 
-    return {
+    const config: TapConfig = {
       github: {
         token: githubToken
       },
@@ -99,6 +107,16 @@ export class ConfigService {
         apiToken: atlassianApiToken
       }
     };
+
+    // Add Onyx config if API key is provided
+    if (onyxApiKey) {
+      config.onyx = {
+        baseUrl: onyxBaseUrl || 'https://api.onyx.app',
+        apiKey: onyxApiKey
+      };
+    }
+
+    return config;
   }
 
   private isValidConfig(config: any): config is TapConfig {
@@ -162,6 +180,37 @@ export class ConfigService {
     } catch (error) {
       console.log(chalk.red("  ❌ Atlassian API (Connection error)"));
       allTestsPassed = false;
+    }
+
+    // Test Onyx AI (optional)
+    if (testConfig.onyx?.apiKey) {
+      try {
+        // Test Onyx AI connectivity with a simple query
+        const onyxUrl = `${testConfig.onyx.baseUrl}/chat/send-message`;
+        const response = await fetch(onyxUrl, {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${testConfig.onyx.apiKey}`,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            message: "Hello",
+            chat_session_id: null
+          })
+        });
+        
+        if (response.ok) {
+          console.log(chalk.green("  ✅ Onyx AI API"));
+        } else {
+          console.log(chalk.red(`  ❌ Onyx AI API (HTTP ${response.status})`));
+          console.log(chalk.gray("    Note: Onyx AI is optional for enhanced context"));
+        }
+      } catch (error) {
+        console.log(chalk.red("  ❌ Onyx AI API (Connection error)"));
+        console.log(chalk.gray("    Note: Onyx AI is optional for enhanced context"));
+      }
+    } else {
+      console.log(chalk.gray("  ⚪ Onyx AI API (not configured - optional)"));
     }
 
     if (!allTestsPassed) {
