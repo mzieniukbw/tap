@@ -1,5 +1,5 @@
 import chalk from "chalk";
-import { GitHubService, PRAnalysis } from "./github";
+import { PRAnalysis } from "./github";
 import { AtlassianService, TicketContext, ConfluencePage } from "./atlassian";
 import { OnyxContextService, OnyxContext } from "./onyx-context";
 

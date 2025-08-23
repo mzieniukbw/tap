@@ -164,3 +164,4 @@ Test artifacts are generated in `./test-pr-{PR-number}-{commit-sha}/` directory 
 - All external dependencies are managed via package.json and npm registry
 - No permanent test cases - all scenarios are dynamically generated
 - Unified Atlassian authentication uses single API token for both Jira and Confluence
+- Always run `bun run format` and `bun run lint` before committing changes
