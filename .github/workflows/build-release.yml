@@ -4,18 +4,18 @@ on:
   workflow_dispatch:
   push:
     tags:
-      - 'v*'
+      - "v*"
   pull_request:
     branches:
       - main
 
 env:
-  BUN_VERSION: 'latest'
+  BUN_VERSION: "latest"
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -34,7 +34,7 @@ jobs:
       - name: Build TAP executables for all targets
         run: |
           mkdir -p dist
-          
+
           # Build for modern platforms
           bun build --compile --target=bun-linux-x64 --outfile=dist/tap-linux-x64 src/main.ts
           bun build --compile --target=bun-linux-arm64 --outfile=dist/tap-linux-arm64 src/main.ts
@@ -105,19 +105,19 @@ jobs:
       - name: Prepare release assets
         run: |
           mkdir -p release-assets
-          
+
           # Move executables to release-assets
           cp artifacts/tap-linux-x64/tap-linux-x64 release-assets/
           cp artifacts/tap-linux-arm64/tap-linux-arm64 release-assets/
           cp artifacts/tap-windows-x64.exe/tap-windows-x64.exe release-assets/
           cp artifacts/tap-macos-arm64/tap-macos-arm64 release-assets/
           cp artifacts/BUILD_INFO.txt/BUILD_INFO.txt release-assets/
-          
+
           cd release-assets
-          
+
           # Create checksums (exclude BUILD_INFO.txt from checksums)
           sha256sum tap-* > checksums.txt
-          
+
           # List what we're releasing
           echo "Release assets:"
           ls -la
@@ -131,45 +131,45 @@ jobs:
           generate_release_notes: true
           body: |
             ## TAP - Testing Assistant Project
-            
+
             ### Installation
-            
+
             **Homebrew (macOS - Recommended):**
             ```bash
             brew install --formula https://raw.githubusercontent.com/${{ github.repository }}/main/Formula/tap.rb
             ```
-            
+
             **Quick Install (Linux/macOS):**
             ```bash
             curl -fsSL https://raw.githubusercontent.com/${{ github.repository }}/main/install.sh | bash
             ```
-            
+
             **Manual Installation:**
             1. Download the appropriate binary for your platform
             2. Make it executable: `chmod +x tap-*`
             3. Move to PATH: `sudo mv tap-* /usr/local/bin/tap`
-            
+
             ### Supported Platforms
             - **Linux**: x64, ARM64
             - **Windows**: x64
             - **macOS**: ARM64 (Apple Silicon)
-            
+
             ### What's Included
             - `tap`: Main CLI executable
             - `checksums.txt`: SHA256 checksums for verification
-            
+
             ### Usage
             ```bash
             # Setup configuration
             tap setup
-            
+
             # Test a GitHub PR
             tap test-pr https://github.com/owner/repo/pull/123
-            
+
             # Execute refined scenarios
             tap execute-scenarios --file ./scenarios.json
             ```
-            
+
             **Note**: These are standalone executables with no dependencies on Node.js or Bun.
 
         env:

@@ -9,6 +9,7 @@ TAP (Testing Assistant Project) is a Bun-based CLI tool that uses AI-powered tes
 ## Development Commands
 
 ### Primary Tasks
+
 ```bash
 # Human-in-the-loop workflow (recommended)
 bun run start test-pr <pr-url> --generate-only    # Generate AI scenarios + export context
@@ -23,6 +24,7 @@ bun run start setup                               # Setup and configuration (int
 ```
 
 ### Build Commands
+
 ```bash
 # Build main TAP executable
 bun run build
@@ -34,15 +36,16 @@ bun run build:all
 bun run clean
 ```
 
-
 ## Code Architecture
 
 ### Core Structure
+
 - `src/main.ts` - CLI entry point using Commander.js framework
 - `src/commands/` - Command implementations (test-pr, execute-scenarios, setup)
 - `src/services/` - Business logic services
 
 ### Key Services
+
 - `GitHubService` - PR analysis and diff processing
 - `AtlassianService` - Jira ticket and Confluence page integration
 - `AITestScenarioGenerator` - AI-powered intelligent test scenario creation using Claude CLI
@@ -51,6 +54,7 @@ bun run clean
 - `QAReportGenerator` - Comprehensive test reporting with AI insights
 
 ### Data Flow (Human-in-the-Loop)
+
 1. **Context Gathering** → GitHub PR analysis + Jira tickets + Confluence docs
 2. **AI Generation** → Claude API creates intelligent scenarios from full context
 3. **Context Export** → Comprehensive data export for human review
@@ -63,18 +67,22 @@ bun run clean
 TAP supports two configuration methods:
 
 ### 1. Interactive Setup (Recommended)
+
 ```bash
 bun run start setup
 ```
+
 Creates `~/.tap/config.json` with your API credentials.
 
 ### 2. Environment Variables (Alternative)
+
 - `GITHUB_TOKEN` - GitHub Personal Access Token
 - `ATLASSIAN_API_TOKEN` - Unified token for Jira and Confluence
 - `ATLASSIAN_EMAIL` - Atlassian account email
 - `ATLASSIAN_BASE_URL` - Atlassian instance URL (e.g., https://company.atlassian.net)
 
 ### 3. Claude CLI for AI Generation (Optional)
+
 ```bash
 # Install Claude CLI for intelligent test scenario generation
 npm install -g @anthropic-ai/claude-cli
@@ -91,6 +99,7 @@ The system automatically tests API connectivity before running commands.
 ## Usage Patterns
 
 ### Testing PRs (Human-in-the-Loop Workflow)
+
 ```bash
 # Step 1: Generate AI scenarios and export context for review
 bun run start test-pr <pr-url> --generate-only    # Creates ./test-pr-{PR-number}-{commit-sha}/ directory
@@ -109,7 +118,6 @@ bun run start test-pr <pr-url>                    # Full execution with AI scena
 bun run start test-pr <pr-url> --generate-only --output ./custom-dir
 ```
 
-
 ## TypeScript Configuration
 
 - Strict mode enabled
@@ -120,6 +128,7 @@ bun run start test-pr <pr-url> --generate-only --output ./custom-dir
 ## Code Formatting
 
 Prettier configuration:
+
 - 2-space indentation
 - 100 character line width
 - Semicolons required
@@ -130,6 +139,7 @@ Prettier configuration:
 ## Output Structure
 
 Test artifacts are generated in `./test-pr-{PR-number}-{commit-sha}/` directory by default:
+
 - **Default naming**: `./test-pr-{PR-number}-{7-char-commit-sha}/` (e.g., `./test-pr-123-abc1234/`)
 - **Custom output**: Use `--output <path>` to override default naming
 - **Artifacts**: Screenshots (`*.png`), Videos (`*.mp4`), QA reports

@@ -7,6 +7,7 @@ An internal productivity tool that leverages Claude Code CLI and Claude Desktop 
 ## Architecture
 
 ### Core Components (Human-in-the-Loop)
+
 ```
 Developer Machine
 ├── TAP CLI (AI-powered orchestrator)
@@ -25,6 +26,7 @@ Developer Machine
 ### Technical Stack
 
 **TAP CLI - The AI Brain**
+
 - **GitHub API integration**: PR analysis and diff processing
 - **Atlassian integration**: Direct Jira and Confluence data gathering
 - **AI-powered generation**: Uses Claude CLI for intelligent test scenarios
@@ -32,27 +34,30 @@ Developer Machine
 - **Execution coordination**: Orchestrates with Claude Desktop
 
 **Claude Code - The Human Intelligence**
+
 - **Scenario refinement**: Reviews AI-generated tests with full context
 - **Edge case identification**: Adds human insight to test coverage
 - **Business logic validation**: Ensures scenarios match real-world usage
 - **Quality assurance**: Improves test scenarios before execution
 
 **Claude Desktop - The Hands**
+
 - **Desktop automation**: Mouse/keyboard control for all platforms
 - **Screen capture**: Screenshots and video recording during tests
 - **Application interaction**: Web browsers, desktop apps, CLI terminals
 - **Real-time execution**: Runs generated scenarios immediately
 
-
 ## Data Flow
 
 ### Context Gathering Chain
+
 1. **GitHub PR** → Extract PR URL, diff, changed files
 2. **Jira Ticket** → Follow PR → Jira ticket linkage
 3. **Tech Breakdown** → Follow Jira → Confluence tech breakdown
 4. **Help Documentation** → Fallback to product help pages with screenshots/videos
 
 ### Execution Flow (Human-in-the-Loop)
+
 1. **Context Generation**: `bun run start test-pr <pr-url> --generate-only`
    - TAP fetches PR diffs and metadata via GitHub API
    - Fetches Jira context and Confluence documentation directly
@@ -75,6 +80,7 @@ Developer Machine
 ## Package Distribution
 
 ### Deliverable Structure
+
 ```
 testing-assistant-project/
 ├── package.json                       # Bun configuration and dependencies
@@ -89,6 +95,7 @@ testing-assistant-project/
 ```
 
 ### Setup Script Capabilities
+
 - Configure API credentials for GitHub/Atlassian (unified token)
 - Test connectivity to all services (GitHub, Jira, Confluence)
 - Compile executables for deployment
@@ -100,6 +107,7 @@ testing-assistant-project/
 ### Daily Usage (Human-in-the-Loop Workflow)
 
 #### Option 1: Generate + Review + Execute
+
 ```bash
 # Step 1: Generate AI scenarios and export context
 bun run start test-pr <pr-url> --generate-only    # Creates ./{PR-number}-{commit-sha}/ directory
@@ -108,11 +116,12 @@ bun run start test-pr <pr-url> --generate-only    # Creates ./{PR-number}-{commi
 claude-code
 # Then in Claude Code: "Review the test scenarios in ./{PR-number}-{commit-sha}/generated-scenarios.md and refine them"
 
-# Step 3: Execute refined scenarios  
+# Step 3: Execute refined scenarios
 bun run start execute-scenarios --file ./refined-scenarios.json
 ```
 
 #### Option 2: Direct Execution
+
 ```bash
 # Execute immediately with AI-generated scenarios (no human review)
 bun run start test-pr <pr-url>
@@ -122,6 +131,7 @@ bun run start test-pr <url> --generate-only
 ```
 
 #### Option 3: Compiled Executable
+
 ```bash
 bun run build:all
 ./dist/tap test-pr <url> --generate-only
@@ -129,6 +139,7 @@ bun run build:all
 ```
 
 ### Output Format
+
 ```
 === QA Testing Notes ===
 PR: https://github.com/company/repo/pull/123
@@ -172,6 +183,7 @@ Files Created:
 ## Key Benefits
 
 ### For Developers
+
 - **AI + Human Intelligence**: Combines AI analysis with human insight for superior test coverage
 - **Zero Test Maintenance**: No permanent test suites to maintain
 - **Contextual Intelligence**: AI understands business logic from PR, Jira, and documentation
@@ -180,6 +192,7 @@ Files Created:
 - **Clear Documentation**: Structured testing notes with AI summaries
 
 ### For QA Team
+
 - **Pre-Refined Scenarios**: Receive human-reviewed, AI-enhanced test cases
 - **Rich Context**: Full PR analysis, business context, and execution recordings
 - **Consistent Quality**: Standardized testing documentation with AI insights
@@ -187,6 +200,7 @@ Files Created:
 - **Visual Evidence**: Screenshots and videos of test execution
 
 ### Technical Advantages
+
 - **Hybrid Intelligence**: AI efficiency with human creativity and business understanding
 - **Always Current**: Each test run is fresh and relevant to specific changes
 - **No Test Debt**: No accumulation of outdated or brittle test cases
@@ -200,29 +214,34 @@ Files Created:
 ### Implementation Status - ✅ COMPLETED
 
 ### Phase 1: Core Infrastructure ✅
+
 - [x] Set up unified Atlassian service integration
 - [x] Implement GitHub PR analysis
 - [x] Build Jira ticket resolution with epic/linked issue support
 - [x] Create comprehensive data fetching
 
 ### Phase 2: Content Integration ✅
+
 - [x] Confluence page parsing and search
 - [x] Documentation correlation with tickets
 - [x] Smart data correlation between GitHub, Jira, and Confluence
 
 ### Phase 3: Test Generation ✅
+
 - [x] Intelligent code change analysis algorithms
 - [x] Business context correlation from tickets/epics
 - [x] Advanced test scenario generation logic
 - [x] Multi-platform test planning with automation levels
 
 ### Phase 4: Execution & Recording ✅
+
 - [x] Claude Desktop orchestration framework
 - [x] Screen capture and video recording simulation
 - [x] Multi-application automation planning
 - [x] Comprehensive QA report generation
 
 ### Phase 5: Packaging & Distribution ✅
+
 - [x] Deno-based setup and build system
 - [x] Configuration management
 - [x] Single-executable compilation
@@ -230,8 +249,8 @@ Files Created:
 
 ## Configuration Examples
 
-
 ### Environment Variables
+
 ```bash
 # API Credentials (Simplified - single Atlassian token)
 export GITHUB_TOKEN="ghp_xxxxxxxxxxxx"
@@ -254,6 +273,7 @@ export ATLASSIAN_BASE_URL="https://company.atlassian.net"
 **Maintenance**: Minimal - ephemeral testing approach eliminates test suite maintenance
 
 ## Quick Start
+
 ```bash
 cd tap
 bun run start setup          # Initial configuration
@@ -261,8 +281,9 @@ bun run start test-pr <url>  # Test a PR
 ```
 
 ## Key Features Implemented
+
 - **AI-Powered Test Generation**: Claude CLI creates intelligent scenarios from full context
-- **Human-in-the-Loop Workflow**: Claude Code + Claude CLI collaboration for scenario refinement  
+- **Human-in-the-Loop Workflow**: Claude Code + Claude CLI collaboration for scenario refinement
 - **Unified Atlassian Integration**: Single API token for Jira + Confluence
 - **Context Export System**: Comprehensive data export for human review
 - **Claude CLI Helper Scripts**: Automated refinement workflows with the claude CLI

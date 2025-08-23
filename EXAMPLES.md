@@ -7,9 +7,11 @@ This document provides practical examples of using TAP's AI-powered, human-in-th
 ## Workflow 1: Full Human-in-the-Loop (Recommended)
 
 ### Scenario
+
 Testing a PR that adds user authentication with password reset functionality.
 
 ### Step 1: Generate AI Scenarios
+
 ```bash
 # Generate intelligent test scenarios with full context export
 bun run start test-pr https://github.com/bitwarden/clients/pull/15957 --generate-only --output ./15957-pr-context
@@ -19,7 +21,7 @@ bun run start test-pr https://github.com/bitwarden/clients/pull/15957 --generate
 # ✅ Context exported successfully!
 # 📁 Files created in ./15957-pr-context:
 #   • pr-analysis.json
-#   • jira-context.json  
+#   • jira-context.json
 #   • confluence-docs.json
 #   • generated-scenarios.json
 #   • generated-scenarios.md
@@ -29,6 +31,7 @@ bun run start test-pr https://github.com/bitwarden/clients/pull/15957 --generate
 ```
 
 ### Step 1.5: Quick Claude CLI Refinement (Alternative)
+
 ```bash
 # Option A: Use the auto-generated helper script
 cd ./15957-pr-context
@@ -49,42 +52,50 @@ claude --file claude-code-instructions.md --file generated-scenarios.md --model 
 ```
 
 ### Step 2: Review with Claude Code
+
 ```bash
 # Open Claude Code in the project directory
 claude-code
 
 # Then in Claude Code, ask:
 ```
+
 > Review the test scenarios in `./15957-pr-context/generated-scenarios.md`. I need you to analyze the full context and refine these scenarios for testing a user authentication PR with password reset functionality.
 
 > Please focus on:
+>
 > 1. Edge cases for password validation
 > 2. Security considerations for password reset tokens
 > 3. User experience edge cases
 > 4. Integration with existing authentication flow
 
 Claude Code response:
+
 ```markdown
 I've reviewed the AI-generated scenarios and the full PR context. Here are my refined test scenarios with improvements:
 
 ## Refined Test Scenarios
 
 ### 1. Enhanced Password Validation Testing
+
 **Original AI Scenario:** Basic password validation
 **Refinement:** Added edge cases for special characters, unicode, and length boundaries
 
 **Steps:**
+
 1. Test password with 7 characters (boundary case - should fail)
-2. Test password with 129 characters (upper boundary - should fail)  
+2. Test password with 129 characters (upper boundary - should fail)
 3. Test password with unicode characters (emoji, accented characters)
 4. Test password with only special characters
 5. Test password with SQL injection attempts
 6. Verify error messages are user-friendly and don't expose system details
 
 ### 2. Password Reset Token Security
+
 **New Scenario:** AI missed this critical security aspect
 
 **Steps:**
+
 1. Generate password reset token
 2. Verify token expires after 15 minutes
 3. Verify token becomes invalid after use
@@ -98,6 +109,7 @@ Save these refined scenarios to: `refined-scenarios.json`
 ```
 
 ### Step 3: Execute Refined Scenarios
+
 ```bash
 # Execute the human-refined scenarios
 bun run start execute-scenarios --file ./refined-scenarios.json
@@ -112,6 +124,7 @@ bun run start execute-scenarios --file ./refined-scenarios.json
 ## Workflow 2: Quick Direct Execution
 
 ### Scenario
+
 Simple bug fix that needs quick validation without detailed review.
 
 ```bash
@@ -127,6 +140,7 @@ bun run start test-pr https://github.com/company/repo/pull/143
 ## Workflow 3: Claude CLI Unavailable
 
 ### Scenario
+
 Claude CLI is not installed or authenticated.
 
 ```bash
@@ -145,6 +159,7 @@ bun run start test-pr https://github.com/company/repo/pull/145 --generate-only
 ### Effective Prompts for Claude Code Review
 
 1. **Initial Review:**
+
    ```
    Review the test scenarios in `generated-scenarios.md` and analyze the full context from the other files. Focus on:
    - Missing edge cases
@@ -154,6 +169,7 @@ bun run start test-pr https://github.com/company/repo/pull/145 --generate-only
    ```
 
 2. **Specific Domain Focus:**
+
    ```
    These scenarios are for a payment processing PR. Review and enhance them focusing on:
    - PCI compliance requirements
@@ -183,6 +199,7 @@ bun run start test-pr https://github.com/company/repo/pull/145 --generate-only
 ## Output Analysis
 
 ### Typical Test Results Structure
+
 ```
 ./15957-abc1234/
 ├── screenshots/
@@ -196,6 +213,7 @@ bun run start test-pr https://github.com/company/repo/pull/145 --generate-only
 ```
 
 ### QA Report Interpretation
+
 - **✅ Passed:** Scenario executed successfully
 - **❌ Failed:** Critical failure, requires attention
 - **⚠️ Warning:** Minor issues or verification warnings
@@ -222,13 +240,15 @@ bun run start test-pr https://github.com/company/repo/pull/145 --generate-only
 ## Benefits Observed
 
 ### Developer Experience
+
 - **Time Savings:** 60% faster test scenario creation vs manual writing
 - **Better Coverage:** AI + human review catches 40% more edge cases
 - **Consistent Quality:** Standardized scenario format and execution
 
 ### QA Team Feedback
+
 - **Rich Context:** Full PR context helps understand testing rationale
-- **Visual Evidence:** Screenshots and videos provide clear execution proof  
+- **Visual Evidence:** Screenshots and videos provide clear execution proof
 - **Reproducible Results:** Scenarios can be re-run consistently
 
 This human-in-the-loop approach combines the efficiency of AI with the creativity and domain knowledge of human developers, resulting in superior test coverage and quality.

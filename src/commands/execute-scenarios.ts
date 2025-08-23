@@ -14,10 +14,12 @@ async function executeScenarios(options: any) {
   const startTime = Date.now();
   console.log(chalk.blue("🤖 TAP - Execute Test Scenarios"));
   console.log(chalk.gray("=".repeat(50)));
-  
+
   if (!options.file) {
     console.error(chalk.red("❌ Error: --file parameter is required"));
-    console.log(chalk.yellow("Usage: tap execute-scenarios --file <scenarios.json>"));
+    console.log(
+      chalk.yellow("Usage: tap execute-scenarios --file <scenarios.json>"),
+    );
     process.exit(1);
   }
 
@@ -27,24 +29,34 @@ async function executeScenarios(options: any) {
     console.log(chalk.gray(`Output directory: ${options.output}`));
     console.log(chalk.gray(`Started at: ${new Date(startTime).toISOString()}`));
   }
-  
+
   try {
     // Step 1: Load test scenarios from file
     console.log(chalk.yellow("📄 Loading test scenarios..."));
     if (options.verbose) {
       console.log(chalk.gray(`Reading scenarios from: ${options.file}`));
     }
-    
+
     const exporter = new ContextExporter();
-    const scenarios: TestScenario[] = await exporter.loadScenariosFromFile(options.file);
-    
+    const scenarios: TestScenario[] = await exporter.loadScenariosFromFile(
+      options.file,
+    );
+
     console.log(`Loaded ${scenarios.length} test scenarios`);
-    
+
     if (options.verbose) {
       console.log(chalk.gray(`Scenarios loaded:`));
       scenarios.forEach((scenario, i) => {
-        console.log(chalk.gray(`  ${i + 1}. ${scenario.title} (${scenario.priority} priority, ${scenario.category})`));
-        console.log(chalk.gray(`     Steps: ${scenario.steps.length}, Duration: ${scenario.estimatedDuration}min, Level: ${scenario.automationLevel}`));
+        console.log(
+          chalk.gray(
+            `  ${i + 1}. ${scenario.title} (${scenario.priority} priority, ${scenario.category})`,
+          ),
+        );
+        console.log(
+          chalk.gray(
+            `     Steps: ${scenario.steps.length}, Duration: ${scenario.estimatedDuration}min, Level: ${scenario.automationLevel}`,
+          ),
+        );
       });
     }
 
@@ -67,14 +79,17 @@ async function executeScenarios(options: any) {
       onyxContext: context.onyxContext,
       scenarios,
       outputDir: options.output,
-      verbose: options.verbose
+      verbose: options.verbose,
     });
-    
   } catch (error) {
     console.error(chalk.red("❌ Error during scenario execution:"));
     if (options.verbose) {
-      console.error(chalk.gray(`Error occurred at: ${new Date().toISOString()}`));
-      console.error(chalk.gray(`Total runtime before error: ${Date.now() - startTime}ms`));
+      console.error(
+        chalk.gray(`Error occurred at: ${new Date().toISOString()}`),
+      );
+      console.error(
+        chalk.gray(`Total runtime before error: ${Date.now() - startTime}ms`),
+      );
       console.error(chalk.gray(`Scenarios file: ${options.file}`));
       if (error instanceof Error) {
         console.error(chalk.gray(`Error name: ${error.name}`));
@@ -90,7 +105,10 @@ async function executeScenarios(options: any) {
   }
 }
 
-async function loadOriginalContext(contextDir: string, verbose?: boolean): Promise<{
+async function loadOriginalContext(
+  contextDir: string,
+  verbose?: boolean,
+): Promise<{
   prAnalysis: PRAnalysis;
   jiraContext: TicketContext | null;
   confluencePages: ConfluencePage[];
@@ -101,11 +119,11 @@ async function loadOriginalContext(contextDir: string, verbose?: boolean): Promi
   }
 
   // Load PR analysis (required)
-  const prAnalysisPath = join(contextDir, 'pr-analysis.json');
+  const prAnalysisPath = join(contextDir, "pr-analysis.json");
   let prAnalysis: PRAnalysis;
-  
+
   if (existsSync(prAnalysisPath)) {
-    const prAnalysisContent = await readFile(prAnalysisPath, 'utf-8');
+    const prAnalysisContent = await readFile(prAnalysisPath, "utf-8");
     prAnalysis = JSON.parse(prAnalysisContent);
     if (verbose) {
       console.log(chalk.gray(`✅ Loaded PR analysis: ${prAnalysis.title}`));
@@ -123,7 +141,7 @@ async function loadOriginalContext(contextDir: string, verbose?: boolean): Promi
       labels: [],
       commits: [],
       changedFiles: [],
-      jiraTicketKeys: []
+      jiraTicketKeys: [],
     };
     if (verbose) {
       console.log(chalk.gray(`⚠️  PR analysis not found, using dummy data`));
@@ -131,42 +149,50 @@ async function loadOriginalContext(contextDir: string, verbose?: boolean): Promi
   }
 
   // Load Jira context (optional)
-  const jiraContextPath = join(contextDir, 'jira-context.json');
+  const jiraContextPath = join(contextDir, "jira-context.json");
   let jiraContext: TicketContext | null = null;
-  
+
   if (existsSync(jiraContextPath)) {
-    const jiraContextContent = await readFile(jiraContextPath, 'utf-8');
+    const jiraContextContent = await readFile(jiraContextPath, "utf-8");
     jiraContext = JSON.parse(jiraContextContent);
     if (verbose) {
-      console.log(chalk.gray(`✅ Loaded Jira context: ${jiraContext?.ticket.key}`));
+      console.log(
+        chalk.gray(`✅ Loaded Jira context: ${jiraContext?.ticket.key}`),
+      );
     }
   } else if (verbose) {
     console.log(chalk.gray(`ℹ️  No Jira context found`));
   }
 
   // Load Confluence docs (optional)
-  const confluenceDocsPath = join(contextDir, 'confluence-docs.json');
+  const confluenceDocsPath = join(contextDir, "confluence-docs.json");
   let confluencePages: ConfluencePage[] = [];
-  
+
   if (existsSync(confluenceDocsPath)) {
-    const confluenceDocsContent = await readFile(confluenceDocsPath, 'utf-8');
+    const confluenceDocsContent = await readFile(confluenceDocsPath, "utf-8");
     confluencePages = JSON.parse(confluenceDocsContent);
     if (verbose) {
-      console.log(chalk.gray(`✅ Loaded ${confluencePages.length} Confluence pages`));
+      console.log(
+        chalk.gray(`✅ Loaded ${confluencePages.length} Confluence pages`),
+      );
     }
   } else if (verbose) {
     console.log(chalk.gray(`ℹ️  No Confluence documentation found`));
   }
 
   // Load Onyx AI context (optional)
-  const onyxContextPath = join(contextDir, 'onyx-product-context.json');
+  const onyxContextPath = join(contextDir, "onyx-product-context.json");
   let onyxContext: OnyxContext | null = null;
-  
+
   if (existsSync(onyxContextPath)) {
-    const onyxContextContent = await readFile(onyxContextPath, 'utf-8');
+    const onyxContextContent = await readFile(onyxContextPath, "utf-8");
     onyxContext = JSON.parse(onyxContextContent);
     if (verbose) {
-      console.log(chalk.gray(`✅ Loaded Onyx AI context with ${onyxContext?.responses.length || 0} insights`));
+      console.log(
+        chalk.gray(
+          `✅ Loaded Onyx AI context with ${onyxContext?.responses.length || 0} insights`,
+        ),
+      );
     }
   } else if (verbose) {
     console.log(chalk.gray(`ℹ️  No Onyx AI product context found`));
@@ -178,6 +204,10 @@ async function loadOriginalContext(contextDir: string, verbose?: boolean): Promi
 export const executeScenariosCommand = new Command("execute-scenarios")
   .description("Execute test scenarios from a file")
   .option("--file <path>", "Path to JSON file containing test scenarios")
-  .option("--output <path>", "Output directory for test artifacts", "./tap-output")
+  .option(
+    "--output <path>",
+    "Output directory for test artifacts",
+    "./tap-output",
+  )
   .option("--verbose", "Enable detailed logging")
   .action(executeScenarios);

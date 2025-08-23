@@ -1,5 +1,5 @@
 import { PRAnalysis } from "./github";
-import { ConfigService, TapConfig } from './config';
+import { ConfigService, TapConfig } from "./config";
 
 export interface JiraTicket {
   key: string;
@@ -58,13 +58,13 @@ export class AtlassianService {
 
     // Use the first Jira ticket found
     const ticketKey = prAnalysis.jiraTicketKeys[0];
-    
+
     try {
       const ticket = await this.getJiraTicket(ticketKey);
       const context: TicketContext = {
         ticket,
         linkedIssues: [],
-        relatedPages: []
+        relatedPages: [],
       };
 
       // Get epic if available
@@ -116,9 +116,9 @@ export class AtlassianService {
       const config = await this.getConfig();
       const url = `${config.atlassian.baseUrl}/rest/api/3/issue/${ticketKey}?expand=issuelinks`;
       const response = await this.atlassianRequest(url);
-      
+
       const linkedIssues: JiraTicket[] = [];
-      
+
       for (const link of response.fields.issuelinks || []) {
         const linkedKey = link.outwardIssue?.key || link.inwardIssue?.key;
         if (linkedKey) {
@@ -130,7 +130,7 @@ export class AtlassianService {
           }
         }
       }
-      
+
       return linkedIssues;
     } catch (error) {
       console.warn(`Could not fetch linked issues for ${ticketKey}:`, error);
@@ -138,19 +138,22 @@ export class AtlassianService {
     }
   }
 
-  async findRelatedConfluencePages(ticket: JiraTicket): Promise<ConfluencePage[]> {
+  async findRelatedConfluencePages(
+    ticket: JiraTicket,
+  ): Promise<ConfluencePage[]> {
     const searchTerms = [
       ticket.key,
       ...ticket.labels,
       ...ticket.components,
       // Extract key terms from summary
-      ...ticket.summary.split(' ').filter(word => word.length > 3)
+      ...ticket.summary.split(" ").filter((word) => word.length > 3),
     ].filter(Boolean);
 
     const pages: ConfluencePage[] = [];
-    
+
     // Search for each term
-    for (const term of searchTerms.slice(0, 5)) { // Limit to first 5 terms to avoid too many requests
+    for (const term of searchTerms.slice(0, 5)) {
+      // Limit to first 5 terms to avoid too many requests
       try {
         const results = await this.searchConfluencePages(term);
         pages.push(...results.slice(0, 3)); // Limit to 3 results per term
@@ -160,8 +163,8 @@ export class AtlassianService {
     }
 
     // Remove duplicates based on page ID
-    const uniquePages = pages.filter((page, index, self) => 
-      index === self.findIndex(p => p.id === page.id)
+    const uniquePages = pages.filter(
+      (page, index, self) => index === self.findIndex((p) => p.id === page.id),
     );
 
     return uniquePages.slice(0, 10); // Limit to 10 total pages
@@ -171,20 +174,22 @@ export class AtlassianService {
     const config = await this.getConfig();
     const encodedQuery = encodeURIComponent(query);
     const url = `${config.atlassian.baseUrl}/wiki/rest/api/content/search?cql=text~"${encodedQuery}"&expand=body.storage,version,space&limit=5`;
-    
+
     try {
       const response = await this.atlassianRequest(url);
-      
+
       return response.results.map((page: any) => ({
         id: page.id,
         title: page.title,
-        content: this.extractTextFromConfluenceContent(page.body?.storage?.value || ""),
+        content: this.extractTextFromConfluenceContent(
+          page.body?.storage?.value || "",
+        ),
         space: page.space.name,
         version: page.version?.number || 1,
         created: page.history?.createdDate || page.version?.when || "",
         updated: page.version?.when || "",
         author: page.version?.by?.displayName || "Unknown",
-        url: `${config.atlassian.baseUrl}/wiki${page._links.webui}`
+        url: `${config.atlassian.baseUrl}/wiki${page._links.webui}`,
       }));
     } catch (error) {
       console.warn(`Confluence search error:`, error);
@@ -192,7 +197,9 @@ export class AtlassianService {
     }
   }
 
-  async getRelatedDocumentation(context: TicketContext): Promise<ConfluencePage[]> {
+  async getRelatedDocumentation(
+    context: TicketContext,
+  ): Promise<ConfluencePage[]> {
     // Already populated in getTicketFromPR
     return context.relatedPages;
   }
@@ -202,15 +209,17 @@ export class AtlassianService {
     const response = await fetch(url, {
       ...options,
       headers: {
-        'Authorization': authHeader,
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
+        Authorization: authHeader,
+        Accept: "application/json",
+        "Content-Type": "application/json",
         ...options.headers,
       },
     });
 
     if (!response.ok) {
-      throw new Error(`Atlassian API error: ${response.status} ${response.statusText}`);
+      throw new Error(
+        `Atlassian API error: ${response.status} ${response.statusText}`,
+      );
     }
 
     return response.json();
@@ -218,23 +227,23 @@ export class AtlassianService {
 
   private extractTextFromJiraContent(content: any): string {
     if (!content) return "";
-    
+
     // Handle Atlassian Document Format (ADF)
     if (content.content) {
       return this.extractTextFromADF(content);
     }
-    
+
     // Handle plain text
-    if (typeof content === 'string') {
+    if (typeof content === "string") {
       return content;
     }
-    
+
     return "";
   }
 
   private extractTextFromADF(adf: any): string {
     if (!adf || !adf.content) return "";
-    
+
     let text = "";
     for (const node of adf.content) {
       if (node.type === "paragraph" && node.content) {
@@ -245,7 +254,7 @@ export class AtlassianService {
         }
       }
     }
-    
+
     return text.trim();
   }
 
@@ -253,7 +262,7 @@ export class AtlassianService {
     // Basic HTML to text conversion
     return html
       .replace(/<[^>]*>/g, " ") // Remove HTML tags
-      .replace(/\s+/g, " ")     // Normalize whitespace
-      .trim();                  // Keep full content
+      .replace(/\s+/g, " ") // Normalize whitespace
+      .trim(); // Keep full content
   }
 }

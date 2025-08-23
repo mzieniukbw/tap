@@ -1,10 +1,10 @@
-import { writeFile, mkdir } from 'fs/promises';
-import { existsSync } from 'fs';
-import { join, dirname } from 'path';
-import { PRAnalysis } from './github';
-import { TicketContext, ConfluencePage } from './atlassian';
-import { TestScenario } from './ai-test-generator';
-import { OnyxContext } from './onyx-context';
+import { writeFile, mkdir } from "fs/promises";
+import { existsSync } from "fs";
+import { join, dirname } from "path";
+import { PRAnalysis } from "./github";
+import { TicketContext, ConfluencePage } from "./atlassian";
+import { TestScenario } from "./ai-test-generator";
+import { OnyxContext } from "./onyx-context";
 
 export interface ContextExportData {
   prAnalysis: PRAnalysis;
@@ -21,10 +21,9 @@ export interface ContextExportData {
 }
 
 export class ContextExporter {
-  
   async exportFullContext(
-    data: ContextExportData, 
-    outputDir: string = './tap-context'
+    data: ContextExportData,
+    outputDir: string = "./tap-context",
   ): Promise<string[]> {
     // Ensure output directory exists
     if (!existsSync(outputDir)) {
@@ -34,63 +33,65 @@ export class ContextExporter {
     const exportedFiles: string[] = [];
 
     // 1. Export PR Analysis
-    const prAnalysisPath = join(outputDir, 'pr-analysis.json');
+    const prAnalysisPath = join(outputDir, "pr-analysis.json");
     await this.writeJsonFile(prAnalysisPath, data.prAnalysis);
     exportedFiles.push(prAnalysisPath);
 
     // 2. Export Jira Context
     if (data.jiraContext) {
-      const jiraContextPath = join(outputDir, 'jira-context.json');
+      const jiraContextPath = join(outputDir, "jira-context.json");
       await this.writeJsonFile(jiraContextPath, data.jiraContext);
       exportedFiles.push(jiraContextPath);
     }
 
     // 3. Export Confluence Documentation
     if (data.confluencePages.length > 0) {
-      const confluenceDocsPath = join(outputDir, 'confluence-docs.json');
+      const confluenceDocsPath = join(outputDir, "confluence-docs.json");
       await this.writeJsonFile(confluenceDocsPath, data.confluencePages);
       exportedFiles.push(confluenceDocsPath);
     }
 
     // 3.5. Export Onyx AI Product Context
     if (data.onyxContext) {
-      const onyxContextPath = join(outputDir, 'onyx-product-context.json');
+      const onyxContextPath = join(outputDir, "onyx-product-context.json");
       await this.writeJsonFile(onyxContextPath, data.onyxContext);
       exportedFiles.push(onyxContextPath);
     }
 
     // 4. Export Generated Scenarios as JSON
-    const scenariosJsonPath = join(outputDir, 'generated-scenarios.json');
+    const scenariosJsonPath = join(outputDir, "generated-scenarios.json");
     await this.writeJsonFile(scenariosJsonPath, data.generatedScenarios);
     exportedFiles.push(scenariosJsonPath);
 
     // 5. Export Generated Scenarios as Human-Readable Markdown
-    const scenariosMdPath = join(outputDir, 'generated-scenarios.md');
+    const scenariosMdPath = join(outputDir, "generated-scenarios.md");
     const scenariosMarkdown = await this.generateScenariosMarkdown(data);
     await this.writeTextFile(scenariosMdPath, scenariosMarkdown);
     exportedFiles.push(scenariosMdPath);
 
     // 6. Export Context Summary for Claude Code
-    const contextSummaryPath = join(outputDir, 'context-summary.md');
+    const contextSummaryPath = join(outputDir, "context-summary.md");
     const contextSummary = await this.generateContextSummary(data);
     await this.writeTextFile(contextSummaryPath, contextSummary);
     exportedFiles.push(contextSummaryPath);
 
     // 7. Export Claude Code Instructions
-    const instructionsPath = join(outputDir, 'claude-code-instructions.md');
+    const instructionsPath = join(outputDir, "claude-code-instructions.md");
     const instructions = this.generateClaudeCodeInstructions(data);
     await this.writeTextFile(instructionsPath, instructions);
     exportedFiles.push(instructionsPath);
 
     // 8. Export Claude CLI Helper Script
-    const helperScriptPath = join(outputDir, 'claude-refine.sh');
+    const helperScriptPath = join(outputDir, "claude-refine.sh");
     const helperScript = this.generateClaudeCLIHelper(data);
     await this.writeTextFile(helperScriptPath, helperScript);
     exportedFiles.push(helperScriptPath);
 
     // Make the helper script executable
     try {
-      await import('fs/promises').then(fs => fs.chmod(helperScriptPath, '755'));
+      await import("fs/promises").then((fs) =>
+        fs.chmod(helperScriptPath, "755"),
+      );
     } catch (error) {
       console.warn(`Could not make ${helperScriptPath} executable:`, error);
     }
@@ -100,21 +101,26 @@ export class ContextExporter {
 
   private async writeJsonFile(filePath: string, data: any): Promise<void> {
     await mkdir(dirname(filePath), { recursive: true });
-    await writeFile(filePath, JSON.stringify(data, null, 2), 'utf-8');
+    await writeFile(filePath, JSON.stringify(data, null, 2), "utf-8");
   }
 
-  private async writeTextFile(filePath: string, content: string): Promise<void> {
+  private async writeTextFile(
+    filePath: string,
+    content: string,
+  ): Promise<void> {
     await mkdir(dirname(filePath), { recursive: true });
-    await writeFile(filePath, content, 'utf-8');
+    await writeFile(filePath, content, "utf-8");
   }
 
-  private async generateScenariosMarkdown(data: ContextExportData): Promise<string> {
+  private async generateScenariosMarkdown(
+    data: ContextExportData,
+  ): Promise<string> {
     const { generatedScenarios, prAnalysis, jiraContext } = data;
 
     let markdown = `# AI-Generated Test Scenarios
 
 **Generated for PR:** ${prAnalysis.title}  
-**Jira Ticket:** ${jiraContext?.ticket.key || 'None'} - ${jiraContext?.ticket.summary || 'N/A'}  
+**Jira Ticket:** ${jiraContext?.ticket.key || "None"} - ${jiraContext?.ticket.summary || "N/A"}  
 **Generated at:** ${data.metadata.exportedAt}  
 **Total Scenarios:** ${generatedScenarios.length}
 
@@ -134,13 +140,16 @@ ${data.aiSummary}
 
 **Description:** ${scenario.description}
 
-**Focus Areas:** ${scenario.focusAreas.join(', ')}
+**Focus Areas:** ${scenario.focusAreas.join(", ")}
 
 **Test Steps:**
-${scenario.steps.map((step, stepIndex) => 
-  `${stepIndex + 1}. **${step.action.charAt(0).toUpperCase() + step.action.slice(1)}** ${step.target ? `"${step.target}"` : ''}${step.input ? ` with "${step.input}"` : ''}
-   - *Verify:* ${step.verification}`
-).join('\n')}
+${scenario.steps
+  .map(
+    (step, stepIndex) =>
+      `${stepIndex + 1}. **${step.action.charAt(0).toUpperCase() + step.action.slice(1)}** ${step.target ? `"${step.target}"` : ""}${step.input ? ` with "${step.input}"` : ""}
+   - *Verify:* ${step.verification}`,
+  )
+  .join("\n")}
 
 **Expected Outcome:** ${scenario.expectedOutcome}
 
@@ -152,8 +161,17 @@ ${scenario.steps.map((step, stepIndex) =>
     return markdown;
   }
 
-  private async generateContextSummary(data: ContextExportData): Promise<string> {
-    const { prAnalysis, jiraContext, confluencePages, onyxContext, generatedScenarios, metadata } = data;
+  private async generateContextSummary(
+    data: ContextExportData,
+  ): Promise<string> {
+    const {
+      prAnalysis,
+      jiraContext,
+      confluencePages,
+      onyxContext,
+      generatedScenarios,
+      metadata,
+    } = data;
 
     return `# TAP Testing Context Summary
 
@@ -165,56 +183,83 @@ ${scenario.steps.map((step, stepIndex) =>
 - **Lines Changed:** +${prAnalysis.changedFiles.reduce((acc, file) => acc + file.additions, 0)} / -${prAnalysis.changedFiles.reduce((acc, file) => acc + file.deletions, 0)}
 
 ### Changed Files:
-${prAnalysis.changedFiles.map(file => 
-  `- **${file.status.toUpperCase()}:** \`${file.path}\` (+${file.additions}/-${file.deletions})`
-).join('\n')}
+${prAnalysis.changedFiles
+  .map(
+    (file) =>
+      `- **${file.status.toUpperCase()}:** \`${file.path}\` (+${file.additions}/-${file.deletions})`,
+  )
+  .join("\n")}
 
 ## Business Context
-${jiraContext ? `
+${
+  jiraContext
+    ? `
 **Jira Ticket:** ${jiraContext.ticket.key} - ${jiraContext.ticket.summary}
 - **Type:** ${jiraContext.ticket.issueType} | **Priority:** ${jiraContext.ticket.priority}
 - **Status:** ${jiraContext.ticket.status}
-- **Reporter:** ${jiraContext.ticket.reporter} | **Assignee:** ${jiraContext.ticket.assignee || 'Unassigned'}
+- **Reporter:** ${jiraContext.ticket.reporter} | **Assignee:** ${jiraContext.ticket.assignee || "Unassigned"}
 
-${jiraContext.epic ? `**Epic:** ${jiraContext.epic.key} - ${jiraContext.epic.summary}` : ''}
+${jiraContext.epic ? `**Epic:** ${jiraContext.epic.key} - ${jiraContext.epic.summary}` : ""}
 
-${jiraContext.linkedIssues.length > 0 ? `
+${
+  jiraContext.linkedIssues.length > 0
+    ? `
 **Linked Issues:**
-${jiraContext.linkedIssues.map(issue => `- ${issue.key}: ${issue.summary}`).join('\n')}
-` : ''}
-` : 'No Jira context available'}
+${jiraContext.linkedIssues.map((issue) => `- ${issue.key}: ${issue.summary}`).join("\n")}
+`
+    : ""
+}
+`
+    : "No Jira context available"
+}
 
 ## Documentation Context
-${confluencePages.length > 0 ? `
+${
+  confluencePages.length > 0
+    ? `
 Found ${confluencePages.length} related documentation pages:
-${confluencePages.map(page => `- **${page.title}** (${page.space}) - ${page.author}`).join('\n')}
-` : 'No related documentation found'}
+${confluencePages.map((page) => `- **${page.title}** (${page.space}) - ${page.author}`).join("\n")}
+`
+    : "No related documentation found"
+}
 
 ## Onyx AI Product Knowledge
-${onyxContext ? `
+${
+  onyxContext
+    ? `
 Gathered ${onyxContext.responses.length} AI-processed insights about product context and user workflows:
-${onyxContext.responses.map((response, i) => 
-  `${i + 1}. **${response.query}**
-   - *AI Insight:* ${response.answer.substring(0, 150)}${response.answer.length > 150 ? '...' : ''}`
-).join('\n')}
-` : 'No Onyx AI context available (not configured)'}
+${onyxContext.responses
+  .map(
+    (response, i) =>
+      `${i + 1}. **${response.query}**
+   - *AI Insight:* ${response.answer.substring(0, 150)}${response.answer.length > 150 ? "..." : ""}`,
+  )
+  .join("\n")}
+`
+    : "No Onyx AI context available (not configured)"
+}
 
 ## AI-Generated Test Scenarios
 - **Total Scenarios:** ${generatedScenarios.length}
-- **High Priority:** ${generatedScenarios.filter(s => s.priority === 'high').length}
-- **Medium Priority:** ${generatedScenarios.filter(s => s.priority === 'medium').length}
-- **Low Priority:** ${generatedScenarios.filter(s => s.priority === 'low').length}
-- **Fully Automated:** ${generatedScenarios.filter(s => s.automationLevel === 'automated').length}
-- **Semi-Automated:** ${generatedScenarios.filter(s => s.automationLevel === 'semi-automated').length}
-- **Manual:** ${generatedScenarios.filter(s => s.automationLevel === 'manual').length}
+- **High Priority:** ${generatedScenarios.filter((s) => s.priority === "high").length}
+- **Medium Priority:** ${generatedScenarios.filter((s) => s.priority === "medium").length}
+- **Low Priority:** ${generatedScenarios.filter((s) => s.priority === "low").length}
+- **Fully Automated:** ${generatedScenarios.filter((s) => s.automationLevel === "automated").length}
+- **Semi-Automated:** ${generatedScenarios.filter((s) => s.automationLevel === "semi-automated").length}
+- **Manual:** ${generatedScenarios.filter((s) => s.automationLevel === "manual").length}
 
 ### Categories:
 ${Object.entries(
-  generatedScenarios.reduce((acc, scenario) => {
-    acc[scenario.category] = (acc[scenario.category] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>)
-).map(([category, count]) => `- **${category}:** ${count} scenarios`).join('\n')}
+  generatedScenarios.reduce(
+    (acc, scenario) => {
+      acc[scenario.category] = (acc[scenario.category] || 0) + 1;
+      return acc;
+    },
+    {} as Record<string, number>,
+  ),
+)
+  .map(([category, count]) => `- **${category}:** ${count} scenarios`)
+  .join("\n")}
 
 
 ---
@@ -240,17 +285,17 @@ You are reviewing AI-generated test scenarios for a GitHub PR. Use this context 
 
 ## Available Context Files
 - \`pr-analysis.json\` - Complete PR analysis with diffs and metadata
-- \`jira-context.json\` - Business context from Jira ticket${data.jiraContext ? '' : ' (not available for this PR)'}
-- \`confluence-docs.json\` - Related documentation${data.confluencePages.length > 0 ? '' : ' (none found)'}
-- \`onyx-product-context.json\` - AI-processed product knowledge and user workflows${data.onyxContext ? '' : ' (not available)'}
+- \`jira-context.json\` - Business context from Jira ticket${data.jiraContext ? "" : " (not available for this PR)"}
+- \`confluence-docs.json\` - Related documentation${data.confluencePages.length > 0 ? "" : " (none found)"}
+- \`onyx-product-context.json\` - AI-processed product knowledge and user workflows${data.onyxContext ? "" : " (not available)"}
 - \`generated-scenarios.json\` - Machine-readable scenarios
 - \`generated-scenarios.md\` - Human-readable scenarios
 - \`context-summary.md\` - Executive summary
 
 ## Key Areas to Consider
 1. **Code Changes:** Focus on the ${data.prAnalysis.changedFiles.length} changed files
-2. **Business Impact:** ${data.jiraContext ? `Consider Jira ticket ${data.jiraContext.ticket.key} requirements` : 'No specific business context available'}
-3. **Product Knowledge:** ${data.onyxContext ? `Review Onyx AI insights about user workflows and E2E scenarios` : 'No AI product context available'}
+2. **Business Impact:** ${data.jiraContext ? `Consider Jira ticket ${data.jiraContext.ticket.key} requirements` : "No specific business context available"}
+3. **Product Knowledge:** ${data.onyxContext ? `Review Onyx AI insights about user workflows and E2E scenarios` : "No AI product context available"}
 4. **Risk Assessment:** Prioritize scenarios based on potential impact
 5. **Test Coverage:** Ensure all critical paths are covered
 
@@ -303,14 +348,14 @@ You are a senior QA engineer helping refine AI-generated test scenarios for a Gi
 ## Context Overview
 - **PR**: ${data.prAnalysis.title}
 - **Files Changed**: ${data.prAnalysis.changedFiles.length}
-- **Jira**: ${data.jiraContext?.ticket.key || 'None'} - ${data.jiraContext?.ticket.summary || 'N/A'}
+- **Jira**: ${data.jiraContext?.ticket.key || "None"} - ${data.jiraContext?.ticket.summary || "N/A"}
 - **Generated Scenarios**: ${data.generatedScenarios.length}
 
 ## Available Files in This Directory
 - \`pr-analysis.json\` - Complete PR analysis with diffs
-- \`jira-context.json\` - Business context${data.jiraContext ? '' : ' (not available)'}
-- \`confluence-docs.json\` - Related documentation${data.confluencePages.length > 0 ? '' : ' (none found)'}
-- \`onyx-product-context.json\` - AI product insights${data.onyxContext ? '' : ' (not available)'}
+- \`jira-context.json\` - Business context${data.jiraContext ? "" : " (not available)"}
+- \`confluence-docs.json\` - Related documentation${data.confluencePages.length > 0 ? "" : " (none found)"}
+- \`onyx-product-context.json\` - AI product insights${data.onyxContext ? "" : " (not available)"}
 - \`generated-scenarios.json\` - Machine-readable scenarios
 - \`generated-scenarios.md\` - Human-readable scenarios
 - \`context-summary.md\` - Executive summary
@@ -368,16 +413,23 @@ rm -f interactive-prompt.txt
 `;
   }
 
-  async exportScenariosOnly(scenarios: TestScenario[], outputPath: string): Promise<void> {
+  async exportScenariosOnly(
+    scenarios: TestScenario[],
+    outputPath: string,
+  ): Promise<void> {
     await this.writeJsonFile(outputPath, scenarios);
   }
 
   async loadScenariosFromFile(filePath: string): Promise<TestScenario[]> {
     try {
-      const content = await import('fs/promises').then(fs => fs.readFile(filePath, 'utf-8'));
+      const content = await import("fs/promises").then((fs) =>
+        fs.readFile(filePath, "utf-8"),
+      );
       return JSON.parse(content);
     } catch (error) {
-      throw new Error(`Failed to load scenarios from ${filePath}: ${error instanceof Error ? error.message : String(error)}`);
+      throw new Error(
+        `Failed to load scenarios from ${filePath}: ${error instanceof Error ? error.message : String(error)}`,
+      );
     }
   }
 }

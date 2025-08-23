@@ -56,13 +56,13 @@ export class ConfigService {
 
     throw new Error(
       "No configuration found. Please run 'tap setup' or set environment variables:\n" +
-      "  • GITHUB_TOKEN\n" +
-      "  • ATLASSIAN_BASE_URL\n" +
-      "  • ATLASSIAN_EMAIL\n" +
-      "  • ATLASSIAN_API_TOKEN\n" +
-      "  • ONYX_BASE_URL (optional - for self-hosted Onyx instances)\n" +
-      "  • ONYX_API_KEY (optional - for enhanced product context)\n" +
-      "\nNote: Install claude CLI for AI test generation: npm install -g @anthropic-ai/claude-cli"
+        "  • GITHUB_TOKEN\n" +
+        "  • ATLASSIAN_BASE_URL\n" +
+        "  • ATLASSIAN_EMAIL\n" +
+        "  • ATLASSIAN_API_TOKEN\n" +
+        "  • ONYX_BASE_URL (optional - for self-hosted Onyx instances)\n" +
+        "  • ONYX_API_KEY (optional - for enhanced product context)\n" +
+        "\nNote: Install claude CLI for AI test generation: npm install -g @anthropic-ai/claude-cli",
     );
   }
 
@@ -70,15 +70,19 @@ export class ConfigService {
     try {
       const configPath = `${homedir()}/.tap/config.json`;
       await access(configPath);
-      const configContent = await readFile(configPath, 'utf-8');
+      const configContent = await readFile(configPath, "utf-8");
       const config = JSON.parse(configContent);
-      
+
       // Validate config structure
       if (this.isValidConfig(config)) {
         return config;
       }
-      
-      console.warn(chalk.yellow("⚠️  Invalid config file format, falling back to environment variables"));
+
+      console.warn(
+        chalk.yellow(
+          "⚠️  Invalid config file format, falling back to environment variables",
+        ),
+      );
       return null;
     } catch {
       return null;
@@ -93,26 +97,31 @@ export class ConfigService {
     const onyxBaseUrl = process.env.ONYX_BASE_URL;
     const onyxApiKey = process.env.ONYX_API_KEY;
 
-    if (!githubToken || !atlassianBaseUrl || !atlassianEmail || !atlassianApiToken) {
+    if (
+      !githubToken ||
+      !atlassianBaseUrl ||
+      !atlassianEmail ||
+      !atlassianApiToken
+    ) {
       return null;
     }
 
     const config: TapConfig = {
       github: {
-        token: githubToken
+        token: githubToken,
       },
       atlassian: {
         baseUrl: atlassianBaseUrl,
         email: atlassianEmail,
-        apiToken: atlassianApiToken
-      }
+        apiToken: atlassianApiToken,
+      },
     };
 
     // Add Onyx config if API key is provided
     if (onyxApiKey) {
       config.onyx = {
-        baseUrl: onyxBaseUrl || 'https://api.onyx.app',
-        apiKey: onyxApiKey
+        baseUrl: onyxBaseUrl || "https://api.onyx.app",
+        apiKey: onyxApiKey,
       };
     }
 
@@ -123,30 +132,30 @@ export class ConfigService {
     return (
       config &&
       config.github &&
-      typeof config.github.token === 'string' &&
+      typeof config.github.token === "string" &&
       config.atlassian &&
-      typeof config.atlassian.baseUrl === 'string' &&
-      typeof config.atlassian.email === 'string' &&
-      typeof config.atlassian.apiToken === 'string'
+      typeof config.atlassian.baseUrl === "string" &&
+      typeof config.atlassian.email === "string" &&
+      typeof config.atlassian.apiToken === "string"
     );
   }
 
   async testConnectivity(config?: TapConfig): Promise<boolean> {
-    const testConfig = config || await this.getConfig();
-    
+    const testConfig = config || (await this.getConfig());
+
     console.log(chalk.yellow("🔍 Testing API connectivity..."));
-    
+
     let allTestsPassed = true;
 
     // Test GitHub
     try {
       const response = await fetch("https://api.github.com/user", {
         headers: {
-          "Authorization": `token ${testConfig.github.token}`,
-          "Accept": "application/vnd.github.v3+json"
-        }
+          Authorization: `token ${testConfig.github.token}`,
+          Accept: "application/vnd.github.v3+json",
+        },
       });
-      
+
       if (response.ok) {
         const user = await response.json();
         console.log(chalk.green(`  ✅ GitHub API (${user.login})`));
@@ -161,15 +170,18 @@ export class ConfigService {
 
     // Test Atlassian
     try {
-      const authHeader = `Basic ${Buffer.from(`${testConfig.atlassian.email}:${testConfig.atlassian.apiToken}`).toString('base64')}`;
-      
-      const response = await fetch(`${testConfig.atlassian.baseUrl}/rest/api/3/myself`, {
-        headers: {
-          'Authorization': authHeader,
-          'Accept': 'application/json'
-        }
-      });
-      
+      const authHeader = `Basic ${Buffer.from(`${testConfig.atlassian.email}:${testConfig.atlassian.apiToken}`).toString("base64")}`;
+
+      const response = await fetch(
+        `${testConfig.atlassian.baseUrl}/rest/api/3/myself`,
+        {
+          headers: {
+            Authorization: authHeader,
+            Accept: "application/json",
+          },
+        },
+      );
+
       if (response.ok) {
         const user = await response.json();
         console.log(chalk.green(`  ✅ Atlassian API (${user.displayName})`));
@@ -190,31 +202,39 @@ export class ConfigService {
         const response = await fetch(onyxUrl, {
           method: "POST",
           headers: {
-            "Authorization": `Bearer ${testConfig.onyx.apiKey}`,
-            "Content-Type": "application/json"
+            Authorization: `Bearer ${testConfig.onyx.apiKey}`,
+            "Content-Type": "application/json",
           },
           body: JSON.stringify({
             message: "Hello",
-            chat_session_id: null
-          })
+            chat_session_id: null,
+          }),
         });
-        
+
         if (response.ok) {
           console.log(chalk.green("  ✅ Onyx AI API"));
         } else {
           console.log(chalk.red(`  ❌ Onyx AI API (HTTP ${response.status})`));
-          console.log(chalk.gray("    Note: Onyx AI is optional for enhanced context"));
+          console.log(
+            chalk.gray("    Note: Onyx AI is optional for enhanced context"),
+          );
         }
       } catch (error) {
         console.log(chalk.red("  ❌ Onyx AI API (Connection error)"));
-        console.log(chalk.gray("    Note: Onyx AI is optional for enhanced context"));
+        console.log(
+          chalk.gray("    Note: Onyx AI is optional for enhanced context"),
+        );
       }
     } else {
       console.log(chalk.gray("  ⚪ Onyx AI API (not configured - optional)"));
     }
 
     if (!allTestsPassed) {
-      console.log(chalk.yellow("\n⚠️  Some API connections failed. Commands may not work properly."));
+      console.log(
+        chalk.yellow(
+          "\n⚠️  Some API connections failed. Commands may not work properly.",
+        ),
+      );
       console.log(chalk.gray("   Run 'tap setup --force' to reconfigure."));
     }
 
@@ -230,13 +250,13 @@ export class ConfigService {
   // Helper method to get auth headers for Atlassian
   async getAtlassianAuthHeader(): Promise<string> {
     const config = await this.getConfig();
-    return `Basic ${Buffer.from(`${config.atlassian.email}:${config.atlassian.apiToken}`).toString('base64')}`;
+    return `Basic ${Buffer.from(`${config.atlassian.email}:${config.atlassian.apiToken}`).toString("base64")}`;
   }
 
   // Method for direct access to config (used by services)
   getLoadedConfig(): TapConfig {
     if (!this.config) {
-      throw new Error('Config not loaded. Call getConfig() first.');
+      throw new Error("Config not loaded. Call getConfig() first.");
     }
     return this.config;
   }
