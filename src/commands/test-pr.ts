@@ -1,5 +1,6 @@
 import { Command } from "commander";
 import chalk from "chalk";
+import { existsSync } from "fs";
 import { ContextGatheringService } from "../services/context-gathering";
 import { AITestScenarioGenerator } from "../services/ai-test-generator";
 import { ContextExporter } from "../services/context-exporter";
@@ -29,6 +30,15 @@ async function executePRTest(prUrl: string, options: any) {
     const outputDir = options.output 
       ? options.output
       : `./${prAnalysis.number}-${lastCommitSha}`;
+    
+    // Check if output directory already exists to prevent accidental re-runs
+    if (existsSync(outputDir)) {
+      console.error(chalk.red(`❌ Output directory already exists: ${outputDir}`));
+      console.error(chalk.yellow(`To prevent accidental re-runs, please:`));
+      console.error(`  • Remove the existing directory: rm -rf ${outputDir}`);
+      console.error(`  • Or specify a different output path: --output <new-path>`);
+      process.exit(1);
+    }
     
     // Step 2: Generate test scenarios with AI
     console.log(chalk.yellow("🧪 Generating AI test scenarios..."));
