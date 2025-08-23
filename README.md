@@ -59,15 +59,10 @@ bun run start setup           # Setup and configuration (interactive)
 ### Build Commands
 ```bash
 bun run build                 # Build main TAP executable
-bun run build:mcp             # Build MCP server executable
-bun run build:all             # Build both executables
+bun run build:all             # Build executable
 bun run clean                 # Clean build artifacts
 ```
 
-### MCP Development
-```bash
-bun run dev:mcp               # Run MCP server in development mode
-```
 
 ## Command Options
 
@@ -159,7 +154,6 @@ Use the `--verbose` flag to enable detailed logging that includes:
 
 - This is a Bun project with Node.js compatibility
 - All external dependencies are managed via package.json and npm registry
-- MCP server uses @modelcontextprotocol/sdk for Model Context Protocol integration
 - No permanent test cases - all scenarios are dynamically generated
 - Unified Atlassian authentication uses single API token for both Jira and Confluence
 
@@ -169,7 +163,6 @@ Use the `--verbose` flag to enable detailed logging that includes:
 - `src/main.ts` - CLI entry point using Commander.js framework
 - `src/commands/` - Command implementations (test-pr, execute-scenarios, setup)
 - `src/services/` - Business logic services
-- `mcp-servers/atlassian-mcp/server.ts` - Unified Atlassian MCP server
 
 ### Key Services
 - `GitHubService` - PR analysis and diff processing

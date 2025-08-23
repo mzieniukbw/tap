@@ -20,27 +20,21 @@ jobs:
           - os: ubuntu-latest
             target: bun-linux-x64
             name: tap-linux-x64
-            mcp-name: mcp-server-linux-x64
           - os: ubuntu-latest
             target: bun-linux-arm64
             name: tap-linux-arm64
-            mcp-name: mcp-server-linux-arm64
           - os: windows-latest
             target: bun-windows-x64
             name: tap-windows-x64.exe
-            mcp-name: mcp-server-windows-x64.exe
           - os: windows-latest
             target: bun-windows-x64-baseline
             name: tap-windows-x64-baseline.exe
-            mcp-name: mcp-server-windows-x64-baseline.exe
           - os: macos-latest
             target: bun-darwin-x64
             name: tap-macos-x64
-            mcp-name: mcp-server-macos-x64
           - os: macos-latest
             target: bun-darwin-arm64
             name: tap-macos-arm64
-            mcp-name: mcp-server-macos-arm64
 
     runs-on: ${{ matrix.os }}
     
@@ -64,9 +58,6 @@ jobs:
           mkdir -p dist
           bun build --compile --target=${{ matrix.target }} --outfile=dist/${{ matrix.name }} src/main.ts
 
-      - name: Build MCP Server executable
-        run: |
-          bun build --compile --target=${{ matrix.target }} --outfile=dist/${{ matrix.mcp-name }} src/mcp-servers/atlassian-mcp/server.ts
 
       - name: Create build info
         run: |
@@ -84,7 +75,6 @@ jobs:
           name: tap-${{ matrix.target }}
           path: |
             dist/${{ matrix.name }}
-            dist/${{ matrix.mcp-name }}
             dist/BUILD_INFO.txt
           retention-days: 30
 
@@ -109,7 +99,7 @@ jobs:
           mkdir -p release-assets
           
           # Copy all executables to release-assets
-          find artifacts -name "tap-*" -o -name "mcp-server-*" | while read file; do
+          find artifacts -name "tap-*" | while read file; do
             cp "$file" release-assets/
           done
           
@@ -150,7 +140,6 @@ jobs:
             
             ### What's Included
             - `tap`: Main CLI executable
-            - `mcp-server`: MCP server for Atlassian integration
             - `checksums.txt`: SHA256 checksums for verification
             
             ### Usage

@@ -11,7 +11,7 @@ An internal productivity tool that leverages Claude Code CLI and Claude Desktop 
 Developer Machine
 ├── TAP CLI (AI-powered orchestrator)
 │   ├── GitHub API integration
-│   ├── MCP servers management  
+│   ├── Jira and Confluence integration
 │   ├── AI test generation (Claude API)
 │   └── Context export for review
 ├── Claude Code (human collaboration)
@@ -26,7 +26,7 @@ Developer Machine
 
 **TAP CLI - The AI Brain**
 - **GitHub API integration**: PR analysis and diff processing
-- **MCP server coordination**: Manages Jira and Confluence data gathering
+- **Atlassian integration**: Direct Jira and Confluence data gathering
 - **AI-powered generation**: Uses Claude CLI for intelligent test scenarios
 - **Context export**: Outputs comprehensive data for human review
 - **Execution coordination**: Orchestrates with Claude Desktop
@@ -43,14 +43,6 @@ Developer Machine
 - **Application interaction**: Web browsers, desktop apps, CLI terminals
 - **Real-time execution**: Runs generated scenarios immediately
 
-**MCP Server (Bun/TypeScript) - Unified**
-```
-mcp-servers/
-└── atlassian-mcp/
-    └── server.ts            # Unified Jira + Confluence integration
-                            # Uses single Atlassian API token
-                            # Built with Bun for modern runtime
-```
 
 ## Data Flow
 
@@ -63,7 +55,7 @@ mcp-servers/
 ### Execution Flow (Human-in-the-Loop)
 1. **Context Generation**: `bun run start test-pr <pr-url> --generate-only`
    - TAP fetches PR diffs and metadata via GitHub API
-   - Queries MCP servers for Jira context and Confluence documentation
+   - Fetches Jira context and Confluence documentation directly
    - Uses Claude CLI to generate intelligent test scenarios
    - Exports comprehensive context for human review
 
@@ -92,12 +84,8 @@ testing-assistant-project/
 │   ├── main.ts                        # CLI entry point
 │   ├── commands/                      # Command implementations
 │   └── services/                      # Core business logic
-├── mcp-servers/
-│   └── atlassian-mcp/
-│       └── server.ts                  # Unified Atlassian integration
 └── dist/                              # Compiled executables (after build)
-    ├── tap                            # Main CLI executable
-    └── atlassian-mcp-server           # MCP server executable
+    └── tap                            # Main CLI executable
 ```
 
 ### Setup Script Capabilities
@@ -212,7 +200,7 @@ Files Created:
 ### Implementation Status - ✅ COMPLETED
 
 ### Phase 1: Core Infrastructure ✅
-- [x] Set up unified Atlassian MCP server (Deno-based)
+- [x] Set up unified Atlassian service integration
 - [x] Implement GitHub PR analysis
 - [x] Build Jira ticket resolution with epic/linked issue support
 - [x] Create comprehensive data fetching
@@ -242,38 +230,6 @@ Files Created:
 
 ## Configuration Examples
 
-### Claude Desktop MCP Configuration
-```json
-{
-  "mcpServers": {
-    "atlassian": {
-      "command": "bun",
-      "args": ["run", "./mcp-servers/atlassian-mcp/server.ts"],
-      "env": {
-        "ATLASSIAN_API_TOKEN": "${ATLASSIAN_API_TOKEN}",
-        "ATLASSIAN_EMAIL": "${ATLASSIAN_EMAIL}", 
-        "ATLASSIAN_BASE_URL": "https://company.atlassian.net"
-      }
-    }
-  }
-}
-```
-
-### Or using compiled executable:
-```json
-{
-  "mcpServers": {
-    "atlassian": {
-      "command": "./dist/atlassian-mcp-server",
-      "env": {
-        "ATLASSIAN_API_TOKEN": "${ATLASSIAN_API_TOKEN}",
-        "ATLASSIAN_EMAIL": "${ATLASSIAN_EMAIL}",
-        "ATLASSIAN_BASE_URL": "https://company.atlassian.net"
-      }
-    }
-  }
-}
-```
 
 ### Environment Variables
 ```bash

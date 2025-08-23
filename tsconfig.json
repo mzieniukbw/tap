@@ -17,8 +17,7 @@
   },
   "include": [
     "src/**/*",
-    "scripts/**/*",
-    "mcp-servers/**/*"
+    "scripts/**/*"
   ],
   "exclude": [
     "node_modules",

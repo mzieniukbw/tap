@@ -16,7 +16,6 @@ NC='\033[0m' # No Color
 REPO="mzieniuk/tap"
 INSTALL_DIR="/usr/local/bin"
 BINARY_NAME="tap"
-MCP_BINARY_NAME="mcp-server"
 
 # Function to print colored output
 print_status() {
@@ -76,20 +75,16 @@ install_binary() {
     local platform="$1"
     local version="$2"
     local binary_suffix=""
-    local mcp_suffix=""
     
     # Determine file extension and binary names based on platform
     case "$platform" in
         windows-*)
             binary_suffix=".exe"
-            mcp_suffix=".exe"
             ;;
     esac
     
     local tap_binary="${BINARY_NAME}-${platform}${binary_suffix}"
-    local mcp_binary="${MCP_BINARY_NAME}-${platform}${mcp_suffix}"
     local tap_url="https://github.com/${REPO}/releases/download/${version}/${tap_binary}"
-    local mcp_url="https://github.com/${REPO}/releases/download/${version}/${mcp_binary}"
     
     print_status "Downloading TAP ${version} for ${platform}..."
     
@@ -105,12 +100,6 @@ install_binary() {
         exit 1
     fi
     
-    # Download MCP server binary
-    print_status "Downloading ${mcp_binary}..."
-    if ! curl -fsSL "$mcp_url" -o "${temp_dir}/${mcp_binary}"; then
-        print_warning "Failed to download ${mcp_binary}, continuing with TAP only"
-        MCP_BINARY_NAME=""
-    fi
     
     # Check if we need sudo for installation
     if [[ ! -w "$INSTALL_DIR" ]]; then
@@ -125,12 +114,6 @@ install_binary() {
     $SUDO cp "${temp_dir}/${tap_binary}" "${INSTALL_DIR}/${BINARY_NAME}"
     $SUDO chmod +x "${INSTALL_DIR}/${BINARY_NAME}"
     
-    # Install MCP server binary if downloaded successfully
-    if [[ -n "$MCP_BINARY_NAME" && -f "${temp_dir}/${mcp_binary}" ]]; then
-        $SUDO cp "${temp_dir}/${mcp_binary}" "${INSTALL_DIR}/${MCP_BINARY_NAME}"
-        $SUDO chmod +x "${INSTALL_DIR}/${MCP_BINARY_NAME}"
-        print_success "Installed ${MCP_BINARY_NAME} to ${INSTALL_DIR}/${MCP_BINARY_NAME}"
-    fi
     
     # Clean up
     rm -rf "$temp_dir"
@@ -148,10 +131,6 @@ verify_installation() {
         print_status "Run 'tap setup' to configure your environment"
         print_status "Run 'tap --help' to see available commands"
         
-        # Check if MCP server is also installed
-        if command -v "$MCP_BINARY_NAME" >/dev/null 2>&1; then
-            print_success "MCP server is also installed and accessible"
-        fi
     else
         print_warning "TAP installed but not found in PATH"
         print_status "You may need to add ${INSTALL_DIR} to your PATH or restart your shell"

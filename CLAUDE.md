@@ -27,9 +27,6 @@ bun run start setup                               # Setup and configuration (int
 # Build main TAP executable
 bun run build
 
-# Build MCP server executable
-bun run build:mcp
-
 # Build both executables
 bun run build:all
 
@@ -37,11 +34,6 @@ bun run build:all
 bun run clean
 ```
 
-### MCP Development
-```bash
-# Run MCP server in development mode
-bun run dev:mcp
-```
 
 ## Code Architecture
 
@@ -49,7 +41,6 @@ bun run dev:mcp
 - `src/main.ts` - CLI entry point using Commander.js framework
 - `src/commands/` - Command implementations (test-pr, execute-scenarios, setup)
 - `src/services/` - Business logic services
-- `src/mcp-servers/atlassian-mcp/server.ts` - Unified Atlassian MCP server
 
 ### Key Services
 - `GitHubService` - PR analysis and diff processing
@@ -118,12 +109,6 @@ bun run start test-pr <pr-url>                    # Full execution with AI scena
 bun run start test-pr <pr-url> --generate-only --output ./custom-dir
 ```
 
-### MCP Server Integration
-The Atlassian MCP server provides:
-- Jira ticket retrieval and search
-- Confluence page content access
-- Ticket context with epics and linked issues
-- Related documentation discovery
 
 ## TypeScript Configuration
 
@@ -154,6 +139,5 @@ Test artifacts are generated in `./test-pr-{PR-number}-{commit-sha}/` directory 
 
 - This is a Bun project with Node.js compatibility - use Node.js APIs and npm packages
 - All external dependencies are managed via package.json and npm registry
-- MCP server uses @modelcontextprotocol/sdk for Model Context Protocol integration
 - No permanent test cases - all scenarios are dynamically generated
 - Unified Atlassian authentication uses single API token for both Jira and Confluence

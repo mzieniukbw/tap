@@ -8,8 +8,7 @@ This document explains how to build and release TAP executables for multiple pla
 ```bash
 # Build for current platform
 bun run build        # Build TAP executable
-bun run build:mcp    # Build MCP server executable
-bun run build:all    # Build both executables
+bun run build:all    # Build executable
 ```
 
 ### Cross-Platform Builds
@@ -20,7 +19,7 @@ bun run build:windows      # Windows x64 + baseline
 bun run build:macos        # macOS x64 + ARM64
 
 # Build all cross-platform executables
-bun run build:all:cross    # All platforms + MCP servers
+bun run build:all:cross    # All platforms
 ```
 
 ## Automated Release Process
@@ -50,7 +49,7 @@ bun run build:all:cross    # All platforms + MCP servers
 | macOS | x64 | `tap-macos-x64` | Intel Macs |
 | macOS | ARM64 | `tap-macos-arm64` | Apple Silicon Macs |
 
-Each platform includes both `tap` (main CLI) and `mcp-server` (Atlassian MCP server) executables.
+Each platform includes the `tap` main CLI executable.
 
 ## Installation Methods
 
@@ -95,7 +94,6 @@ Each release includes:
 ### Verify Installation
 ```bash
 tap --version
-mcp-server --help
 ```
 
 ### Verify Checksums
