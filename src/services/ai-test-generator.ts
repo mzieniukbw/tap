@@ -46,7 +46,7 @@ export class AITestScenarioGenerator {
       const claudeResponse = await this.claudeCLI.generateResponse(contextPrompt, taskPrompt);
 
       // Parse the AI response into TestScenario objects
-      return this.parseAIResponse(claudeResponse, context);
+      return this.parseAIResponse(claudeResponse);
     } catch (error) {
       console.error("Error calling Claude CLI:", error);
       throw new Error(
@@ -200,7 +200,7 @@ Based on the above context, generate 5-8 comprehensive test scenarios as a JSON 
     return prompt;
   }
 
-  private parseAIResponse(aiResponse: string, context: AITestGenerationContext): TestScenario[] {
+  private parseAIResponse(aiResponse: string): TestScenario[] {
     try {
       let jsonStr: string;
 
@@ -221,7 +221,7 @@ Based on the above context, generate 5-8 comprehensive test scenarios as a JSON 
       }
 
       // Validate and enhance the scenarios
-      return scenarios.map((scenario) => this.validateAndEnhanceScenario(scenario, context));
+      return scenarios.map((scenario) => this.validateAndEnhanceScenario(scenario));
     } catch (error) {
       console.error("Failed to parse AI response:", aiResponse.substring(0, 500) + "...");
       throw new Error(
@@ -230,10 +230,7 @@ Based on the above context, generate 5-8 comprehensive test scenarios as a JSON 
     }
   }
 
-  private validateAndEnhanceScenario(
-    scenario: TestScenario,
-    context: AITestGenerationContext
-  ): TestScenario {
+  private validateAndEnhanceScenario(scenario: TestScenario): TestScenario {
     // Ensure all required fields are present and valid
     const validPriorities = ["high", "medium", "low"];
     const validCategories = [

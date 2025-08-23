@@ -145,7 +145,7 @@ export class ClaudeDesktopOrchestrator {
       }
 
       // Verify the step completed successfully
-      const verificationResult = await this.verifyStep(step);
+      const verificationResult = await this.verifyStep();
       if (!verificationResult) {
         stepResult.status = "warning";
         stepResult.actualResult += " (verification warning)";
@@ -194,7 +194,7 @@ export class ClaudeDesktopOrchestrator {
     return `Manual execution of ${step.action} completed`;
   }
 
-  private async verifyStep(step: TestStep): Promise<boolean> {
+  private async verifyStep(): Promise<boolean> {
     // Simulate verification logic
     await this.delay(200 + Math.random() * 300);
 

@@ -1,4 +1,6 @@
 import js from "@eslint/js";
+import tseslint from "@typescript-eslint/eslint-plugin";
+import tsparser from "@typescript-eslint/parser";
 
 export default [
   js.configs.recommended,
@@ -7,16 +9,19 @@ export default [
     languageOptions: {
       ecmaVersion: 2022,
       sourceType: "module",
+      parser: tsparser,
       parserOptions: {
-        ecmaFeatures: {
-          modules: true,
-        },
+        project: "./tsconfig.json",
       },
     },
+    plugins: {
+      "@typescript-eslint": tseslint,
+    },
     rules: {
-      "no-unused-vars": "off", // TypeScript handles this
+      "no-unused-vars": "off",
+      "@typescript-eslint/no-unused-vars": "error",
       "no-console": "off",
-      "no-undef": "off", // TypeScript handles this
+      "no-undef": "off",
     },
   },
 ];

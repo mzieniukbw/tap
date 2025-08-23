@@ -269,7 +269,7 @@ export class OnyxContextService {
           } else if (data.text) {
             finalAnswer += data.text;
           }
-        } catch (lineParseError) {
+        } catch {
           // Skip lines that aren't valid JSON
         }
       }

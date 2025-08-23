@@ -2,7 +2,7 @@ import chalk from "chalk";
 import { PRAnalysis } from "./github";
 import { TicketContext, ConfluencePage } from "./atlassian";
 import { TestScenario } from "./ai-test-generator";
-import { ClaudeDesktopOrchestrator, TestResult } from "./claude-desktop";
+import { ClaudeDesktopOrchestrator } from "./claude-desktop";
 import { QAReportGenerator } from "./qa-report";
 import { OnyxContext } from "./onyx-context";
 

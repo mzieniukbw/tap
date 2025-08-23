@@ -156,7 +156,7 @@ export class ConfigService {
         console.log(chalk.red(`  ❌ GitHub API (HTTP ${response.status})`));
         allTestsPassed = false;
       }
-    } catch (error) {
+    } catch {
       console.log(chalk.red("  ❌ GitHub API (Connection error)"));
       allTestsPassed = false;
     }
@@ -179,7 +179,7 @@ export class ConfigService {
         console.log(chalk.red(`  ❌ Atlassian API (HTTP ${response.status})`));
         allTestsPassed = false;
       }
-    } catch (error) {
+    } catch {
       console.log(chalk.red("  ❌ Atlassian API (Connection error)"));
       allTestsPassed = false;
     }
@@ -207,7 +207,7 @@ export class ConfigService {
           console.log(chalk.red(`  ❌ Onyx AI API (HTTP ${response.status})`));
           console.log(chalk.gray("    Note: Onyx AI is optional for enhanced context"));
         }
-      } catch (error) {
+      } catch {
         console.log(chalk.red("  ❌ Onyx AI API (Connection error)"));
         console.log(chalk.gray("    Note: Onyx AI is optional for enhanced context"));
       }

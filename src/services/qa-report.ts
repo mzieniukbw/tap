@@ -331,7 +331,7 @@ export class QAReportGenerator {
     });
 
     // Filter out empty groups
-    return Object.fromEntries(Object.entries(groups).filter(([_, files]) => files.length > 0));
+    return Object.fromEntries(Object.entries(groups).filter(([, files]) => files.length > 0));
   }
 
   private groupArtifactsByType(artifacts: any[]) {
