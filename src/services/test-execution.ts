@@ -2,7 +2,7 @@ import chalk from "chalk";
 import { PRAnalysis } from "./github";
 import { TicketContext, ConfluencePage } from "./atlassian";
 import { TestScenario } from "./ai-test-generator";
-import { ClaudeDesktopOrchestrator } from "./claude-desktop";
+import { OpenInterpreterExecutor } from "./open-interpreter-executor";
 import { QAReportGenerator } from "./qa-report";
 import { OnyxContext } from "./onyx-context";
 
@@ -22,17 +22,20 @@ export class TestExecutionService {
       context;
     const startTime = Date.now();
 
-    // Step 1: Execute tests with Claude Desktop
-    console.log(chalk.yellow("🤖 Executing tests with Claude Desktop..."));
+    // Step 1: Execute tests with Open Interpreter
+    console.log(chalk.yellow("🤖 Executing tests with Open Interpreter..."));
     if (verbose) {
-      console.log(chalk.gray(`Initializing Claude Desktop orchestrator...`));
+      console.log(chalk.gray(`Initializing Open Interpreter executor...`));
       console.log(chalk.gray(`Output directory: ${outputDir}`));
       console.log(chalk.gray(`Scenarios to execute: ${scenarios.length}`));
     }
 
-    const orchestrator = new ClaudeDesktopOrchestrator();
+    const executor = new OpenInterpreterExecutor();
     const step1Start = Date.now();
-    const results = await orchestrator.executeScenarios(scenarios, outputDir);
+    const results = await executor.executeScenarios(scenarios, outputDir, {
+      prAnalysis,
+      jiraContext,
+    });
 
     if (verbose) {
       console.log(chalk.gray(`Test execution completed`));

@@ -448,4 +448,52 @@ rm -f interactive-prompt.txt
       );
     }
   }
+
+  generateExecutionPrompt(
+    scenario: TestScenario,
+    context?: {
+      prAnalysis?: PRAnalysis;
+      jiraContext?: TicketContext | null;
+    }
+  ): string {
+    const platformInfo = scenario.platformSpecifics?.length
+      ? ` Platform-specific features: ${scenario.platformSpecifics.join(", ")}.`
+      : "";
+
+    const contextInfo = context?.prAnalysis
+      ? `\n\nContext: This test is for PR "${context.prAnalysis.title}" by ${context.prAnalysis.author}.`
+      : "";
+
+    const jiraInfo = context?.jiraContext
+      ? ` Related to Jira ticket ${context.jiraContext.ticket.key}: ${context.jiraContext.ticket.summary}.`
+      : "";
+
+    const prompt = `You are executing an automated test scenario on ${scenario.platform} using ${scenario.client}.${platformInfo}${contextInfo}${jiraInfo}
+
+**Test Scenario: ${scenario.title}**
+Description: ${scenario.description}
+
+Expected Outcome: ${scenario.expectedOutcome}
+
+Execute the following test steps:
+
+${scenario.steps
+  .map((step, index) => {
+    const stepAction = `${index + 1}. ${step.action.charAt(0).toUpperCase() + step.action.slice(1)}${step.target ? ` "${step.target}"` : ""}${step.input ? ` with input "${step.input}"` : ""}`;
+    const verification = step.verification ? `\n   Verify: ${step.verification}` : "";
+    return stepAction + verification;
+  })
+  .join("\n")}
+
+Important:
+- Take a screenshot after each significant step (navigation, clicking, form submission)
+- If any step fails or produces unexpected results, stop and report the error
+- Save any files or artifacts to the current working directory
+- Focus on testing what this PR actually changes, not basic UI functionality
+- The test should complete successfully with the expected outcome: ${scenario.expectedOutcome}
+
+Execute this test scenario now.`;
+
+    return prompt;
+  }
 }

@@ -9,6 +9,49 @@ import { OnyxContext } from "../services/onyx-context";
 import { readFile } from "fs/promises";
 import { existsSync } from "fs";
 import { join, dirname } from "path";
+import { exec } from "child_process";
+import { promisify } from "util";
+
+const execAsync = promisify(exec);
+
+async function validateTestExecutionPrerequisites(verbose?: boolean): Promise<void> {
+  if (verbose) {
+    console.log(chalk.yellow("🔍 Validating test execution prerequisites..."));
+  }
+
+  // 1. Check if Open Interpreter is installed
+  try {
+    await execAsync("interpreter --version");
+    if (verbose) {
+      console.log(chalk.green("  ✅ Open Interpreter CLI found"));
+    }
+  } catch {
+    console.error(chalk.red("❌ Open Interpreter not found"));
+    console.log(chalk.yellow("Please install Open Interpreter:"));
+    console.log(chalk.gray("  pip install open-interpreter"));
+    console.log(chalk.gray("Or see: https://docs.openinterpreter.com/getting-started/setup"));
+    process.exit(1);
+  }
+
+  // 2. Check if ANTHROPIC_API_KEY is configured
+
+  // Check environment variable first
+  const anthropicApiKey = process.env.ANTHROPIC_API_KEY;
+  if (!anthropicApiKey) {
+    console.error(chalk.red("❌ ANTHROPIC_API_KEY not found"));
+    console.log(chalk.yellow("Open Interpreter requires an Anthropic API key for test execution."));
+    console.log(chalk.yellow("Please set your API key:"));
+    console.log(chalk.gray("  export ANTHROPIC_API_KEY=your_api_key_here"));
+    console.log(chalk.gray("Or add it to your shell profile (~/.bashrc, ~/.zshrc, etc.)"));
+    console.log(chalk.gray("Get your API key from: https://console.anthropic.com/"));
+    process.exit(1);
+  }
+
+  if (verbose) {
+    console.log(chalk.green("  ✅ ANTHROPIC_API_KEY configured"));
+    console.log(chalk.green("✅ All prerequisites validated"));
+  }
+}
 
 async function executeScenarios(options: any) {
   const startTime = Date.now();
@@ -20,6 +63,9 @@ async function executeScenarios(options: any) {
     console.log(chalk.yellow("Usage: tap execute-scenarios --file <scenarios.json>"));
     process.exit(1);
   }
+
+  // Validate prerequisites before proceeding
+  await validateTestExecutionPrerequisites(options.verbose);
 
   if (options.verbose) {
     console.log(chalk.gray(`Verbose logging enabled`));
