@@ -80,9 +80,12 @@ export class OpenInterpreterExecutor {
   ): Promise<TestResult> {
     const startTime = Date.now();
     const timestamp = new Date().toISOString();
-    const scenarioDir = `${outputDir}/${scenario.id}`;
 
-    await mkdir(scenarioDir, { recursive: true });
+    // Create organized directory structure
+    const promptsDir = `${outputDir}/interpreter-prompts`;
+    const resultsDir = `${outputDir}/interpreter-results`;
+    await mkdir(promptsDir, { recursive: true });
+    await mkdir(resultsDir, { recursive: true });
 
     const result: TestResult = {
       scenarioId: scenario.id,
@@ -101,12 +104,12 @@ export class OpenInterpreterExecutor {
       const executionPrompt = this.contextExporter.generateExecutionPrompt(scenario, context);
 
       // Create prompt file
-      const promptFile = `${scenarioDir}/execution-prompt.txt`;
+      const promptFile = `${promptsDir}/${scenario.id}.txt`;
       await writeFile(promptFile, executionPrompt, "utf-8");
 
       // Execute with Open Interpreter
       console.log(`  🤖 Executing with Open Interpreter...`);
-      const executionResult = await this.executeWithOpenInterpreter(executionPrompt, scenarioDir);
+      const executionResult = await this.executeWithOpenInterpreter(executionPrompt, outputDir);
 
       // Parse execution results
       const parsedResults = this.parseExecutionResults(executionResult, scenario);
@@ -114,8 +117,12 @@ export class OpenInterpreterExecutor {
       result.status = parsedResults.status;
       result.notes = parsedResults.notes;
 
-      // Collect artifacts from scenario directory
-      result.artifacts = await this.collectArtifacts(scenarioDir);
+      // Collect artifacts from results directory
+      result.artifacts = await this.collectArtifacts(resultsDir);
+
+      // Save execution result to file
+      const resultFile = `${resultsDir}/${scenario.id}.txt`;
+      await writeFile(resultFile, executionResult, "utf-8");
 
       const duration = (Date.now() - startTime) / 1000 / 60; // Convert to minutes
       result.executionTime = Math.round(duration * 100) / 100;
@@ -190,6 +197,7 @@ export class OpenInterpreterExecutor {
       overallStatus = "warning";
       notes = "Execution completed with warnings. See logs for details.";
     } else {
+      overallStatus = "passed";
       notes = "Execution completed successfully.";
     }
 

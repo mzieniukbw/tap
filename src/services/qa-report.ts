@@ -2,7 +2,7 @@ import { PRAnalysis } from "./github";
 import { TicketContext } from "./atlassian";
 import { ConfluencePage } from "./atlassian";
 import { TestScenario } from "./ai-test-generator";
-import { TestResult } from "./claude-desktop";
+import { TestResult } from "./open-interpreter-executor";
 import { OnyxContext } from "./onyx-context";
 
 export interface QAReportData {
@@ -282,6 +282,20 @@ export class QAReportGenerator {
     return lines.join("\n");
   }
 
+  private groupArtifactsByType(artifacts: any[]) {
+    const groups: { [key: string]: any[] } = {};
+
+    artifacts.forEach((artifact) => {
+      const type = artifact.type;
+      if (!groups[type]) {
+        groups[type] = [];
+      }
+      groups[type].push(artifact);
+    });
+
+    return groups;
+  }
+
   private groupFilesByType(files: any[]) {
     const groups: { [key: string]: any[] } = {
       frontend: [],
@@ -332,20 +346,6 @@ export class QAReportGenerator {
 
     // Filter out empty groups
     return Object.fromEntries(Object.entries(groups).filter(([, files]) => files.length > 0));
-  }
-
-  private groupArtifactsByType(artifacts: any[]) {
-    const groups: { [key: string]: any[] } = {};
-
-    artifacts.forEach((artifact) => {
-      const type = artifact.type;
-      if (!groups[type]) {
-        groups[type] = [];
-      }
-      groups[type].push(artifact);
-    });
-
-    return groups;
   }
 
   private getStatusIcon(status: string): string {
