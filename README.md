@@ -27,13 +27,14 @@ curl -fsSL https://raw.githubusercontent.com/mzieniuk/tap/main/install.sh | bash
 Install bun https://bun.sh
 
 ```bash
+# Install Claude CLI for AI test generation
+bun install -g @anthropic-ai/claude-cli
+claude auth
+
+git clone https://github.com/mzieniukbw/tap.git
 cd tap
 bun install
 bun run start setup
-
-# Install Claude CLI for AI test generation
-npm install -g @anthropic-ai/claude-cli
-claude auth
 ```
 
 ## Usage
@@ -48,7 +49,6 @@ bun run start test-pr <pr-url> --generate-only    # Creates ./{PR-number}-{commi
 # Option A: Use the auto-generated helper script
 cd ./{PR-number}-{commit-sha} && ./claude-refine.sh
 # Option B: Use Claude Code to manually review the exported files
-# Option C: Use claude CLI directly with the exported context
 
 # Step 3: Execute refined scenarios
 bun run start execute-scenarios --file ./refined-scenarios.json
@@ -85,7 +85,6 @@ bun run start setup           # Setup and configuration (interactive)
 
 ```bash
 bun run build                 # Build main TAP executable
-bun run build:all             # Build executable
 bun run clean                 # Clean build artifacts
 ```
 
@@ -127,7 +126,7 @@ Creates `~/.tap/config.json` with your API credentials.
 
 ```bash
 # Install Claude CLI for AI test generation
-npm install -g @anthropic-ai/claude-cli
+bun install -g @anthropic-ai/claude-cli
 claude auth
 claude --version  # Verify installation
 ```
