@@ -1,5 +1,6 @@
 import { Command } from "commander";
 import chalk from "chalk";
+import inquirer from "inquirer";
 import { ContextExporter } from "../services/context-exporter";
 import { TestExecutionService } from "../services/test-execution";
 import { InterpreterService } from "../services/interpreter";
@@ -7,6 +8,7 @@ import { TestScenario } from "../services/ai-test-generator";
 import { PRAnalysis } from "../services/github";
 import { TicketContext, ConfluencePage } from "../services/atlassian";
 import { OnyxContext } from "../services/onyx-context";
+import { ConfigService } from "../services/config";
 import { readFile } from "fs/promises";
 import { existsSync } from "fs";
 import { join, dirname } from "path";
@@ -62,6 +64,57 @@ async function validateTestExecutionPrerequisites(verbose?: boolean): Promise<vo
   }
 }
 
+async function collectSetupInstructions(options: any): Promise<{
+  baseSetupInstructions: string;
+  prSpecificSetupInstructions?: string;
+  sessionSetupInstructions?: string;
+}> {
+  // Get base app setup instructions from config
+  const configService = ConfigService.getInstance();
+  const baseSetupInstructions = await configService.getAppSetupInstructions();
+
+  let prSpecificSetupInstructions: string | undefined;
+  let sessionSetupInstructions: string | undefined;
+
+  // Prompt for PR-specific setup if --setup flag is used
+  if (options.setup) {
+    console.log(chalk.yellow("📝 PR-Specific Setup Instructions"));
+    const { prSetup } = await inquirer.prompt([
+      {
+        type: "editor",
+        name: "prSetup",
+        message: "Enter PR-specific setup instructions (or leave empty to skip):",
+        default: "Example:\n• This PR requires running: npm run build\n• New feature flag: FEATURE_X=true\n• Test with port 3001 instead of 3000",
+      },
+    ]);
+    
+    if (prSetup.trim()) {
+      prSpecificSetupInstructions = prSetup.trim();
+    }
+  }
+
+  // Always prompt for session-specific setup
+  console.log(chalk.yellow("🔧 Session Setup"));
+  const { sessionSetup } = await inquirer.prompt([
+    {
+      type: "input",
+      name: "sessionSetup",
+      message: "Any additional setup needed for this test run? (press Enter to skip):",
+      default: "",
+    },
+  ]);
+
+  if (sessionSetup.trim()) {
+    sessionSetupInstructions = sessionSetup.trim();
+  }
+
+  return {
+    baseSetupInstructions,
+    prSpecificSetupInstructions,
+    sessionSetupInstructions,
+  };
+}
+
 async function executeScenarios(options: any) {
   const startTime = Date.now();
   console.log(chalk.blue("🤖 TAP - Execute Test Scenarios"));
@@ -76,11 +129,18 @@ async function executeScenarios(options: any) {
   // Validate prerequisites before proceeding
   await validateTestExecutionPrerequisites(options.verbose);
 
+  // Collect setup instructions
+  console.log(chalk.yellow("📋 Collecting setup instructions..."));
+  const setupInstructions = await collectSetupInstructions(options);
+
   if (options.verbose) {
     console.log(chalk.gray(`Verbose logging enabled`));
     console.log(chalk.gray(`Scenarios file: ${options.file}`));
     console.log(chalk.gray(`Output directory: ${options.output}`));
     console.log(chalk.gray(`Started at: ${new Date(startTime).toISOString()}`));
+    console.log(chalk.gray(`Base setup: ${setupInstructions.baseSetupInstructions ? 'Configured' : 'None'}`));
+    console.log(chalk.gray(`PR-specific setup: ${setupInstructions.prSpecificSetupInstructions ? 'Provided' : 'None'}`));
+    console.log(chalk.gray(`Session setup: ${setupInstructions.sessionSetupInstructions ? 'Provided' : 'None'}`));
   }
 
   try {
@@ -131,6 +191,7 @@ async function executeScenarios(options: any) {
       scenarios,
       outputDir: options.output,
       verbose: options.verbose,
+      setupInstructions,
     });
   } catch (error) {
     console.error(chalk.red("❌ Error during scenario execution:"));
@@ -246,5 +307,6 @@ export const executeScenariosCommand = new Command("execute-scenarios")
   .description("Execute test scenarios from a file using Open Interpreter (requires 'os' extra)")
   .option("--file <path>", "Path to JSON file containing test scenarios")
   .option("--output <path>", "Output directory for test artifacts", "./tap-output")
+  .option("--setup", "Prompt for session-specific setup instructions")
   .option("--verbose", "Enable detailed logging")
   .action(executeScenarios);

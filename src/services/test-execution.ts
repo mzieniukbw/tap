@@ -14,11 +14,16 @@ export interface TestExecutionContext {
   scenarios: TestScenario[];
   outputDir: string;
   verbose?: boolean;
+  setupInstructions?: {
+    baseSetupInstructions: string;
+    prSpecificSetupInstructions?: string;
+    sessionSetupInstructions?: string;
+  };
 }
 
 export class TestExecutionService {
   async executeTestScenarios(context: TestExecutionContext): Promise<void> {
-    const { scenarios, outputDir, verbose, prAnalysis, jiraContext, confluencePages, onyxContext } =
+    const { scenarios, outputDir, verbose, prAnalysis, jiraContext, confluencePages, onyxContext, setupInstructions } =
       context;
     const startTime = Date.now();
 
@@ -28,6 +33,9 @@ export class TestExecutionService {
       console.log(chalk.gray(`Initializing Open Interpreter executor...`));
       console.log(chalk.gray(`Output directory: ${outputDir}`));
       console.log(chalk.gray(`Scenarios to execute: ${scenarios.length}`));
+      if (setupInstructions) {
+        console.log(chalk.gray(`Setup instructions will be included in execution prompts`));
+      }
     }
 
     const executor = new OpenInterpreterExecutor();
@@ -35,6 +43,7 @@ export class TestExecutionService {
     const results = await executor.executeScenarios(scenarios, outputDir, {
       prAnalysis,
       jiraContext,
+      setupInstructions,
     });
 
     if (verbose) {

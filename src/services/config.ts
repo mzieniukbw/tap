@@ -18,6 +18,7 @@ export interface TapConfig {
     apiKey: string;
   };
   openInterpreter?: InterpreterInfo;
+  appSetupInstructions: string;
 }
 
 export class ConfigService {
@@ -65,6 +66,7 @@ export class ConfigService {
         "  • ATLASSIAN_API_TOKEN\n" +
         "  • ONYX_BASE_URL (optional - for self-hosted Onyx instances)\n" +
         "  • ONYX_API_KEY (optional - for enhanced product context)\n" +
+        "  • TAP_APP_SETUP_INSTRUCTIONS (optional - app setup instructions)\n" +
         "  • ANTHROPIC_API_KEY (required for test execution)\n" +
         "  • OPEN_INTERPRETER_PATH (optional - path to interpreter binary)\n" +
         "\nInstall dependencies:\n" +
@@ -115,6 +117,7 @@ export class ConfigService {
         email: atlassianEmail,
         apiToken: atlassianApiToken,
       },
+      appSetupInstructions: process.env.TAP_APP_SETUP_INSTRUCTIONS || "",
     };
 
     // Add Onyx config if API key is provided
@@ -136,7 +139,8 @@ export class ConfigService {
       config.atlassian &&
       typeof config.atlassian.baseUrl === "string" &&
       typeof config.atlassian.email === "string" &&
-      typeof config.atlassian.apiToken === "string"
+      typeof config.atlassian.apiToken === "string" &&
+      typeof config.appSetupInstructions === "string"
     );
   }
 
@@ -265,6 +269,12 @@ export class ConfigService {
 
     await this.saveConfig(config);
     this.config = config; // Update cached config
+  }
+
+  // Get app setup instructions
+  async getAppSetupInstructions(): Promise<string> {
+    const config = await this.getConfig();
+    return config.appSetupInstructions;
   }
 
   // Save config to file

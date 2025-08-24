@@ -48,6 +48,11 @@ export class OpenInterpreterExecutor {
     context?: {
       prAnalysis?: PRAnalysis;
       jiraContext?: TicketContext | null;
+      setupInstructions?: {
+        baseSetupInstructions: string;
+        prSpecificSetupInstructions?: string;
+        sessionSetupInstructions?: string;
+      };
     }
   ): Promise<TestResult[]> {
     if (!existsSync(outputDir)) {
@@ -77,6 +82,11 @@ export class OpenInterpreterExecutor {
     context?: {
       prAnalysis?: PRAnalysis;
       jiraContext?: TicketContext | null;
+      setupInstructions?: {
+        baseSetupInstructions: string;
+        prSpecificSetupInstructions?: string;
+        sessionSetupInstructions?: string;
+      };
     }
   ): Promise<TestResult> {
     const startTime = Date.now();

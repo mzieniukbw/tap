@@ -200,5 +200,6 @@ export const testPRCommand = new Command("test-pr")
     "--output <path>",
     "Output directory for test artifacts (default: ./{PR-number}-{commit-sha})"
   )
+  .option("--setup", "Prompt for PR-specific setup instructions")
   .option("--verbose", "Enable detailed logging")
   .action(executePRTest);

@@ -454,6 +454,11 @@ rm -f interactive-prompt.txt
     context?: {
       prAnalysis?: PRAnalysis;
       jiraContext?: TicketContext | null;
+      setupInstructions?: {
+        baseSetupInstructions: string;
+        prSpecificSetupInstructions?: string;
+        sessionSetupInstructions?: string;
+      };
     }
   ): string {
     const platformInfo = scenario.platformSpecifics?.length
@@ -468,7 +473,29 @@ rm -f interactive-prompt.txt
       ? ` Related to Jira ticket ${context.jiraContext.ticket.key}: ${context.jiraContext.ticket.summary}.`
       : "";
 
-    const prompt = `You are executing an automated test scenario on ${scenario.platform} using ${scenario.client}.${platformInfo}${contextInfo}${jiraInfo}
+    // Build setup instructions section
+    let setupSection = "";
+    if (context?.setupInstructions) {
+      const { baseSetupInstructions, prSpecificSetupInstructions, sessionSetupInstructions } = context.setupInstructions;
+      
+      setupSection = "\n\n**SETUP INSTRUCTIONS - Execute these first:**\n\n";
+      
+      if (baseSetupInstructions) {
+        setupSection += `**App Setup (from configuration):**\n${baseSetupInstructions}\n\n`;
+      }
+      
+      if (prSpecificSetupInstructions) {
+        setupSection += `**PR-Specific Setup:**\n${prSpecificSetupInstructions}\n\n`;
+      }
+      
+      if (sessionSetupInstructions) {
+        setupSection += `**Session-Specific Setup:**\n${sessionSetupInstructions}\n\n`;
+      }
+      
+      setupSection += "**After completing setup, proceed with the test scenario below:**\n\n";
+    }
+
+    const prompt = `You are executing an automated test scenario on ${scenario.platform} using ${scenario.client}.${platformInfo}${contextInfo}${jiraInfo}${setupSection}
 
 **Test Scenario: ${scenario.title}**
 Description: ${scenario.description}

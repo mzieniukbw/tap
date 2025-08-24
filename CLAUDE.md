@@ -20,7 +20,11 @@ bun run start test-pr <pr-url>                     # Full execution without revi
 
 # Development and setup
 bun run dev                                        # Development with file watching
-bun run start setup                               # Setup and configuration (interactive)
+bun run start setup                               # Setup and configuration (interactive, required)
+
+# Setup options for test execution
+bun run start test-pr <pr-url> --setup            # Add PR-specific setup instructions
+bun run start execute-scenarios --file <refined> --setup  # Add session-specific setup
 ```
 
 ### Build Commands
@@ -73,15 +77,15 @@ bun run lint
 
 ## Configuration
 
-TAP supports two configuration methods:
+TAP requires configuration before use:
 
-### 1. Interactive Setup (Recommended)
+### 1. Interactive Setup (Required)
 
 ```bash
 bun run start setup
 ```
 
-Creates `~/.tap/config.json` with your API credentials.
+Creates `~/.tap/config.json` with your API credentials and **required app setup instructions**.
 
 ### 2. Environment Variables (Alternative)
 
@@ -89,6 +93,7 @@ Creates `~/.tap/config.json` with your API credentials.
 - `ATLASSIAN_API_TOKEN` - Unified token for Jira and Confluence
 - `ATLASSIAN_EMAIL` - Atlassian account email
 - `ATLASSIAN_BASE_URL` - Atlassian instance URL (e.g., https://company.atlassian.net)
+- `TAP_APP_SETUP_INSTRUCTIONS` - Natural language app setup instructions (required for test execution)
 - `ONYX_BASE_URL` - Onyx instance URL (optional - defaults to https://api.onyx.app)
 - `ONYX_API_KEY` - Onyx AI API key (optional - for enhanced product context)
 - `OPEN_INTERPRETER_PATH` - Path to Open Interpreter binary (optional - auto-detected if installed via setup)
@@ -140,6 +145,50 @@ export ANTHROPIC_API_KEY=your_api_key_here
 
 The system automatically tests API connectivity and validates Open Interpreter setup before running commands.
 
+## App Setup Instructions
+
+TAP requires natural language instructions describing how to access and authenticate with your application for testing. These instructions are provided to Open Interpreter as part of the system prompt.
+
+### Setup Layers
+
+TAP supports multiple layers of setup instructions to handle different testing scenarios:
+
+#### 1. Base App Setup (Required - configured in `tap setup`)
+
+```
+Example:
+1. Navigate to https://staging.myapp.com
+2. If logged out, use test account: testuser@company.com / TestPass123
+3. Click 'Admin Panel' in top menu to access admin features
+```
+
+#### 2. PR-Specific Setup (Optional - use `--setup` flag with test-pr)
+
+```
+Example:
+• This PR requires running: npm run build
+• New feature flag: FEATURE_X=true  
+• Test with port 3001 instead of default 3000
+• Download build artifact from GitHub Actions run #123
+```
+
+#### 3. Session-Specific Setup (Interactive - prompted during execute-scenarios)
+
+```
+Example:
+• Start local development server: npm run dev
+• Clear browser cache and logout first
+• Use specific test data: import testdata.sql
+```
+
+### Setup Best Practices
+
+- **Be specific**: Include exact URLs, credentials, and steps
+- **Include authentication**: Provide test accounts and passwords
+- **Environment details**: Specify ports, feature flags, build requirements
+- **Prerequisites**: Mention any setup steps like starting servers or importing data
+- **Natural language**: Write instructions as you would tell a human tester
+
 ## Usage Patterns
 
 ### Testing PRs (Human-in-the-Loop Workflow)
@@ -148,6 +197,9 @@ The system automatically tests API connectivity and validates Open Interpreter s
 # Step 1: Generate AI scenarios and export context for review
 bun run start test-pr <pr-url> --generate-only    # Creates ./test-pr-{PR-number}-{commit-sha}/ directory
 
+# Step 1 with PR-specific setup (optional)
+bun run start test-pr <pr-url> --generate-only --setup  # Prompts for PR-specific setup instructions
+
 # Step 2: Use Claude Code to refine scenarios interactively
 # Run the generated interactive helper script:
 ./test-pr-{PR-number}-{commit-sha}/claude-refine.sh
@@ -155,8 +207,12 @@ bun run start test-pr <pr-url> --generate-only    # Creates ./test-pr-{PR-number
 # Step 3: Execute refined scenarios
 bun run start execute-scenarios --file ./test-pr-{PR-number}-{commit-sha}/refined-scenarios.json
 
+# Step 3 with additional setup (optional)
+bun run start execute-scenarios --file ./test-pr-{PR-number}-{commit-sha}/refined-scenarios.json --setup
+
 # Alternative: Direct execution (no human review)
 bun run start test-pr <pr-url>                    # Full execution with AI scenarios
+bun run start test-pr <pr-url> --setup            # Direct execution with PR-specific setup
 
 # Custom output directory (overrides default naming)
 bun run start test-pr <pr-url> --generate-only --output ./custom-dir

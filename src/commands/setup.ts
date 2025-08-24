@@ -19,6 +19,7 @@ interface Config {
     baseUrl: string;
     apiKey: string;
   };
+  appSetupInstructions: string;
 }
 
 async function executeSetup(options: any) {
@@ -78,6 +79,18 @@ async function executeSetup(options: any) {
         mask: "*",
       },
       {
+        type: "editor",
+        name: "appSetupInstructions",
+        message: "App Setup Instructions (required - describe how to open/access your app for testing):\n",
+        default: "Example:\n1. Navigate to https://myapp.com\n2. If logged out, use test account: testuser@company.com / TestPass123\n3. Click 'Dashboard' to access main features",
+        validate: (input: string) => {
+          if (!input.trim()) {
+            return "App setup instructions are required. Please provide instructions for how to access your application for testing.";
+          }
+          return true;
+        },
+      },
+      {
         type: "confirm",
         name: "useOnyx",
         message: "Configure Onyx AI for enhanced product context? (optional)",
@@ -109,6 +122,7 @@ async function executeSetup(options: any) {
         email: answers.atlassianEmail,
         apiToken: answers.atlassianApiToken,
       },
+      appSetupInstructions: answers.appSetupInstructions,
     };
 
     // Add Onyx config if provided
