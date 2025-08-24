@@ -154,6 +154,29 @@ Based on the above context, generate 5-8 comprehensive test scenarios as a JSON 
 - Create separate scenarios for platform-specific features (e.g., separate tests for TouchID on macOS vs Windows Hello on Windows)
 - Use platform-specific terminology in titles and steps
 
+**CRITICAL APPLICATION-FIRST TESTING REQUIREMENTS:**
+- FOCUS ON APPLICATION BEHAVIOR, not OS configuration
+- Test what the user experiences within the application itself
+- Use direct app actions (quit/restart app) rather than system-level setup (system restart, OS configuration)
+- Only involve OS interactions when they are the CORE feature being tested (e.g., actual biometric authentication prompts)
+- Prefer efficient app-level testing over complex environmental setup
+
+**EXAMPLES OF GOOD VS BAD TEST APPROACHES:**
+✅ GOOD: "Quit Bitwarden app and restart it" (tests app startup behavior)
+❌ BAD: "Add app to OS startup items and restart system" (tests OS configuration, not app)
+
+✅ GOOD: "Click biometric unlock in app settings, test biometric prompt" (tests app feature + required OS interaction)
+❌ BAD: "Configure system biometric settings first, then test in app" (unnecessary OS setup)
+
+✅ GOOD: "Lock vault and unlock with master password" (direct app testing)
+❌ BAD: "Configure system sleep settings and wait for auto-lock" (OS dependency when app action works)
+
+**WHEN OS INTERACTION IS ACCEPTABLE:**
+- Biometric authentication prompts (TouchID, Windows Hello, etc.) - these are triggered by the app but handled by OS
+- File system permissions prompts if the app feature requires them
+- Network connectivity if testing online/offline behavior
+- Platform-specific dialogs that are part of the app's intended user experience
+
 \`\`\`json
 [
   {
@@ -201,16 +224,18 @@ Based on the above context, generate 5-8 comprehensive test scenarios as a JSON 
 - **estimatedDuration**: Number (minutes as integer)
 
 ## Content Requirements:
-1. **E2E Focus**: Prioritize end-to-end user scenarios over technical implementation details
-2. **Human-Friendly Steps**: Write concise test steps focusing on key user actions, not obvious verifications
-3. **Focus on Change Impact**: Test only what the PR actually changes - avoid testing unrelated functionality
-4. **Leverage AI Insights**: Use Onyx AI product knowledge to understand user workflows and business context
-5. **Be Specific**: Reference actual UI elements, user flows, and business processes affected by the changes
-6. **Cover Edge Cases**: Consider what could go wrong from the user's perspective related to the changes
-7. **Prioritize Well**: Mark critical user journeys as high priority, nice-to-have features as low
-8. **Realistic Steps**: Create actionable steps that manual testers can understand and execute
-9. **Avoid Redundancy**: Skip verification steps for basic UI interactions (button clicks, form submissions) unless they're central to the test
-10. **Trust Base Functionality**: Don't test features unrelated to the PR changes - assume base functionality works unless the changes affect it
+1. **Application-First Testing**: Test app behavior directly rather than OS configuration unless OS interaction is the core feature being tested
+2. **E2E Focus**: Prioritize end-to-end user scenarios over technical implementation details
+3. **Human-Friendly Steps**: Write concise test steps focusing on key user actions, not obvious verifications
+4. **Focus on Change Impact**: Test only what the PR actually changes - avoid testing unrelated functionality
+5. **Efficient Test Design**: Use direct app actions (quit/restart app) over system setup (system restart, OS config changes)
+6. **Leverage AI Insights**: Use Onyx AI product knowledge to understand user workflows and business context
+7. **Be Specific**: Reference actual UI elements, user flows, and business processes affected by the changes
+8. **Cover Edge Cases**: Consider what could go wrong from the user's perspective related to the changes
+9. **Prioritize Well**: Mark critical user journeys as high priority, nice-to-have features as low
+10. **Realistic Steps**: Create actionable steps that manual testers can understand and execute
+11. **Avoid Redundancy**: Skip verification steps for basic UI interactions (button clicks, form submissions) unless they're central to the test
+12. **Trust Base Functionality**: Don't test features unrelated to the PR changes - assume base functionality works unless the changes affect it
 
 **RESPONSE FORMAT: Return ONLY the JSON array. No markdown code blocks, no explanatory text, no additional formatting.**`;
 
