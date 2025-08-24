@@ -65,7 +65,7 @@ export class ConfigService {
         "  • ANTHROPIC_API_KEY (required for test execution)\n" +
         "\nInstall dependencies:\n" +
         "  • Claude CLI for AI test generation: npm install -g @anthropic-ai/claude-cli\n" +
-        "  • Open Interpreter for test execution: pip install open-interpreter"
+        "  • Open Interpreter for test execution (Python 3.10/3.11): pip install open-interpreter"
     );
   }
 

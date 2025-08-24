@@ -31,7 +31,7 @@ Install bun https://bun.sh
 bun install -g @anthropic-ai/claude-cli
 claude auth
 
-# Install Open Interpreter for test execution
+# Install Open Interpreter for test execution (requires Python 3.10 or 3.11)
 pip install open-interpreter
 
 git clone https://github.com/mzieniukbw/tap.git
@@ -137,7 +137,7 @@ claude --version  # Verify installation
 ### 4. Open Interpreter Setup
 
 ```bash
-# Install Open Interpreter for test execution
+# Install Open Interpreter for test execution (requires Python 3.10 or 3.11)
 pip install open-interpreter
 
 # Set up Anthropic API key for Open Interpreter

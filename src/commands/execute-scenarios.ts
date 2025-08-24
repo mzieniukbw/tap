@@ -29,6 +29,7 @@ async function validateTestExecutionPrerequisites(verbose?: boolean): Promise<vo
     console.error(chalk.red("❌ Open Interpreter not found"));
     console.log(chalk.yellow("Please install Open Interpreter:"));
     console.log(chalk.gray("  pip install open-interpreter"));
+    console.log(chalk.gray("  (requires Python 3.10 or 3.11)"));
     console.log(chalk.gray("Or see: https://docs.openinterpreter.com/getting-started/setup"));
     process.exit(1);
   }

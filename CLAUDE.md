@@ -112,7 +112,7 @@ claude --version
 TAP requires Open Interpreter for automated test execution. Install and configure:
 
 ```bash
-# Install Open Interpreter for test execution
+# Install Open Interpreter for test execution (requires Python 3.10 or 3.11)
 pip install open-interpreter
 
 # Set up Anthropic API key for Open Interpreter
