@@ -1,6 +1,6 @@
 # Testing Assistant Project (TAP)
 
-A Bun-based CLI tool that uses AI-powered test generation and human-in-the-loop workflow to create and execute ephemeral testing scenarios from GitHub PRs and Jira tickets. TAP combines Claude CLI for intelligent test generation, Claude Code for human refinement, and Claude Desktop for test execution with screen automation.
+A Bun-based CLI tool that uses AI-powered test generation and human-in-the-loop workflow to create and execute ephemeral testing scenarios from GitHub PRs and Jira tickets. TAP combines Claude CLI for intelligent test generation, Claude Code for human refinement, and Open Interpreter for automated test execution with screen automation.
 
 ## Installation
 
@@ -30,6 +30,9 @@ Install bun https://bun.sh
 # Install Claude CLI for AI test generation
 bun install -g @anthropic-ai/claude-cli
 claude auth
+
+# Install Open Interpreter for test execution
+pip install open-interpreter
 
 git clone https://github.com/mzieniukbw/tap.git
 cd tap
@@ -131,7 +134,18 @@ claude auth
 claude --version  # Verify installation
 ```
 
-The system automatically tests API connectivity before running commands.
+### 4. Open Interpreter Setup
+
+```bash
+# Install Open Interpreter for test execution
+pip install open-interpreter
+
+# Set up Anthropic API key for Open Interpreter
+export ANTHROPIC_API_KEY=your_api_key_here
+# Add to shell profile for persistence (~/.bashrc, ~/.zshrc, etc.)
+```
+
+The system automatically tests API connectivity before running commands and validates Open Interpreter setup before test execution.
 
 ## Data Flow
 
@@ -141,14 +155,14 @@ The system automatically tests API connectivity before running commands.
 2. **AI Generation** → Claude CLI creates intelligent scenarios from full context
 3. **Context Export** → Comprehensive data files + helper scripts for human review
 4. **Human Refinement** → Manual review using Claude Code or automated with helper script
-5. **Execution** → `execute-scenarios` command runs refined scenarios with Claude Desktop
+5. **Execution** → `execute-scenarios` command runs refined scenarios with Open Interpreter
 6. **QA Reporting** → Structured output with test results and artifacts
 
 ### Direct Execution Mode
 
 1. **Context Gathering** → GitHub PR analysis + Jira tickets + Confluence docs
 2. **AI Generation** → Claude CLI creates intelligent scenarios from full context
-3. **Immediate Execution** → Claude Desktop runs AI scenarios directly
+3. **Immediate Execution** → Open Interpreter runs AI scenarios directly
 4. **QA Reporting** → Structured output with test results and artifacts
 
 ## Output Structure
@@ -208,5 +222,5 @@ Use the `--verbose` flag to enable detailed logging that includes:
 - `AtlassianService` - Jira ticket and Confluence page integration
 - `AITestScenarioGenerator` - AI-powered intelligent test scenario creation using Claude CLI
 - `ContextExporter` - Comprehensive data export for Claude Code review
-- `ClaudeDesktopOrchestrator` - Test execution coordination
+- `OpenInterpreterExecutor` - Test execution coordination using Open Interpreter
 - `QAReportGenerator` - Comprehensive test reporting with AI insights

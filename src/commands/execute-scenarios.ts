@@ -234,7 +234,7 @@ async function loadOriginalContext(
 }
 
 export const executeScenariosCommand = new Command("execute-scenarios")
-  .description("Execute test scenarios from a file")
+  .description("Execute test scenarios from a file using Open Interpreter")
   .option("--file <path>", "Path to JSON file containing test scenarios")
   .option("--output <path>", "Output directory for test artifacts", "./tap-output")
   .option("--verbose", "Enable detailed logging")

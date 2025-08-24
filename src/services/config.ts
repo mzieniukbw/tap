@@ -62,7 +62,10 @@ export class ConfigService {
         "  • ATLASSIAN_API_TOKEN\n" +
         "  • ONYX_BASE_URL (optional - for self-hosted Onyx instances)\n" +
         "  • ONYX_API_KEY (optional - for enhanced product context)\n" +
-        "\nNote: Install claude CLI for AI test generation: npm install -g @anthropic-ai/claude-cli"
+        "  • ANTHROPIC_API_KEY (required for test execution)\n" +
+        "\nInstall dependencies:\n" +
+        "  • Claude CLI for AI test generation: npm install -g @anthropic-ai/claude-cli\n" +
+        "  • Open Interpreter for test execution: pip install open-interpreter"
     );
   }
 
