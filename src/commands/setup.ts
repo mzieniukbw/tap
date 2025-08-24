@@ -4,6 +4,7 @@ import inquirer from "inquirer";
 import { mkdir, access, writeFile, chmod } from "fs/promises";
 import { homedir } from "os";
 import { ConfigService } from "../services/config";
+import { InterpreterService } from "../services/interpreter";
 
 interface Config {
   github: {
@@ -129,6 +130,9 @@ async function executeSetup(options: any) {
     const configService = ConfigService.getInstance();
     await configService.testConnectivity(config);
 
+    // Set up Open Interpreter
+    await setupOpenInterpreter(configService);
+
     console.log(chalk.green("🎉 Setup completed successfully!"));
     console.log("");
     console.log(chalk.blue("Next steps:"));
@@ -137,6 +141,94 @@ async function executeSetup(options: any) {
     console.error(chalk.red("❌ Setup failed:"));
     console.error(error);
     process.exit(1);
+  }
+}
+
+async function setupOpenInterpreter(configService: ConfigService): Promise<void> {
+  console.log("");
+  console.log(chalk.yellow("🤖 Setting up Open Interpreter..."));
+
+  const interpreterService = InterpreterService.getInstance();
+
+  try {
+    // Check if already configured
+    const interpreterPath = await interpreterService.resolveInterpreterPath();
+    console.log(chalk.green(`✅ Open Interpreter found: ${interpreterPath}`));
+
+    // Get and save current info
+    const info = await interpreterService.getInterpreterInfo();
+    if (info) {
+      await configService.saveOpenInterpreterConfig(info);
+      console.log(chalk.gray(`Version: ${info.version}`));
+    }
+    return;
+  } catch {
+    // Not found, proceed with installation
+  }
+
+  console.log(chalk.yellow("❌ Open Interpreter not found"));
+
+  // Check if user wants to install
+  const { shouldInstall } = await inquirer.prompt([
+    {
+      type: "confirm",
+      name: "shouldInstall",
+      message: "Install Open Interpreter with OS capabilities automatically?",
+      default: true,
+    },
+  ]);
+
+  if (!shouldInstall) {
+    console.log(chalk.yellow("⚠️  Skipping Open Interpreter setup"));
+    console.log(chalk.gray("You can install it manually later or set OPEN_INTERPRETER_PATH"));
+    console.log(chalk.gray("See README.md for installation instructions"));
+    return;
+  }
+
+  // Check prerequisites
+  console.log(chalk.blue("🔍 Checking prerequisites..."));
+  const prerequisites = await interpreterService.checkPrerequisites();
+
+  if (!prerequisites.python311.available) {
+    console.log(chalk.red("❌ Python 3.11 not found"));
+    console.log(chalk.yellow("Please install Python 3.11 first:"));
+    console.log(chalk.gray("  • macOS: brew install python@3.11"));
+    console.log(chalk.gray("  • Ubuntu: sudo apt install python3.11"));
+    console.log(chalk.gray("  • Or use pyenv: pyenv install 3.11.0 && pyenv global 3.11.0"));
+    return;
+  }
+
+  if (!prerequisites.poetry.available) {
+    console.log(chalk.red("❌ Poetry not found"));
+    console.log(chalk.yellow("Please install Poetry first:"));
+    console.log(chalk.gray("  curl -sSL https://install.python-poetry.org | python3 -"));
+    console.log(chalk.gray("  Or see: https://python-poetry.org/docs/#installation"));
+    return;
+  }
+
+  console.log(chalk.green(`✅ Python: ${prerequisites.python311.version}`));
+  console.log(chalk.green(`✅ Poetry: ${prerequisites.poetry.version}`));
+
+  // Install Open Interpreter
+  try {
+    console.log(chalk.blue("📦 Installing Open Interpreter with OS capabilities..."));
+    console.log(chalk.gray("This may take a few minutes..."));
+
+    const info = await interpreterService.installOpenInterpreter((message) => {
+      console.log(chalk.gray(`  ${message}`));
+    });
+
+    // Save configuration
+    await configService.saveOpenInterpreterConfig(info);
+
+    console.log(chalk.green("✅ Open Interpreter installation completed!"));
+    console.log(chalk.gray(`Installed at: ${info.path}`));
+    console.log(chalk.gray(`Version: ${info.version}`));
+  } catch (error) {
+    console.error(chalk.red("❌ Failed to install Open Interpreter:"));
+    console.error(chalk.red(error instanceof Error ? error.message : String(error)));
+    console.log(chalk.yellow("You can try manual installation or set OPEN_INTERPRETER_PATH"));
+    console.log(chalk.gray("See README.md for installation instructions"));
   }
 }
 

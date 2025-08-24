@@ -91,6 +91,7 @@ Creates `~/.tap/config.json` with your API credentials.
 - `ATLASSIAN_BASE_URL` - Atlassian instance URL (e.g., https://company.atlassian.net)
 - `ONYX_BASE_URL` - Onyx instance URL (optional - defaults to https://api.onyx.app)
 - `ONYX_API_KEY` - Onyx AI API key (optional - for enhanced product context)
+- `OPEN_INTERPRETER_PATH` - Path to Open Interpreter binary (optional - auto-detected if installed via setup)
 
 ### 3. Claude CLI for AI Generation (Required)
 
@@ -109,17 +110,32 @@ claude --version
 
 ### 4. Open Interpreter for Test Execution (Required)
 
-TAP requires Open Interpreter for automated test execution. Install and configure:
+TAP requires Open Interpreter with OS capabilities for automated test execution with screen automation.
+
+#### Automatic Installation (Recommended)
 
 ```bash
-# Install Open Interpreter for test execution (requires Python 3.10 or 3.11)
-pip install open-interpreter
+bun run start setup
+# TAP will detect if Open Interpreter is missing and offer to install it automatically
+# Prerequisites: Python 3.11 and Poetry must be installed first
+```
+
+#### Manual Installation (Alternative)
+
+```bash
+# Install Open Interpreter with OS capabilities (requires Python 3.11 only)
+# Note: Poetry is required as build dependency
+git clone https://github.com/openinterpreter/open-interpreter.git
+cd open-interpreter
+poetry env use 3.11
+eval $(poetry env activate)
+poetry install --extras "os"
+
+# Set the interpreter path for TAP to find it (find it with `which interpreter`)
+export OPEN_INTERPRETER_PATH="/path/to/open-interpreter/.venv/bin/interpreter"
 
 # Set up Anthropic API key for Open Interpreter
 export ANTHROPIC_API_KEY=your_api_key_here
-
-# Verify installation
-interpreter --version
 ```
 
 The system automatically tests API connectivity and validates Open Interpreter setup before running commands.

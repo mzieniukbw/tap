@@ -1,6 +1,8 @@
-import { readFile, access } from "fs/promises";
+import { readFile, access, writeFile, mkdir } from "fs/promises";
 import { homedir } from "os";
+import { join, dirname } from "path";
 import chalk from "chalk";
+import { InterpreterInfo } from "./interpreter";
 
 export interface TapConfig {
   github: {
@@ -15,6 +17,7 @@ export interface TapConfig {
     baseUrl: string;
     apiKey: string;
   };
+  openInterpreter?: InterpreterInfo;
 }
 
 export class ConfigService {
@@ -63,9 +66,10 @@ export class ConfigService {
         "  • ONYX_BASE_URL (optional - for self-hosted Onyx instances)\n" +
         "  • ONYX_API_KEY (optional - for enhanced product context)\n" +
         "  • ANTHROPIC_API_KEY (required for test execution)\n" +
+        "  • OPEN_INTERPRETER_PATH (optional - path to interpreter binary)\n" +
         "\nInstall dependencies:\n" +
         "  • Claude CLI for AI test generation: npm install -g @anthropic-ai/claude-cli\n" +
-        "  • Open Interpreter for test execution (Python 3.10/3.11): pip install open-interpreter"
+        "  • Open Interpreter: Run 'tap setup' for automatic installation"
     );
   }
 
@@ -246,5 +250,31 @@ export class ConfigService {
       throw new Error("Config not loaded. Call getConfig() first.");
     }
     return this.config;
+  }
+
+  // Get Open Interpreter configuration
+  async getOpenInterpreterConfig(): Promise<InterpreterInfo | null> {
+    const config = await this.getConfig();
+    return config.openInterpreter || null;
+  }
+
+  // Save Open Interpreter configuration
+  async saveOpenInterpreterConfig(interpreterInfo: InterpreterInfo): Promise<void> {
+    const config = await this.getConfig();
+    config.openInterpreter = interpreterInfo;
+
+    await this.saveConfig(config);
+    this.config = config; // Update cached config
+  }
+
+  // Save config to file
+  private async saveConfig(config: TapConfig): Promise<void> {
+    const configPath = join(homedir(), ".tap", "config.json");
+
+    // Ensure directory exists
+    await mkdir(dirname(configPath), { recursive: true });
+
+    // Write config file
+    await writeFile(configPath, JSON.stringify(config, null, 2), "utf-8");
   }
 }

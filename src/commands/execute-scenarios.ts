@@ -2,6 +2,7 @@ import { Command } from "commander";
 import chalk from "chalk";
 import { ContextExporter } from "../services/context-exporter";
 import { TestExecutionService } from "../services/test-execution";
+import { InterpreterService } from "../services/interpreter";
 import { TestScenario } from "../services/ai-test-generator";
 import { PRAnalysis } from "../services/github";
 import { TicketContext, ConfluencePage } from "../services/atlassian";
@@ -9,28 +10,35 @@ import { OnyxContext } from "../services/onyx-context";
 import { readFile } from "fs/promises";
 import { existsSync } from "fs";
 import { join, dirname } from "path";
-import { exec } from "child_process";
-import { promisify } from "util";
-
-const execAsync = promisify(exec);
 
 async function validateTestExecutionPrerequisites(verbose?: boolean): Promise<void> {
   if (verbose) {
     console.log(chalk.yellow("🔍 Validating test execution prerequisites..."));
   }
 
-  // 1. Check if Open Interpreter is installed
+  // 1. Check if Open Interpreter is available
+  const interpreterService = InterpreterService.getInstance();
   try {
-    await execAsync("interpreter --version");
+    const interpreterPath = await interpreterService.resolveInterpreterPath();
     if (verbose) {
-      console.log(chalk.green("  ✅ Open Interpreter CLI found"));
+      console.log(chalk.green(`  ✅ Open Interpreter found: ${interpreterPath}`));
+
+      const info = await interpreterService.getInterpreterInfo();
+      if (info) {
+        console.log(chalk.gray(`     Version: ${info.version}`));
+      }
     }
-  } catch {
+  } catch (error) {
     console.error(chalk.red("❌ Open Interpreter not found"));
-    console.log(chalk.yellow("Please install Open Interpreter:"));
-    console.log(chalk.gray("  pip install open-interpreter"));
-    console.log(chalk.gray("  (requires Python 3.10 or 3.11)"));
-    console.log(chalk.gray("Or see: https://docs.openinterpreter.com/getting-started/setup"));
+    console.log(chalk.yellow("Open Interpreter with OS capabilities is required."));
+    console.log(chalk.gray("Solutions:"));
+    console.log(chalk.gray("  1. Run 'tap setup' to install automatically"));
+    console.log(chalk.gray("  2. Set OPEN_INTERPRETER_PATH environment variable"));
+    console.log(chalk.gray("  3. See README.md for manual installation instructions"));
+    console.log(chalk.gray(""));
+    console.log(
+      chalk.gray("Error details: " + (error instanceof Error ? error.message : String(error)))
+    );
     process.exit(1);
   }
 
@@ -235,7 +243,7 @@ async function loadOriginalContext(
 }
 
 export const executeScenariosCommand = new Command("execute-scenarios")
-  .description("Execute test scenarios from a file using Open Interpreter")
+  .description("Execute test scenarios from a file using Open Interpreter (requires 'os' extra)")
   .option("--file <path>", "Path to JSON file containing test scenarios")
   .option("--output <path>", "Output directory for test artifacts", "./tap-output")
   .option("--verbose", "Enable detailed logging")

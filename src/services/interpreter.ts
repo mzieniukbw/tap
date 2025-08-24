@@ -1,0 +1,287 @@
+import { exec } from "child_process";
+import { promisify } from "util";
+import { mkdir } from "fs/promises";
+import { existsSync } from "fs";
+import { homedir } from "os";
+import { join } from "path";
+import chalk from "chalk";
+
+const execAsync = promisify(exec);
+
+export interface InterpreterInfo {
+  path: string;
+  version: string;
+  installedAt: string;
+}
+
+export interface PrerequisiteCheck {
+  python311: { available: boolean; path?: string; version?: string };
+  poetry: { available: boolean; path?: string; version?: string };
+}
+
+export class InterpreterService {
+  private static instance: InterpreterService;
+  private cachedPath?: string;
+  private tapDir = join(homedir(), ".tap");
+  private interpreterDir = join(this.tapDir, "open-interpreter");
+  private interpreterBinary = join(this.interpreterDir, ".venv", "bin", "interpreter");
+
+  static getInstance(): InterpreterService {
+    if (!InterpreterService.instance) {
+      InterpreterService.instance = new InterpreterService();
+    }
+    return InterpreterService.instance;
+  }
+
+  /**
+   * Resolve the path to the Open Interpreter executable
+   * Priority: OPEN_INTERPRETER_PATH env var > TAP config > global command
+   */
+  async resolveInterpreterPath(): Promise<string> {
+    if (this.cachedPath) {
+      return this.cachedPath;
+    }
+
+    // 1. Check environment variable (highest priority)
+    const envPath = process.env.OPEN_INTERPRETER_PATH;
+    if (envPath) {
+      if (await this.validateInterpreterPath(envPath)) {
+        this.cachedPath = envPath;
+        return envPath;
+      } else {
+        console.warn(
+          chalk.yellow(`⚠️  OPEN_INTERPRETER_PATH points to invalid interpreter: ${envPath}`)
+        );
+      }
+    }
+
+    // 2. Check TAP config
+    const configPath = await this.getConfiguredPath();
+    if (configPath && (await this.validateInterpreterPath(configPath))) {
+      this.cachedPath = configPath;
+      return configPath;
+    }
+
+    // 3. Check TAP-managed installation
+    if (await this.validateInterpreterPath(this.interpreterBinary)) {
+      this.cachedPath = this.interpreterBinary;
+      return this.interpreterBinary;
+    }
+
+    // 4. Fall back to global command
+    if (await this.validateInterpreterPath("interpreter")) {
+      this.cachedPath = "interpreter";
+      return "interpreter";
+    }
+
+    throw new Error(
+      "Open Interpreter not found. Run 'tap setup' to install it automatically or set OPEN_INTERPRETER_PATH."
+    );
+  }
+
+  /**
+   * Validate if a given path points to a working Open Interpreter installation
+   */
+  async validateInterpreterPath(path: string): Promise<boolean> {
+    try {
+      const { stdout } = await execAsync(`${path} --version`);
+      return stdout.includes("Open Interpreter");
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Get interpreter info from the current installation
+   */
+  async getInterpreterInfo(): Promise<InterpreterInfo | null> {
+    try {
+      const path = await this.resolveInterpreterPath();
+      const { stdout } = await execAsync(`${path} --version`);
+      const version = stdout.trim().split(" ").pop() || "unknown";
+
+      return {
+        path,
+        version,
+        installedAt: new Date().toISOString(),
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Check system prerequisites for Open Interpreter installation
+   */
+  async checkPrerequisites(): Promise<PrerequisiteCheck> {
+    const result: PrerequisiteCheck = {
+      python311: { available: false },
+      poetry: { available: false },
+    };
+
+    // Check Python 3.11
+    try {
+      // Try python3.11 first
+      const { stdout } = await execAsync("python3.11 --version");
+      if (stdout.includes("3.11")) {
+        result.python311 = {
+          available: true,
+          path: "python3.11",
+          version: stdout.trim(),
+        };
+      }
+    } catch {
+      try {
+        // Try python as fallback
+        const { stdout } = await execAsync("python --version");
+        if (stdout.includes("3.11")) {
+          result.python311 = {
+            available: true,
+            path: "python",
+            version: stdout.trim(),
+          };
+        }
+      } catch {
+        // Python not available
+      }
+    }
+
+    // Check Poetry
+    try {
+      const { stdout } = await execAsync("poetry --version");
+      result.poetry = {
+        available: true,
+        path: "poetry",
+        version: stdout.trim(),
+      };
+    } catch {
+      // Poetry not available
+    }
+
+    return result;
+  }
+
+  /**
+   * Install Open Interpreter with OS capabilities to ~/.tap/open-interpreter
+   */
+  async installOpenInterpreter(onProgress?: (message: string) => void): Promise<InterpreterInfo> {
+    const progress = onProgress || console.log;
+
+    // Ensure TAP directory exists
+    await mkdir(this.tapDir, { recursive: true });
+
+    progress(chalk.blue("📥 Cloning Open Interpreter repository..."));
+
+    // Clone repository
+    try {
+      await execAsync(
+        `git clone https://github.com/openinterpreter/open-interpreter.git "${this.interpreterDir}"`
+      );
+      progress(chalk.green("✅ Repository cloned"));
+    } catch (error) {
+      throw new Error(
+        `Failed to clone Open Interpreter repository: ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
+
+    progress(chalk.blue("🔧 Setting up Poetry environment..."));
+
+    // Set up Poetry environment
+    try {
+      await execAsync("poetry env use 3.11", { cwd: this.interpreterDir });
+      progress(chalk.green("✅ Poetry environment configured"));
+    } catch (error) {
+      throw new Error(
+        `Failed to configure Poetry environment: ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
+
+    progress(chalk.blue("📦 Installing Open Interpreter with OS capabilities..."));
+
+    // Install with OS extras
+    try {
+      await execAsync('poetry install --extras "os"', {
+        cwd: this.interpreterDir,
+        timeout: 5 * 60 * 1000, // 5 minutes timeout
+      });
+      progress(chalk.green("✅ Open Interpreter installed"));
+    } catch (error) {
+      throw new Error(
+        `Failed to install Open Interpreter: ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
+
+    // Validate installation
+    if (!(await this.validateInterpreterPath(this.interpreterBinary))) {
+      throw new Error("Installation completed but interpreter binary is not working");
+    }
+
+    progress(chalk.blue("💾 Saving installation metadata..."));
+
+    // Get version and create info object
+    const { stdout } = await execAsync(`${this.interpreterBinary} --version`);
+    const version = stdout.trim().split(" ").pop() || "unknown";
+
+    const info: InterpreterInfo = {
+      path: this.interpreterBinary,
+      version,
+      installedAt: new Date().toISOString(),
+    };
+
+    // Cache the path
+    this.cachedPath = this.interpreterBinary;
+
+    progress(chalk.green("✅ Open Interpreter installation complete!"));
+
+    return info;
+  }
+
+  /**
+   * Check if TAP-managed installation exists and is working
+   */
+  async hasTapManagedInstallation(): Promise<boolean> {
+    return (
+      existsSync(this.interpreterBinary) &&
+      (await this.validateInterpreterPath(this.interpreterBinary))
+    );
+  }
+
+  /**
+   * Get configured interpreter path from TAP config
+   */
+  private async getConfiguredPath(): Promise<string | null> {
+    try {
+      const { ConfigService } = await import("./config");
+      const configService = ConfigService.getInstance();
+      const interpreterConfig = await configService.getOpenInterpreterConfig();
+      return interpreterConfig?.path || null;
+    } catch {
+      // Config not available or not configured
+      return null;
+    }
+  }
+
+  /**
+   * Clear cached path (useful for testing or after configuration changes)
+   */
+  clearCache(): void {
+    this.cachedPath = undefined;
+  }
+
+  /**
+   * Get the directory where TAP manages the Open Interpreter installation
+   */
+  getTapInterpreterDirectory(): string {
+    return this.interpreterDir;
+  }
+
+  /**
+   * Remove TAP-managed Open Interpreter installation
+   */
+  async uninstall(): Promise<void> {
+    if (existsSync(this.interpreterDir)) {
+      await execAsync(`rm -rf "${this.interpreterDir}"`);
+      this.clearCache();
+    }
+  }
+}

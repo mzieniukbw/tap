@@ -31,8 +31,14 @@ Install bun https://bun.sh
 bun install -g @anthropic-ai/claude-cli
 claude auth
 
-# Install Open Interpreter for test execution (requires Python 3.10 or 3.11)
-pip install open-interpreter
+# Install Open Interpreter with OS capabilities (requires Python 3.11 only)
+git clone https://github.com/openinterpreter/open-interpreter.git
+cd open-interpreter
+poetry env use 3.11
+eval $(poetry env activate)
+poetry install --extras "os"
+cd ..
+# save the OPEN_INTERPRETER_PATH environment variable (find it with `which interpreter`)
 
 git clone https://github.com/mzieniukbw/tap.git
 cd tap
@@ -124,6 +130,7 @@ Creates `~/.tap/config.json` with your API credentials.
 - `ATLASSIAN_API_TOKEN` - Unified token for Jira and Confluence
 - `ATLASSIAN_EMAIL` - Atlassian account email
 - `ATLASSIAN_BASE_URL` - Atlassian instance URL (e.g., https://company.atlassian.net)
+- `OPEN_INTERPRETER_PATH` - Path to Open Interpreter binary (optional - auto-detected if installed via setup)
 
 ### 3. Claude CLI Setup
 
@@ -136,10 +143,57 @@ claude --version  # Verify installation
 
 ### 4. Open Interpreter Setup
 
-```bash
-# Install Open Interpreter for test execution (requires Python 3.10 or 3.11)
-pip install open-interpreter
+Open Interpreter with OS capabilities is required for automated test execution with screen automation.
 
+#### Automatic Installation (Recommended)
+
+The easiest way is to let TAP install it automatically during setup:
+
+```bash
+tap setup
+# TAP will detect if Open Interpreter is missing and offer to install it
+# Prerequisites: Python 3.11 and Poetry must be installed first
+```
+
+#### Manual Installation (Alternative)
+
+```bash
+# Install Open Interpreter with OS capabilities (requires Python 3.11 only)
+# Note: Poetry is required as build dependency
+git clone https://github.com/openinterpreter/open-interpreter.git
+cd open-interpreter
+poetry env use 3.11
+eval $(poetry env activate)
+poetry install --extras "os"
+
+# Set the interpreter path for TAP to find it (find it with `which interpreter`
+export OPEN_INTERPRETER_PATH="/path/to/open-interpreter/.venv/bin/interpreter"
+# Add to shell profile for persistence (~/.bashrc, ~/.zshrc, etc.)
+```
+
+#### Prerequisites
+
+Before installation, ensure you have:
+
+```bash
+# Python 3.11 (required)
+python3.11 --version  # or python --version (if it shows 3.11.x)
+
+# Install Python 3.11 if needed:
+# macOS: brew install python@3.11
+# Ubuntu: sudo apt install python3.11
+# Or use pyenv: pyenv install 3.11.0 && pyenv global 3.11.0
+
+# Poetry (required for installation)
+poetry --version
+
+# Install Poetry if needed:
+curl -sSL https://install.python-poetry.org | python3 -
+```
+
+#### Configuration
+
+```bash
 # Set up Anthropic API key for Open Interpreter
 export ANTHROPIC_API_KEY=your_api_key_here
 # Add to shell profile for persistence (~/.bashrc, ~/.zshrc, etc.)

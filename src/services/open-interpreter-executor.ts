@@ -2,6 +2,7 @@ import { TestScenario } from "./ai-test-generator";
 import { PRAnalysis } from "./github";
 import { TicketContext } from "./atlassian";
 import { ContextExporter } from "./context-exporter";
+import { InterpreterService } from "./interpreter";
 import { mkdir, writeFile } from "fs/promises";
 import { existsSync } from "fs";
 import { exec } from "child_process";
@@ -140,9 +141,12 @@ export class OpenInterpreterExecutor {
 
   private async executeWithOpenInterpreter(prompt: string, workingDir: string): Promise<string> {
     try {
-      const command = `echo "${prompt.replace(/"/g, '\\"')}" | interpreter --os --model claude-3.5-sonnet --auto_run`;
+      const interpreterService = InterpreterService.getInstance();
+      const interpreterPath = await interpreterService.resolveInterpreterPath();
 
-      console.log(`    🔧 Running: interpreter --os --model claude-3.5-sonnet --auto_run`);
+      const command = `echo "${prompt.replace(/"/g, '\\"')}" | ${interpreterPath} --os --model claude-3.5-sonnet --auto_run`;
+
+      console.log(`    🔧 Running: ${interpreterPath} --os --model claude-3.5-sonnet --auto_run`);
 
       const { stdout, stderr } = await execAsync(command, {
         cwd: workingDir,
