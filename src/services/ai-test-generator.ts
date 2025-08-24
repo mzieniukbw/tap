@@ -9,6 +9,9 @@ export interface TestScenario {
   description: string;
   priority: "high" | "medium" | "low";
   category: "functionality" | "regression" | "integration" | "ui" | "performance" | "security";
+  platform: "macOS" | "Windows" | "Linux" | "Web" | "iOS" | "Android";
+  client: "Desktop" | "Browser Extension" | "Web App" | "Mobile App";
+  platformSpecifics?: string[]; // e.g., ["TouchID"], ["Windows Hello"], ["Fingerprint Scanner"]
   steps: TestStep[];
   expectedOutcome: string;
   focusAreas: string[];
@@ -145,14 +148,23 @@ ${onyxContext.responses
 
 Based on the above context, generate 5-8 comprehensive test scenarios as a JSON array with the exact structure shown below:
 
+**CRITICAL PLATFORM/CLIENT REQUIREMENTS:**
+- Each test scenario MUST target exactly ONE platform + client combination
+- NEVER create scenarios that span multiple platforms or clients
+- Create separate scenarios for platform-specific features (e.g., separate tests for TouchID on macOS vs Windows Hello on Windows)
+- Use platform-specific terminology in titles and steps
+
 \`\`\`json
 [
   {
     "id": "unique-scenario-id",
-    "title": "Clear, descriptive scenario title",
+    "title": "Clear, descriptive scenario title with platform context",
     "description": "Detailed description of what this scenario tests and why it's important",
     "priority": "high",
     "category": "functionality",
+    "platform": "macOS",
+    "client": "Desktop",
+    "platformSpecifics": ["TouchID"],
     "steps": [
       {
         "action": "navigate",
@@ -171,10 +183,13 @@ Based on the above context, generate 5-8 comprehensive test scenarios as a JSON 
 
 ## Field Requirements:
 - **id**: Unique string identifier (lowercase with dashes)
-- **title**: Clear, concise test scenario name
+- **title**: Clear, concise test scenario name with platform context
 - **description**: 2-3 sentences explaining what this tests and why
 - **priority**: Must be exactly "high", "medium", or "low" 
 - **category**: Must be exactly one of: "functionality", "regression", "integration", "ui", "performance", "security"
+- **platform**: Must be exactly one of: "macOS", "Windows", "Linux", "Web", "iOS", "Android"
+- **client**: Must be exactly one of: "Desktop", "Browser Extension", "Web App", "Mobile App"
+- **platformSpecifics**: Array of platform-specific features (e.g., ["TouchID"], ["Windows Hello"], ["Fingerprint Scanner"]) - optional
 - **steps**: Array of test steps (minimum 3 steps)
   - **action**: Must be one of: "navigate", "click", "input", "verify", "call", "test"
   - **target**: Specific UI element, page, API endpoint, or file path
@@ -244,12 +259,17 @@ Based on the above context, generate 5-8 comprehensive test scenarios as a JSON 
       "security",
     ];
     const validAutomationLevels = ["manual", "semi-automated", "automated"];
+    const validPlatforms = ["macOS", "Windows", "Linux", "Web", "iOS", "Android"];
+    const validClients = ["Desktop", "Browser Extension", "Web App", "Mobile App"];
 
     return {
       ...scenario,
       id: scenario.id || `generated-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
       priority: validPriorities.includes(scenario.priority) ? scenario.priority : "medium",
       category: validCategories.includes(scenario.category) ? scenario.category : "functionality",
+      platform: validPlatforms.includes(scenario.platform) ? scenario.platform : "Web",
+      client: validClients.includes(scenario.client) ? scenario.client : "Web App",
+      platformSpecifics: scenario.platformSpecifics || [],
       automationLevel: validAutomationLevels.includes(scenario.automationLevel)
         ? scenario.automationLevel
         : "manual",
@@ -272,6 +292,7 @@ ${scenarios
   .map(
     (scenario, i) => `
 ${i + 1}. **${scenario.title}** (${scenario.priority} priority, ${scenario.category})
+   - Platform: ${scenario.platform} ${scenario.client}${scenario.platformSpecifics && scenario.platformSpecifics.length > 0 ? ` (${scenario.platformSpecifics.join(", ")})` : ""}
    - ${scenario.description}
    - Duration: ${scenario.estimatedDuration} minutes
    - Automation: ${scenario.automationLevel}
@@ -286,13 +307,13 @@ ${i + 1}. **${scenario.title}** (${scenario.priority} priority, ${scenario.categ
 - **Jira:** ${context.jiraContext?.ticket.key || "None"} - ${context.jiraContext?.ticket.summary || "N/A"}`;
 
     const taskPrompt =
-      "Generate a concise 2-3 paragraph executive summary for developers and QA team explaining what these test scenarios cover, key risks, and recommended testing priorities";
+      "Generate a concise 2-3 paragraph executive summary for developers and QA team explaining what these test scenarios cover, key risks, and recommended testing priorities. Note that each scenario now targets a specific platform/client combination.";
 
     try {
       return await this.claudeCLI.generateResponse(summaryContext, taskPrompt);
     } catch (error) {
       console.error("Error generating test summary:", error);
-      return `Generated ${scenarios.length} test scenarios covering ${scenarios.filter((s) => s.priority === "high").length} high-priority, ${scenarios.filter((s) => s.priority === "medium").length} medium-priority, and ${scenarios.filter((s) => s.priority === "low").length} low-priority test cases.`;
+      return `Generated ${scenarios.length} test scenarios covering ${scenarios.filter((s) => s.priority === "high").length} high-priority, ${scenarios.filter((s) => s.priority === "medium").length} medium-priority, and ${scenarios.filter((s) => s.priority === "low").length} low-priority test cases across multiple platforms and clients.`;
     }
   }
 }

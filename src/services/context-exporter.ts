@@ -143,9 +143,16 @@ ${data.aiSummary}
 `;
 
     generatedScenarios.forEach((scenario, index) => {
+      const platformSpecificsText =
+        scenario.platformSpecifics && scenario.platformSpecifics.length > 0
+          ? ` | **Platform Features:** ${scenario.platformSpecifics.join(", ")}`
+          : "";
+
       markdown += `### ${index + 1}. ${scenario.title}
 
 **Priority:** ${scenario.priority.toUpperCase()} | **Category:** ${scenario.category} | **Duration:** ${scenario.estimatedDuration} min | **Automation:** ${scenario.automationLevel}
+
+**Platform:** ${scenario.platform} | **Client:** ${scenario.client}${platformSpecificsText}
 
 **Description:** ${scenario.description}
 
@@ -259,6 +266,20 @@ ${Object.entries(
   )
 )
   .map(([category, count]) => `- **${category}:** ${count} scenarios`)
+  .join("\n")}
+
+### Platform/Client Distribution:
+${Object.entries(
+  generatedScenarios.reduce(
+    (acc, scenario) => {
+      const key = `${scenario.platform} ${scenario.client}`;
+      acc[key] = (acc[key] || 0) + 1;
+      return acc;
+    },
+    {} as Record<string, number>
+  )
+)
+  .map(([platform, count]) => `- **${platform}:** ${count} scenarios`)
   .join("\n")}
 
 
