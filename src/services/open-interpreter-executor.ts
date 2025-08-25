@@ -168,14 +168,22 @@ export class OpenInterpreterExecutor {
           "ANTHROPIC_API_KEY not found. Please configure it via 'tap setup' or set the ANTHROPIC_API_KEY environment variable."
         );
       }
+
+      // Build environment variables for interpreter
+      const interpreterEnv: Record<string, string> = {
+        ANTHROPIC_API_KEY: anthropicApiKey,
+      };
+
+      // Add SSL_CERT_FILE if set (needed for corporate environments)
+      if (process.env.SSL_CERT_FILE) {
+        interpreterEnv.SSL_CERT_FILE = process.env.SSL_CERT_FILE;
+      }
       
       const { stdout, stderr } = await execAsync(command, {
         cwd: workingDir,
         timeout: 10 * 60 * 1000, // 10 minutes timeout
         maxBuffer: 10 * 1024 * 1024, // 10MB buffer
-        env: {
-          ANTHROPIC_API_KEY: anthropicApiKey,
-        },
+        env: interpreterEnv,
       });
 
       // Save execution logs
