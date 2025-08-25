@@ -20,6 +20,7 @@ interface Config {
     apiKey: string;
   };
   appSetupInstructions: string;
+  anthropicApiKey?: string;
 }
 
 async function executeSetup(options: any) {
@@ -92,6 +93,19 @@ async function executeSetup(options: any) {
       },
       {
         type: "confirm",
+        name: "configureAnthropic",
+        message: "Configure Anthropic API key for test execution? (optional - can also use ANTHROPIC_API_KEY env var)",
+        default: false,
+      },
+      {
+        type: "password",
+        name: "anthropicApiKey",
+        message: "Anthropic API Key:",
+        mask: "*",
+        when: (answers) => answers.configureAnthropic,
+      },
+      {
+        type: "confirm",
         name: "useOnyx",
         message: "Configure Onyx AI for enhanced product context? (optional)",
         default: false,
@@ -124,6 +138,11 @@ async function executeSetup(options: any) {
       },
       appSetupInstructions: answers.appSetupInstructions,
     };
+
+    // Add Anthropic API key if provided
+    if (answers.configureAnthropic && answers.anthropicApiKey) {
+      config.anthropicApiKey = answers.anthropicApiKey;
+    }
 
     // Add Onyx config if provided
     if (answers.useOnyx && answers.onyxApiKey) {

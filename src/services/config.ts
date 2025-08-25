@@ -19,6 +19,7 @@ export interface TapConfig {
   };
   openInterpreter?: InterpreterInfo;
   appSetupInstructions: string;
+  anthropicApiKey?: string;
 }
 
 export class ConfigService {
@@ -103,6 +104,7 @@ export class ConfigService {
     const atlassianApiToken = process.env.ATLASSIAN_API_TOKEN;
     const onyxBaseUrl = process.env.ONYX_BASE_URL;
     const onyxApiKey = process.env.ONYX_API_KEY;
+    const anthropicApiKey = process.env.ANTHROPIC_API_KEY;
 
     if (!githubToken || !atlassianBaseUrl || !atlassianEmail || !atlassianApiToken) {
       return null;
@@ -126,6 +128,11 @@ export class ConfigService {
         baseUrl: onyxBaseUrl || "https://api.onyx.app",
         apiKey: onyxApiKey,
       };
+    }
+
+    // Add Anthropic API key if provided
+    if (anthropicApiKey) {
+      config.anthropicApiKey = anthropicApiKey;
     }
 
     return config;
@@ -275,6 +282,19 @@ export class ConfigService {
   async getAppSetupInstructions(): Promise<string> {
     const config = await this.getConfig();
     return config.appSetupInstructions;
+  }
+
+  // Get Anthropic API key (checks environment variable first, then config)
+  async getAnthropicApiKey(): Promise<string | null> {
+    // First check environment variable
+    const envApiKey = process.env.ANTHROPIC_API_KEY;
+    if (envApiKey) {
+      return envApiKey;
+    }
+
+    // Then check config
+    const config = await this.getConfig();
+    return config.anthropicApiKey || null;
   }
 
   // Save config to file

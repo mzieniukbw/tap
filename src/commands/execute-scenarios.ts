@@ -45,15 +45,15 @@ async function validateTestExecutionPrerequisites(verbose?: boolean): Promise<vo
   }
 
   // 2. Check if ANTHROPIC_API_KEY is configured
-
-  // Check environment variable first
-  const anthropicApiKey = process.env.ANTHROPIC_API_KEY;
+  const configService = ConfigService.getInstance();
+  const anthropicApiKey = await configService.getAnthropicApiKey();
+  
   if (!anthropicApiKey) {
     console.error(chalk.red("❌ ANTHROPIC_API_KEY not found"));
     console.log(chalk.yellow("Open Interpreter requires an Anthropic API key for test execution."));
-    console.log(chalk.yellow("Please set your API key:"));
-    console.log(chalk.gray("  export ANTHROPIC_API_KEY=your_api_key_here"));
-    console.log(chalk.gray("Or add it to your shell profile (~/.bashrc, ~/.zshrc, etc.)"));
+    console.log(chalk.yellow("Please configure your API key:"));
+    console.log(chalk.gray("  1. Run 'tap setup' and configure it during setup, OR"));
+    console.log(chalk.gray("  2. Set environment variable: export ANTHROPIC_API_KEY=your_api_key_here"));
     console.log(chalk.gray("Get your API key from: https://console.anthropic.com/"));
     process.exit(1);
   }

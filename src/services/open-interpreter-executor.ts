@@ -3,6 +3,7 @@ import { PRAnalysis } from "./github";
 import { TicketContext } from "./atlassian";
 import { ContextExporter } from "./context-exporter";
 import { InterpreterService } from "./interpreter";
+import { ConfigService } from "./config";
 import { mkdir, writeFile } from "fs/promises";
 import { existsSync } from "fs";
 import { exec } from "child_process";
@@ -41,6 +42,7 @@ export class OpenInterpreterExecutor {
   constructor() {
     this.contextExporter = new ContextExporter();
   }
+
 
   async executeScenarios(
     scenarios: TestScenario[],
@@ -158,10 +160,22 @@ export class OpenInterpreterExecutor {
 
       console.log(`    🔧 Running: ${interpreterPath} --os --model claude-3.5-sonnet --auto_run`);
 
+      const configService = ConfigService.getInstance();
+      const anthropicApiKey = await configService.getAnthropicApiKey();
+      
+      if (!anthropicApiKey) {
+        throw new Error(
+          "ANTHROPIC_API_KEY not found. Please configure it via 'tap setup' or set the ANTHROPIC_API_KEY environment variable."
+        );
+      }
+      
       const { stdout, stderr } = await execAsync(command, {
         cwd: workingDir,
         timeout: 10 * 60 * 1000, // 10 minutes timeout
         maxBuffer: 10 * 1024 * 1024, // 10MB buffer
+        env: {
+          ANTHROPIC_API_KEY: anthropicApiKey,
+        },
       });
 
       // Save execution logs
