@@ -115,6 +115,26 @@ async function collectSetupInstructions(options: any): Promise<{
   };
 }
 
+async function generatePROutputDirectory(scenariosFile: string): Promise<string | null> {
+  try {
+    const scenariosDir = dirname(scenariosFile);
+    const prAnalysisPath = join(scenariosDir, "pr-analysis.json");
+    
+    if (existsSync(prAnalysisPath)) {
+      const prAnalysisContent = await readFile(prAnalysisPath, "utf-8");
+      const prAnalysis: PRAnalysis = JSON.parse(prAnalysisContent);
+      
+      // Extract commit SHA from commits array (same logic as test-pr command)
+      const lastCommitSha = prAnalysis.commits[prAnalysis.commits.length - 1]?.sha.substring(0, 7) || "unknown";
+      return `./test-pr-${prAnalysis.number}-${lastCommitSha}`;
+    }
+  } catch (error) {
+    // If we can't read pr-analysis.json, return null
+    return null;
+  }
+  return null;
+}
+
 async function executeScenarios(options: any) {
   const startTime = Date.now();
   console.log(chalk.blue("🤖 TAP - Execute Test Scenarios"));
@@ -124,6 +144,17 @@ async function executeScenarios(options: any) {
     console.error(chalk.red("❌ Error: --file parameter is required"));
     console.log(chalk.yellow("Usage: tap execute-scenarios --file <scenarios.json>"));
     process.exit(1);
+  }
+
+  // Determine output directory: use provided option or generate from PR analysis
+  if (!options.output) {
+    const prOutputDir = await generatePROutputDirectory(options.file);
+    if (!prOutputDir) {
+      console.error(chalk.red("❌ Error: Cannot determine output directory"));
+      console.error(chalk.yellow("Either provide --output <path> or ensure pr-analysis.json exists in the output directory"));
+      process.exit(1);
+    }
+    options.output = prOutputDir;
   }
 
   // Validate prerequisites before proceeding
@@ -306,7 +337,7 @@ async function loadOriginalContext(
 export const executeScenariosCommand = new Command("execute-scenarios")
   .description("Execute test scenarios from a file using Open Interpreter (requires 'os' extra)")
   .option("--file <path>", "Path to JSON file containing test scenarios")
-  .option("--output <path>", "Output directory for test artifacts", "./tap-output")
+  .option("--output <path>", "Output directory for test artifacts (default: auto-detected from pr-analysis.json)")
   .option("--setup", "Prompt for session-specific setup instructions")
   .option("--verbose", "Enable detailed logging")
   .action(executeScenarios);
