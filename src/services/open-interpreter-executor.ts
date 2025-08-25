@@ -5,11 +5,8 @@ import { ContextExporter } from "./context-exporter";
 import { InterpreterService } from "./interpreter";
 import { ConfigService } from "./config";
 import { mkdir, writeFile } from "fs/promises";
+import { spawn } from "child_process";
 import { existsSync } from "fs";
-import { exec } from "child_process";
-import { promisify } from "util";
-
-const execAsync = promisify(exec);
 
 export interface TestResult {
   scenarioId: string;
@@ -156,9 +153,7 @@ export class OpenInterpreterExecutor {
       const interpreterService = InterpreterService.getInstance();
       const interpreterPath = await interpreterService.resolveInterpreterPath();
 
-      const command = `echo "${prompt.replace(/"/g, '\\"')}" | ${interpreterPath} --os --model claude-3.5-sonnet --auto_run`;
-
-      console.log(`    🔧 Running: ${interpreterPath} --os --model claude-3.5-sonnet --auto_run`);
+      console.log(`    🔧 Running: ${interpreterPath} --os --model claude-3.5-sonnet --auto_run --stdin`);
 
       const configService = ConfigService.getInstance();
       const anthropicApiKey = await configService.getAnthropicApiKey();
@@ -178,21 +173,60 @@ export class OpenInterpreterExecutor {
       if (process.env.SSL_CERT_FILE) {
         interpreterEnv.SSL_CERT_FILE = process.env.SSL_CERT_FILE;
       }
-      
-      const { stdout, stderr } = await execAsync(command, {
-        cwd: workingDir,
-        timeout: 10 * 60 * 1000, // 10 minutes timeout
-        maxBuffer: 10 * 1024 * 1024, // 10MB buffer
-        env: interpreterEnv,
+
+      return new Promise((resolve, reject) => {
+        const child = spawn(interpreterPath, ['--os', '--model', 'claude-3.5-sonnet', '--auto_run', '--stdin'], {
+          cwd: workingDir,
+          env: interpreterEnv,
+          stdio: ['pipe', 'pipe', 'pipe']
+        });
+
+        let stdout = '';
+        let stderr = '';
+
+        // Set up timeout
+        const timeout = setTimeout(() => {
+          child.kill('SIGTERM');
+          reject(new Error('Open Interpreter execution timed out after 10 minutes'));
+        }, 10 * 60 * 1000); // 10 minutes timeout
+
+        child.stdout?.on('data', (data) => {
+          stdout += data.toString();
+        });
+
+        child.stderr?.on('data', (data) => {
+          stderr += data.toString();
+        });
+
+        child.on('close', async (code) => {
+          clearTimeout(timeout);
+          
+          try {
+            // Save execution logs
+            await writeFile(`${workingDir}/execution-stdout.log`, stdout, "utf-8");
+            if (stderr) {
+              await writeFile(`${workingDir}/execution-stderr.log`, stderr, "utf-8");
+            }
+
+            if (code === 0) {
+              resolve(stdout);
+            } else {
+              reject(new Error(`Open Interpreter exited with code ${code}. stderr: ${stderr}`));
+            }
+          } catch (writeError) {
+            reject(writeError);
+          }
+        });
+
+        child.on('error', (error) => {
+          clearTimeout(timeout);
+          reject(error);
+        });
+
+        // Write prompt to stdin and close it
+        child.stdin?.write(prompt);
+        child.stdin?.end();
       });
-
-      // Save execution logs
-      await writeFile(`${workingDir}/execution-stdout.log`, stdout, "utf-8");
-      if (stderr) {
-        await writeFile(`${workingDir}/execution-stderr.log`, stderr, "utf-8");
-      }
-
-      return stdout;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       console.log(`    ⚠️  Open Interpreter error: ${errorMessage}`);
