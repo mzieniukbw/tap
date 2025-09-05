@@ -21,11 +21,12 @@ program.addCommand(executeScenariosCommand);
 program.addCommand(setupCommand);
 
 // Hook to run connectivity test before any command (except setup)
-program.hook("preAction", async (thisCommand) => {
-  const commandName = thisCommand.name();
+program.hook("preAction", async (_thisCommand, actionCommand) => {
+  // Check if we're running the setup subcommand
+  const isSetupCommand = actionCommand.name() === "setup";
 
   // Skip connectivity test for setup command
-  if (commandName === "setup") {
+  if (isSetupCommand) {
     return;
   }
 

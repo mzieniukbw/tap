@@ -84,6 +84,14 @@ async function executeSetup() {
         mask: "*",
       },
       {
+        field: "onyxBaseUrl",
+        displayName: "Onyx Base URL",
+        promptType: "input",
+        message: "Onyx Base URL (e.g., https://your-onyx.company.com):",
+        defaultMessage: "Onyx Base URL",
+        defaultValue: "https://api.onyx.app",
+      },
+      {
         field: "onyxApiKey",
         displayName: "Onyx AI API Key",
         promptType: "password",
@@ -110,74 +118,51 @@ async function executeSetup() {
           chalk.green(`✅ ${config.displayName}: Using ${status.envVarName} environment variable`)
         );
       } else {
-        const promptConfig: any = {
-          type:
-            status.fromConfig && config.field === "appSetupInstructions"
-              ? "input"
-              : config.promptType,
-          name: config.field,
-          message: status.fromConfig
-            ? `${config.defaultMessage}: ${status.currentValue} [Press Enter to keep, or ${config.field === "appSetupInstructions" ? "'edit' to modify" : "type new value"}]:`
-            : config.message,
-          default: status.fromConfig ? "" : config.defaultValue,
-          filter: (input: string) => {
-            if (input.trim() === "" && status.fromConfig) {
-              return "KEEP_CURRENT";
-            }
-            if (
-              input.trim() === "edit" &&
-              status.fromConfig &&
-              config.field === "appSetupInstructions"
-            ) {
-              return "EDIT_CURRENT";
-            }
-            return input;
-          },
-        };
-
-        if (config.mask) {
-          promptConfig.mask = config.mask;
-        }
-
-        if (config.validate) {
-          promptConfig.validate = (input: string) => {
-            if (status.fromConfig && input.trim() === "") {
-              return true; // Keep current value
-            }
-            if (
-              status.fromConfig &&
-              input.trim() === "edit" &&
-              config.field === "appSetupInstructions"
-            ) {
-              return true; // Will trigger editor
-            }
-            return config.validate!(input);
+        // Special flag for appSetupInstructions - handle after regular prompts
+        if (config.field === "appSetupInstructions" && status.fromConfig) {
+          // Mark for special handling but don't prompt yet
+          answers._appSetupInstructionsNeedsSpecialHandling = {
+            currentValue: status.currentValue,
+            defaultMessage: config.defaultMessage,
+            config: config,
           };
-        }
+        } else {
+          // Regular prompt handling for all other fields
+          const promptConfig: any = {
+            type: config.promptType,
+            name: config.field,
+            message: status.fromConfig
+              ? `${config.defaultMessage}: ${status.currentValue} [Press Enter to keep, or type new value]:`
+              : config.message,
+            default: status.fromConfig ? "" : config.defaultValue,
+            filter: (input: string) => {
+              if (input.trim() === "" && status.fromConfig) {
+                return "KEEP_CURRENT";
+              }
+              return input;
+            },
+          };
 
-        if (config.when) {
-          promptConfig.when = config.when;
-        }
+          if (config.mask) {
+            promptConfig.mask = config.mask;
+          }
 
-        prompts.push(promptConfig);
+          if (config.validate) {
+            promptConfig.validate = (input: string) => {
+              if (status.fromConfig && input.trim() === "") {
+                return true; // Keep current value
+              }
+              return config.validate!(input);
+            };
+          }
+
+          if (config.when) {
+            promptConfig.when = config.when;
+          }
+
+          prompts.push(promptConfig);
+        }
       }
-    }
-
-    // Handle Onyx Base URL separately since it depends on API key
-    const onyxBaseUrlStatusSeparate = await configService.getFieldStatus("onyxBaseUrl");
-    if (!onyxBaseUrlStatusSeparate.fromEnv) {
-      prompts.push({
-        type: "input",
-        name: "onyxBaseUrl",
-        message: onyxBaseUrlStatusSeparate.fromConfig
-          ? `Onyx Base URL: ${onyxBaseUrlStatusSeparate.currentValue} [Press Enter to keep, or type new value]:`
-          : "Onyx Base URL (e.g., https://your-onyx.company.com):",
-        default: onyxBaseUrlStatusSeparate.fromConfig ? "" : "https://api.onyx.app",
-        filter: (input: string) =>
-          input.trim() === "" && onyxBaseUrlStatusSeparate.fromConfig ? "KEEP_CURRENT" : input,
-        when: (answers: any) =>
-          answers.onyxApiKey && answers.onyxApiKey !== "" && answers.onyxApiKey !== "KEEP_CURRENT",
-      });
     }
 
     // Run all prompts
@@ -186,27 +171,44 @@ async function executeSetup() {
       Object.assign(answers, promptAnswers);
     }
 
-    // Handle special case for app setup instructions "edit" trigger
-    if (answers.appSetupInstructions === "EDIT_CURRENT") {
-      const configFileValues = await configService.getConfigFileValues();
-      const currentInstructions = configFileValues?.appSetupInstructions || "";
+    // Handle appSetupInstructions special case in proper order
+    if (answers._appSetupInstructionsNeedsSpecialHandling) {
+      const special = answers._appSetupInstructionsNeedsSpecialHandling;
+      delete answers._appSetupInstructionsNeedsSpecialHandling; // Clean up temp flag
 
-      const { editedInstructions } = await inquirer.prompt([
+      const { action } = await inquirer.prompt([
         {
-          type: "editor",
-          name: "editedInstructions",
-          message: "Edit your app setup instructions:",
-          default: currentInstructions,
-          validate: (input: string) => {
-            if (!input.trim()) {
-              return "App setup instructions are required. Please provide instructions for how to access your application for testing.";
-            }
-            return true;
-          },
+          type: "list",
+          name: "action",
+          message: `${special.defaultMessage}: ${special.currentValue}`,
+          choices: [
+            { name: "Keep current instructions", value: "keep" },
+            { name: "Edit instructions", value: "edit" },
+          ],
         },
       ]);
 
-      answers.appSetupInstructions = editedInstructions;
+      if (action === "keep") {
+        answers.appSetupInstructions = "KEEP_CURRENT";
+      } else {
+        // edit - use inquirer editor with waitForUseInput: false
+        const { editedInstructions } = await inquirer.prompt([
+          {
+            type: "editor",
+            name: "editedInstructions",
+            message: "Edit your app setup instructions:",
+            default: special.currentValue,
+            waitForUseInput: false,
+            validate: (input: string) => {
+              if (!input.trim()) {
+                return "App setup instructions are required. Please provide instructions for how to access your application for testing.";
+              }
+              return true;
+            },
+          },
+        ]);
+        answers.appSetupInstructions = editedInstructions;
+      }
     }
 
     // Get existing config file values to merge with new values

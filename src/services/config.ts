@@ -60,35 +60,51 @@ export class ConfigService {
   }
 
   private async loadConfig(): Promise<TapConfig> {
-    // First try to load from config.json
+    // Load config file values (partial config is OK)
     const configFromFile = await this.loadFromConfigFile();
-    if (configFromFile) {
-      console.log(chalk.gray("📄 Using config from ~/.tap/config.json"));
-      return configFromFile;
+
+    // Load environment variable values
+    const envValues = this.loadEnvironmentValues();
+
+    // Merge config file and environment variables (env vars take precedence)
+    const mergedConfig: TapConfig = {
+      githubToken: envValues.githubToken || configFromFile?.githubToken || "",
+      atlassianBaseUrl: envValues.atlassianBaseUrl || configFromFile?.atlassianBaseUrl || "",
+      atlassianEmail: envValues.atlassianEmail || configFromFile?.atlassianEmail || "",
+      atlassianApiToken: envValues.atlassianApiToken || configFromFile?.atlassianApiToken || "",
+      appSetupInstructions:
+        envValues.appSetupInstructions || configFromFile?.appSetupInstructions || "",
+      anthropicApiKey: envValues.anthropicApiKey || configFromFile?.anthropicApiKey,
+      onyxBaseUrl: envValues.onyxBaseUrl || configFromFile?.onyxBaseUrl,
+      onyxApiKey: envValues.onyxApiKey || configFromFile?.onyxApiKey,
+      openInterpreter: envValues.openInterpreter || configFromFile?.openInterpreter,
+    };
+
+    // Validate that required fields are present and show specific missing ones
+    const missingFields: string[] = [];
+    if (!mergedConfig.githubToken) missingFields.push("GITHUB_TOKEN");
+    if (!mergedConfig.atlassianBaseUrl) missingFields.push("ATLASSIAN_BASE_URL");
+    if (!mergedConfig.atlassianEmail) missingFields.push("ATLASSIAN_EMAIL");
+    if (!mergedConfig.atlassianApiToken) missingFields.push("ATLASSIAN_API_TOKEN");
+
+    if (missingFields.length > 0) {
+      throw new Error(
+        `Missing required configuration fields: ${missingFields.join(", ")}\n\n` +
+          "Please run 'tap setup' or set the missing environment variables:\n" +
+          missingFields.map((field) => `  • ${field}`).join("\n") +
+          "\n\nOptional environment variables:\n" +
+          "  • ONYX_BASE_URL (for self-hosted Onyx instances)\n" +
+          "  • ONYX_API_KEY (for enhanced product context)\n" +
+          "  • TAP_APP_SETUP_INSTRUCTIONS (app setup instructions)\n" +
+          "  • ANTHROPIC_API_KEY (required for test execution)\n" +
+          "  • OPEN_INTERPRETER_PATH (path to interpreter binary)\n" +
+          "\nInstall dependencies:\n" +
+          "  • Claude CLI for AI test generation: npm install -g @anthropic-ai/claude-cli\n" +
+          "  • Open Interpreter: Run 'tap setup' for automatic installation"
+      );
     }
 
-    // Fallback to environment variables
-    const configFromEnv = await this.loadFromEnvironment();
-    if (configFromEnv) {
-      console.log(chalk.gray("🌍 Using config from environment variables"));
-      return configFromEnv;
-    }
-
-    throw new Error(
-      "No configuration found. Please run 'tap setup' or set environment variables:\n" +
-        "  • GITHUB_TOKEN\n" +
-        "  • ATLASSIAN_BASE_URL\n" +
-        "  • ATLASSIAN_EMAIL\n" +
-        "  • ATLASSIAN_API_TOKEN\n" +
-        "  • ONYX_BASE_URL (optional - for self-hosted Onyx instances)\n" +
-        "  • ONYX_API_KEY (optional - for enhanced product context)\n" +
-        "  • TAP_APP_SETUP_INSTRUCTIONS (optional - app setup instructions)\n" +
-        "  • ANTHROPIC_API_KEY (required for test execution)\n" +
-        "  • OPEN_INTERPRETER_PATH (optional - path to interpreter binary)\n" +
-        "\nInstall dependencies:\n" +
-        "  • Claude CLI for AI test generation: npm install -g @anthropic-ai/claude-cli\n" +
-        "  • Open Interpreter: Run 'tap setup' for automatic installation"
-    );
+    return mergedConfig;
   }
 
   private async loadFromConfigFile(): Promise<TapConfig | null> {
@@ -98,53 +114,25 @@ export class ConfigService {
       const configContent = await readFile(configPath, "utf-8");
       const config = JSON.parse(configContent);
 
-      // Validate config structure
-      if (this.isValidConfig(config)) {
-        return config;
-      }
-
-      console.warn(
-        chalk.yellow("⚠️  Invalid config file format, falling back to environment variables")
-      );
-      return null;
+      // Return the config even if partially valid - we'll merge with env vars
+      return config;
     } catch {
       return null;
     }
   }
 
-  private async loadFromEnvironment(): Promise<TapConfig | null> {
-    const githubToken = process.env.GITHUB_TOKEN;
-    const atlassianBaseUrl = process.env.ATLASSIAN_BASE_URL;
-    const atlassianEmail = process.env.ATLASSIAN_EMAIL;
-    const atlassianApiToken = process.env.ATLASSIAN_API_TOKEN;
-
-    if (!githubToken || !atlassianBaseUrl || !atlassianEmail || !atlassianApiToken) {
-      return null;
-    }
-
-    const config: TapConfig = {
-      githubToken,
-      atlassianBaseUrl,
-      atlassianEmail,
-      atlassianApiToken,
-      appSetupInstructions: process.env.TAP_APP_SETUP_INSTRUCTIONS || "",
+  private loadEnvironmentValues(): Partial<TapConfig> {
+    return {
+      githubToken: process.env.GITHUB_TOKEN,
+      atlassianBaseUrl: process.env.ATLASSIAN_BASE_URL,
+      atlassianEmail: process.env.ATLASSIAN_EMAIL,
+      atlassianApiToken: process.env.ATLASSIAN_API_TOKEN,
+      appSetupInstructions: process.env.TAP_APP_SETUP_INSTRUCTIONS,
+      anthropicApiKey: process.env.ANTHROPIC_API_KEY,
+      onyxBaseUrl: process.env.ONYX_BASE_URL,
+      onyxApiKey: process.env.ONYX_API_KEY,
+      openInterpreter: process.env.OPEN_INTERPRETER_PATH,
     };
-
-    // Add optional fields if provided
-    if (process.env.ONYX_BASE_URL) {
-      config.onyxBaseUrl = process.env.ONYX_BASE_URL;
-    }
-    if (process.env.ONYX_API_KEY) {
-      config.onyxApiKey = process.env.ONYX_API_KEY;
-    }
-    if (process.env.ANTHROPIC_API_KEY) {
-      config.anthropicApiKey = process.env.ANTHROPIC_API_KEY;
-    }
-    if (process.env.OPEN_INTERPRETER_PATH) {
-      config.openInterpreter = process.env.OPEN_INTERPRETER_PATH;
-    }
-
-    return config;
   }
 
   private isValidConfig(config: any): config is TapConfig {
@@ -329,8 +317,6 @@ export class ConfigService {
 
         if (sensitiveFields.includes(field)) {
           currentValue = "***";
-        } else if (field === "appSetupInstructions") {
-          currentValue = "(configured)";
         } else {
           currentValue = fieldValue;
         }
