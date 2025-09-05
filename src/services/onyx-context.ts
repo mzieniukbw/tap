@@ -46,7 +46,7 @@ export class OnyxContextService {
     const config = await this.getConfig();
 
     // Skip if Onyx is not configured
-    if (!config.onyx?.apiKey) {
+    if (!config.onyxApiKey) {
       if (options.verbose) {
         console.log("Onyx AI not configured, skipping product context gathering");
       }
@@ -65,8 +65,8 @@ export class OnyxContextService {
 
         const response = await this.queryOnyxAI(
           queryObj,
-          config.onyx.baseUrl,
-          config.onyx.apiKey,
+          config.onyxBaseUrl || "https://api.onyx.app",
+          config.onyxApiKey,
           prAnalysis.number
         );
         responses.push({
