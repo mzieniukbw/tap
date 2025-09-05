@@ -473,47 +473,79 @@ rm -f interactive-prompt.txt
       ? ` Related to Jira ticket ${context.jiraContext.ticket.key}: ${context.jiraContext.ticket.summary}.`
       : "";
 
-    // Build setup instructions section
-    let setupSection = "";
+    // Build setup steps - these become Step 0 actions
+    const setupSteps: string[] = [];
     if (context?.setupInstructions) {
       const { baseSetupInstructions, prSpecificSetupInstructions, sessionSetupInstructions } =
         context.setupInstructions;
 
-      setupSection = "\n\n**SETUP INSTRUCTIONS - Execute these first:**\n\n";
-
       if (baseSetupInstructions) {
-        setupSection += `**App Setup (from configuration):**\n${baseSetupInstructions}\n\n`;
+        // Split base setup into individual actionable steps
+        const baseSteps = baseSetupInstructions
+          .split("\n")
+          .map((line) => line.trim())
+          .filter((line) => line && !line.startsWith("#")) // Remove empty lines and comments
+          .map((line) => line.replace(/^[\d.\-•*]\s*/, "").trim()) // Remove bullets/numbers
+          .filter((line) => line.length > 0);
+
+        baseSteps.forEach((step) => setupSteps.push(`App Setup: ${step}`));
       }
 
       if (prSpecificSetupInstructions) {
-        setupSection += `**PR-Specific Setup:**\n${prSpecificSetupInstructions}\n\n`;
+        const prSteps = prSpecificSetupInstructions
+          .split("\n")
+          .map((line) => line.trim())
+          .filter((line) => line && !line.startsWith("#"))
+          .map((line) => line.replace(/^[\d.\-•*]\s*/, "").trim())
+          .filter((line) => line.length > 0);
+
+        prSteps.forEach((step) => setupSteps.push(`PR-Specific Setup: ${step}`));
       }
 
       if (sessionSetupInstructions) {
-        setupSection += `**Session-Specific Setup:**\n${sessionSetupInstructions}\n\n`;
-      }
+        const sessionSteps = sessionSetupInstructions
+          .split("\n")
+          .map((line) => line.trim())
+          .filter((line) => line && !line.startsWith("#"))
+          .map((line) => line.replace(/^[\d.\-•*]\s*/, "").trim())
+          .filter((line) => line.length > 0);
 
-      setupSection += "**After completing setup, proceed with the test scenario below:**\n\n";
+        sessionSteps.forEach((step) => setupSteps.push(`Session Setup: ${step}`));
+      }
     }
 
-    const prompt = `You are executing an automated test scenario on ${scenario.platform} using ${scenario.client}.${platformInfo}${contextInfo}${jiraInfo}${setupSection}
+    // Combine setup steps with test steps
+    const allSteps: string[] = [];
+
+    // Add setup steps as Step 0.x
+    if (setupSteps.length > 0) {
+      setupSteps.forEach((setupStep, index) => {
+        const stepNum = setupSteps.length === 1 ? "0" : `0.${index + 1}`;
+        allSteps.push(`${stepNum}. **SETUP**: ${setupStep}`);
+      });
+    }
+
+    // Add regular test steps starting from Step 1
+    scenario.steps.forEach((step, index) => {
+      const stepAction = `${index + 1}. ${step.action.charAt(0).toUpperCase() + step.action.slice(1)}${step.target ? ` "${step.target}"` : ""}${step.input ? ` with input "${step.input}"` : ""}`;
+      const verification = step.verification ? `\n   Verify: ${step.verification}` : "";
+      allSteps.push(stepAction + verification);
+    });
+
+    const prompt = `You are executing an automated test scenario on ${scenario.platform} using ${scenario.client}.${platformInfo}${contextInfo}${jiraInfo}
 
 **Test Scenario: ${scenario.title}**
 Description: ${scenario.description}
 
 Expected Outcome: ${scenario.expectedOutcome}
 
-Execute the following test steps:
+Execute the following test steps IN ORDER - setup steps are MANDATORY and must be completed first:
 
-${scenario.steps
-  .map((step, index) => {
-    const stepAction = `${index + 1}. ${step.action.charAt(0).toUpperCase() + step.action.slice(1)}${step.target ? ` "${step.target}"` : ""}${step.input ? ` with input "${step.input}"` : ""}`;
-    const verification = step.verification ? `\n   Verify: ${step.verification}` : "";
-    return stepAction + verification;
-  })
-  .join("\n")}
+${allSteps.join("\n")}
 
 Important:
+- MUST complete ALL setup steps (Step 0.x) before proceeding to test steps
+- Setup steps are MANDATORY prerequisites - do not skip them
 - Take a screenshot after each significant step (navigation, clicking, form submission)
 - If any step fails or produces unexpected results, stop and report the error
 - Save any files or artifacts to the current working directory
