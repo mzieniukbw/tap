@@ -317,16 +317,16 @@ export class ConfigService {
     if (configFileValues) {
       const fieldValue = configFileValues[field];
       fromConfig = !!fieldValue;
-      
+
       if (fromConfig) {
         // Define sensitive fields that should be masked
         const sensitiveFields: ConfigFieldName[] = [
-          "githubToken", 
-          "atlassianApiToken", 
-          "onyxApiKey", 
+          "githubToken",
+          "atlassianApiToken",
+          "onyxApiKey",
           "anthropicApiKey"
         ];
-        
+
         if (sensitiveFields.includes(field)) {
           currentValue = "***";
         } else if (field === "appSetupInstructions") {
