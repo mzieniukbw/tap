@@ -95,7 +95,7 @@ async function executeSetup() {
         field: "openInterpreter",
         displayName: "Open Interpreter Path",
         promptType: "input",
-        message: "Open Interpreter Path (optional - will auto-detect if installed):",
+        message: "Open Interpreter Path (optional - press Enter to skip, will auto-detect and offer installation next):",
         defaultMessage: "Open Interpreter Path",
       },
     ];

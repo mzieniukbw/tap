@@ -147,18 +147,32 @@ export class InterpreterService {
     // Ensure TAP directory exists
     await mkdir(this.tapDir, { recursive: true });
 
-    progress(chalk.blue("📥 Cloning Open Interpreter repository..."));
-
-    // Clone repository
-    try {
-      await execAsync(
-        `git clone https://github.com/openinterpreter/open-interpreter.git "${this.interpreterDir}"`
-      );
-      progress(chalk.green("✅ Repository cloned"));
-    } catch (error) {
-      throw new Error(
-        `Failed to clone Open Interpreter repository: ${error instanceof Error ? error.message : String(error)}`
-      );
+    // Check if repository already exists
+    if (existsSync(this.interpreterDir)) {
+      progress(chalk.blue("🔄 Updating existing Open Interpreter repository..."));
+      
+      try {
+        await execAsync("git pull origin main", { cwd: this.interpreterDir });
+        progress(chalk.green("✅ Repository updated"));
+      } catch (error) {
+        throw new Error(
+          `Failed to update existing Open Interpreter repository: ${error instanceof Error ? error.message : String(error)}. ` +
+          `Please manually remove ${this.interpreterDir} and run setup again.`
+        );
+      }
+    } else {
+      progress(chalk.blue("📥 Cloning Open Interpreter repository..."));
+      
+      try {
+        await execAsync(
+          `git clone https://github.com/openinterpreter/open-interpreter.git "${this.interpreterDir}"`
+        );
+        progress(chalk.green("✅ Repository cloned"));
+      } catch (error) {
+        throw new Error(
+          `Failed to clone Open Interpreter repository: ${error instanceof Error ? error.message : String(error)}`
+        );
+      }
     }
 
     progress(chalk.blue("🔧 Setting up Poetry environment..."));
