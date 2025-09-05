@@ -24,11 +24,6 @@ async function validateTestExecutionPrerequisites(verbose?: boolean): Promise<vo
     const interpreterPath = await interpreterService.resolveInterpreterPath();
     if (verbose) {
       console.log(chalk.green(`  ✅ Open Interpreter found: ${interpreterPath}`));
-
-      const info = await interpreterService.getInterpreterInfo();
-      if (info) {
-        console.log(chalk.gray(`     Version: ${info.version}`));
-      }
     }
   } catch (error) {
     console.error(chalk.red("❌ Open Interpreter not found"));

@@ -1,25 +1,8 @@
 import { Command } from "commander";
 import chalk from "chalk";
 import inquirer from "inquirer";
-import { ConfigFieldName, ConfigService } from "../services/config";
+import { ConfigFieldName, ConfigService, TapConfig } from "../services/config";
 import { InterpreterService } from "../services/interpreter";
-
-interface Config {
-  github?: {
-    token?: string;
-  };
-  atlassian?: {
-    baseUrl?: string;
-    email?: string;
-    apiToken?: string;
-  };
-  onyx?: {
-    baseUrl?: string;
-    apiKey?: string;
-  };
-  appSetupInstructions?: string;
-  anthropicApiKey?: string;
-}
 
 async function executeSetup() {
   console.log(chalk.blue("🚀 Testing Assistant Project Setup"));
@@ -107,6 +90,13 @@ async function executeSetup() {
         message: "Onyx AI API Key (optional - for enhanced product context):",
         defaultMessage: "Onyx AI API Key",
         mask: "*",
+      },
+      {
+        field: "openInterpreter",
+        displayName: "Open Interpreter Path",
+        promptType: "input",
+        message: "Open Interpreter Path (optional - will auto-detect if installed):",
+        defaultMessage: "Open Interpreter Path",
       },
     ];
 
@@ -225,89 +215,41 @@ async function executeSetup() {
     const getFieldValue = (field: ConfigFieldName, answerKey: string): string => {
       const answerValue = answers[answerKey];
       if (answerValue === "KEEP_CURRENT") {
-        // Get value from existing config based on field path
-        switch (field) {
-          case "githubToken":
-            return existingConfig.github?.token || "";
-          case "atlassianBaseUrl":
-            return existingConfig.atlassian?.baseUrl || "";
-          case "atlassianEmail":
-            return existingConfig.atlassian?.email || "";
-          case "atlassianApiToken":
-            return existingConfig.atlassian?.apiToken || "";
-          case "appSetupInstructions":
-            return existingConfig.appSetupInstructions || "";
-          case "anthropicApiKey":
-            return existingConfig.anthropicApiKey || "";
-          case "onyxApiKey":
-            return existingConfig.onyx?.apiKey || "";
-          case "onyxBaseUrl":
-            return existingConfig.onyx?.baseUrl || "https://api.onyx.app";
-          default:
-            return "";
-        }
+        // Direct access to flat config fields
+        return existingConfig[field] || (field === "onyxBaseUrl" ? "https://api.onyx.app" : "");
       }
       return answerValue || "";
     };
 
-    // Build config from answers first
-    const tempConfig: Config = {
-      github: answers.githubToken
-        ? { token: getFieldValue("githubToken", "githubToken") }
-        : undefined,
-      atlassian:
-        answers.atlassianBaseUrl || answers.atlassianEmail || answers.atlassianApiToken
-          ? {
-              baseUrl: answers.atlassianBaseUrl
-                ? getFieldValue("atlassianBaseUrl", "atlassianBaseUrl")
-                : undefined,
-              email: answers.atlassianEmail
-                ? getFieldValue("atlassianEmail", "atlassianEmail")
-                : undefined,
-              apiToken: answers.atlassianApiToken
-                ? getFieldValue("atlassianApiToken", "atlassianApiToken")
-                : undefined,
-            }
-          : undefined,
-      appSetupInstructions: answers.appSetupInstructions
-        ? getFieldValue("appSetupInstructions", "appSetupInstructions")
-        : undefined,
-      anthropicApiKey: answers.anthropicApiKey
-        ? getFieldValue("anthropicApiKey", "anthropicApiKey")
-        : undefined,
-      onyx:
-        answers.onyxApiKey || answers.onyxBaseUrl
-          ? {
-              baseUrl: answers.onyxBaseUrl
-                ? getFieldValue("onyxBaseUrl", "onyxBaseUrl") || "https://api.onyx.app"
-                : undefined,
-              apiKey: answers.onyxApiKey ? getFieldValue("onyxApiKey", "onyxApiKey") : undefined,
-            }
-          : undefined,
-    };
+    // Build config from answers (flat structure)
+    const tempConfig: Partial<TapConfig> = {};
 
-    // Clean up undefined fields first
-    Object.keys(tempConfig).forEach((key) => {
-      if (tempConfig[key as keyof Config] === undefined) {
-        delete tempConfig[key as keyof Config];
-      }
-    });
-
-    // Clean up nested undefined fields
-    if (tempConfig.atlassian) {
-      Object.keys(tempConfig.atlassian).forEach((key) => {
-        if (tempConfig.atlassian![key as keyof typeof tempConfig.atlassian] === undefined) {
-          delete tempConfig.atlassian![key as keyof typeof tempConfig.atlassian];
-        }
-      });
+    if (answers.githubToken) {
+      tempConfig.githubToken = getFieldValue("githubToken", "githubToken");
     }
-
-    if (tempConfig.onyx) {
-      Object.keys(tempConfig.onyx).forEach((key) => {
-        if (tempConfig.onyx![key as keyof typeof tempConfig.onyx] === undefined) {
-          delete tempConfig.onyx![key as keyof typeof tempConfig.onyx];
-        }
-      });
+    if (answers.atlassianBaseUrl) {
+      tempConfig.atlassianBaseUrl = getFieldValue("atlassianBaseUrl", "atlassianBaseUrl");
+    }
+    if (answers.atlassianEmail) {
+      tempConfig.atlassianEmail = getFieldValue("atlassianEmail", "atlassianEmail");
+    }
+    if (answers.atlassianApiToken) {
+      tempConfig.atlassianApiToken = getFieldValue("atlassianApiToken", "atlassianApiToken");
+    }
+    if (answers.appSetupInstructions) {
+      tempConfig.appSetupInstructions = getFieldValue("appSetupInstructions", "appSetupInstructions");
+    }
+    if (answers.anthropicApiKey) {
+      tempConfig.anthropicApiKey = getFieldValue("anthropicApiKey", "anthropicApiKey");
+    }
+    if (answers.onyxApiKey) {
+      tempConfig.onyxApiKey = getFieldValue("onyxApiKey", "onyxApiKey");
+    }
+    if (answers.onyxBaseUrl) {
+      tempConfig.onyxBaseUrl = getFieldValue("onyxBaseUrl", "onyxBaseUrl");
+    }
+    if (answers.openInterpreter) {
+      tempConfig.openInterpreter = getFieldValue("openInterpreter", "openInterpreter");
     }
 
     // Save config using centralized method (automatically filters env variables)
@@ -320,8 +262,8 @@ async function executeSetup() {
     const testConfig = await configService.getConfig();
     await configService.testConnectivity(testConfig);
 
-    // Set up Open Interpreter
-    await setupOpenInterpreter(configService);
+    // Check if Open Interpreter installation is needed
+    await offerOpenInterpreterInstallation();
 
     console.log(chalk.green("🎉 Setup completed successfully!"));
     console.log("");
@@ -334,26 +276,16 @@ async function executeSetup() {
   }
 }
 
-async function setupOpenInterpreter(configService: ConfigService): Promise<void> {
-  console.log("");
-  console.log(chalk.yellow("🤖 Setting up Open Interpreter..."));
-
+async function offerOpenInterpreterInstallation(): Promise<void> {
   const interpreterService = InterpreterService.getInstance();
 
   try {
-    // Check if already configured
-    const interpreterPath = await interpreterService.resolveInterpreterPath();
-    console.log(chalk.green(`✅ Open Interpreter found: ${interpreterPath}`));
-
-    // Get and save current info
-    const info = await interpreterService.getInterpreterInfo();
-    if (info) {
-      await configService.saveOpenInterpreterConfig(info);
-      console.log(chalk.gray(`Version: ${info.version}`));
-    }
+    // Check if already available
+    await interpreterService.resolveInterpreterPath();
+    // If we get here, it's already available
     return;
   } catch {
-    // Not found, proceed with installation
+    // Not found, offer installation
   }
 
   console.log(chalk.yellow("❌ Open Interpreter not found"));
@@ -404,16 +336,12 @@ async function setupOpenInterpreter(configService: ConfigService): Promise<void>
     console.log(chalk.blue("📦 Installing Open Interpreter with OS capabilities..."));
     console.log(chalk.gray("This may take a few minutes..."));
 
-    const info = await interpreterService.installOpenInterpreter((message) => {
+    const installedPath = await interpreterService.installOpenInterpreter((message) => {
       console.log(chalk.gray(`  ${message}`));
     });
 
-    // Save configuration
-    await configService.saveOpenInterpreterConfig(info);
-
     console.log(chalk.green("✅ Open Interpreter installation completed!"));
-    console.log(chalk.gray(`Installed at: ${info.path}`));
-    console.log(chalk.gray(`Version: ${info.version}`));
+    console.log(chalk.gray(`Installed at: ${installedPath}`));
   } catch (error) {
     console.error(chalk.red("❌ Failed to install Open Interpreter:"));
     console.error(chalk.red(error instanceof Error ? error.message : String(error)));
@@ -424,5 +352,4 @@ async function setupOpenInterpreter(configService: ConfigService): Promise<void>
 
 export const setupCommand = new Command("setup")
   .description("Set up Testing Assistant Project")
-  .option("--force", "Force setup even if already configured")
   .action(executeSetup);

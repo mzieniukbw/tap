@@ -2,24 +2,17 @@ import { readFile, access, writeFile, mkdir, chmod } from "fs/promises";
 import { homedir } from "os";
 import { join, dirname } from "path";
 import chalk from "chalk";
-import { InterpreterInfo } from "./interpreter";
 
 export interface TapConfig {
-  github: {
-    token: string;
-  };
-  atlassian: {
-    baseUrl: string;
-    email: string;
-    apiToken: string;
-  };
-  onyx?: {
-    baseUrl: string;
-    apiKey: string;
-  };
-  openInterpreter?: InterpreterInfo;
+  githubToken: string;
+  atlassianBaseUrl: string;
+  atlassianEmail: string;
+  atlassianApiToken: string;
   appSetupInstructions: string;
   anthropicApiKey?: string;
+  onyxBaseUrl?: string;
+  onyxApiKey?: string;
+  openInterpreter?: string;
 }
 
 // Environment variable mapping with all supported fields
@@ -32,6 +25,7 @@ const ENV_MAPPING = {
   onyxApiKey: "ONYX_API_KEY",
   anthropicApiKey: "ANTHROPIC_API_KEY",
   appSetupInstructions: "TAP_APP_SETUP_INSTRUCTIONS",
+  openInterpreter: "OPEN_INTERPRETER_PATH",
 } as const;
 
 export type ConfigFieldName = keyof typeof ENV_MAPPING;
@@ -123,37 +117,31 @@ export class ConfigService {
     const atlassianBaseUrl = process.env.ATLASSIAN_BASE_URL;
     const atlassianEmail = process.env.ATLASSIAN_EMAIL;
     const atlassianApiToken = process.env.ATLASSIAN_API_TOKEN;
-    const onyxBaseUrl = process.env.ONYX_BASE_URL;
-    const onyxApiKey = process.env.ONYX_API_KEY;
-    const anthropicApiKey = process.env.ANTHROPIC_API_KEY;
 
     if (!githubToken || !atlassianBaseUrl || !atlassianEmail || !atlassianApiToken) {
       return null;
     }
 
     const config: TapConfig = {
-      github: {
-        token: githubToken,
-      },
-      atlassian: {
-        baseUrl: atlassianBaseUrl,
-        email: atlassianEmail,
-        apiToken: atlassianApiToken,
-      },
+      githubToken,
+      atlassianBaseUrl,
+      atlassianEmail,
+      atlassianApiToken,
       appSetupInstructions: process.env.TAP_APP_SETUP_INSTRUCTIONS || "",
     };
 
-    // Add Onyx config if API key is provided
-    if (onyxApiKey) {
-      config.onyx = {
-        baseUrl: onyxBaseUrl || "https://api.onyx.app",
-        apiKey: onyxApiKey,
-      };
+    // Add optional fields if provided
+    if (process.env.ONYX_BASE_URL) {
+      config.onyxBaseUrl = process.env.ONYX_BASE_URL;
     }
-
-    // Add Anthropic API key if provided
-    if (anthropicApiKey) {
-      config.anthropicApiKey = anthropicApiKey;
+    if (process.env.ONYX_API_KEY) {
+      config.onyxApiKey = process.env.ONYX_API_KEY;
+    }
+    if (process.env.ANTHROPIC_API_KEY) {
+      config.anthropicApiKey = process.env.ANTHROPIC_API_KEY;
+    }
+    if (process.env.OPEN_INTERPRETER_PATH) {
+      config.openInterpreter = process.env.OPEN_INTERPRETER_PATH;
     }
 
     return config;
@@ -162,12 +150,10 @@ export class ConfigService {
   private isValidConfig(config: any): config is TapConfig {
     return (
       config &&
-      config.github &&
-      typeof config.github.token === "string" &&
-      config.atlassian &&
-      typeof config.atlassian.baseUrl === "string" &&
-      typeof config.atlassian.email === "string" &&
-      typeof config.atlassian.apiToken === "string" &&
+      typeof config.githubToken === "string" &&
+      typeof config.atlassianBaseUrl === "string" &&
+      typeof config.atlassianEmail === "string" &&
+      typeof config.atlassianApiToken === "string" &&
       typeof config.appSetupInstructions === "string"
     );
   }
@@ -183,7 +169,7 @@ export class ConfigService {
     try {
       const response = await fetch("https://api.github.com/user", {
         headers: {
-          Authorization: `token ${testConfig.github.token}`,
+          Authorization: `token ${testConfig.githubToken}`,
           Accept: "application/vnd.github.v3+json",
         },
       });
@@ -202,9 +188,9 @@ export class ConfigService {
 
     // Test Atlassian
     try {
-      const authHeader = `Basic ${Buffer.from(`${testConfig.atlassian.email}:${testConfig.atlassian.apiToken}`).toString("base64")}`;
+      const authHeader = `Basic ${Buffer.from(`${testConfig.atlassianEmail}:${testConfig.atlassianApiToken}`).toString("base64")}`;
 
-      const response = await fetch(`${testConfig.atlassian.baseUrl}/rest/api/3/myself`, {
+      const response = await fetch(`${testConfig.atlassianBaseUrl}/rest/api/3/myself`, {
         headers: {
           Authorization: authHeader,
           Accept: "application/json",
@@ -224,14 +210,14 @@ export class ConfigService {
     }
 
     // Test Onyx AI (optional)
-    if (testConfig.onyx?.apiKey) {
+    if (testConfig.onyxApiKey) {
       try {
         // Test Onyx AI connectivity with a simple query
-        const onyxUrl = `${testConfig.onyx.baseUrl}/chat/send-message`;
+        const onyxUrl = `${testConfig.onyxBaseUrl || "https://api.onyx.app"}/chat/send-message`;
         const response = await fetch(onyxUrl, {
           method: "POST",
           headers: {
-            Authorization: `Bearer ${testConfig.onyx.apiKey}`,
+            Authorization: `Bearer ${testConfig.onyxApiKey}`,
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
@@ -267,13 +253,13 @@ export class ConfigService {
   // Helper method to get auth headers for GitHub
   async getGitHubAuthHeader(): Promise<string> {
     const config = await this.getConfig();
-    return `token ${config.github.token}`;
+    return `token ${config.githubToken}`;
   }
 
   // Helper method to get auth headers for Atlassian
   async getAtlassianAuthHeader(): Promise<string> {
     const config = await this.getConfig();
-    return `Basic ${Buffer.from(`${config.atlassian.email}:${config.atlassian.apiToken}`).toString("base64")}`;
+    return `Basic ${Buffer.from(`${config.atlassianEmail}:${config.atlassianApiToken}`).toString("base64")}`;
   }
 
   // Method for direct access to config (used by services)
@@ -284,16 +270,16 @@ export class ConfigService {
     return this.config;
   }
 
-  // Get Open Interpreter configuration
-  async getOpenInterpreterConfig(): Promise<InterpreterInfo | null> {
+  // Get Open Interpreter path
+  async getOpenInterpreterPath(): Promise<string | null> {
     const config = await this.getConfig();
     return config.openInterpreter || null;
   }
 
-  // Save Open Interpreter configuration
-  async saveOpenInterpreterConfig(interpreterInfo: InterpreterInfo): Promise<void> {
+  // Save Open Interpreter path
+  async saveOpenInterpreterPath(interpreterPath: string): Promise<void> {
     const config = await this.getConfig();
-    config.openInterpreter = interpreterInfo;
+    config.openInterpreter = interpreterPath;
 
     await this.saveConfig(config);
     this.config = config; // Update cached config
@@ -329,39 +315,25 @@ export class ConfigService {
     let currentValue: string | undefined;
 
     if (configFileValues) {
-      switch (field) {
-        case "githubToken":
-          fromConfig = !!configFileValues.github?.token;
-          currentValue = fromConfig ? "***" : undefined;
-          break;
-        case "atlassianBaseUrl":
-          fromConfig = !!configFileValues.atlassian?.baseUrl;
-          currentValue = configFileValues.atlassian?.baseUrl;
-          break;
-        case "atlassianEmail":
-          fromConfig = !!configFileValues.atlassian?.email;
-          currentValue = configFileValues.atlassian?.email;
-          break;
-        case "atlassianApiToken":
-          fromConfig = !!configFileValues.atlassian?.apiToken;
-          currentValue = fromConfig ? "***" : undefined;
-          break;
-        case "onyxBaseUrl":
-          fromConfig = !!configFileValues.onyx?.baseUrl;
-          currentValue = configFileValues.onyx?.baseUrl;
-          break;
-        case "onyxApiKey":
-          fromConfig = !!configFileValues.onyx?.apiKey;
-          currentValue = fromConfig ? "***" : undefined;
-          break;
-        case "anthropicApiKey":
-          fromConfig = !!configFileValues.anthropicApiKey;
-          currentValue = fromConfig ? "***" : undefined;
-          break;
-        case "appSetupInstructions":
-          fromConfig = !!configFileValues.appSetupInstructions;
-          currentValue = fromConfig ? "(configured)" : undefined;
-          break;
+      const fieldValue = configFileValues[field];
+      fromConfig = !!fieldValue;
+      
+      if (fromConfig) {
+        // Define sensitive fields that should be masked
+        const sensitiveFields: ConfigFieldName[] = [
+          "githubToken", 
+          "atlassianApiToken", 
+          "onyxApiKey", 
+          "anthropicApiKey"
+        ];
+        
+        if (sensitiveFields.includes(field)) {
+          currentValue = "***";
+        } else if (field === "appSetupInstructions") {
+          currentValue = "(configured)";
+        } else {
+          currentValue = fieldValue;
+        }
       }
     }
 
@@ -390,51 +362,16 @@ export class ConfigService {
   static filterEnvVariables(config: any): any {
     const filteredConfig: any = { ...config };
 
-    // Remove GitHub config if env var exists
-    if (process.env.GITHUB_TOKEN && filteredConfig.github) {
-      delete filteredConfig.github;
-    }
-
-    // Handle Atlassian config
-    if (filteredConfig.atlassian) {
-      if (process.env.ATLASSIAN_BASE_URL) {
-        delete filteredConfig.atlassian.baseUrl;
-      }
-      if (process.env.ATLASSIAN_EMAIL) {
-        delete filteredConfig.atlassian.email;
-      }
-      if (process.env.ATLASSIAN_API_TOKEN) {
-        delete filteredConfig.atlassian.apiToken;
-      }
-      // Clean up empty atlassian object
-      if (!filteredConfig.atlassian.baseUrl && !filteredConfig.atlassian.email && !filteredConfig.atlassian.apiToken) {
-        delete filteredConfig.atlassian;
-      }
-    }
-
-    // Remove app setup instructions if env var exists
-    if (process.env.TAP_APP_SETUP_INSTRUCTIONS) {
-      delete filteredConfig.appSetupInstructions;
-    }
-
-    // Remove Anthropic API key if env var exists
-    if (process.env.ANTHROPIC_API_KEY) {
-      delete filteredConfig.anthropicApiKey;
-    }
-
-    // Handle Onyx config
-    if (filteredConfig.onyx) {
-      if (process.env.ONYX_BASE_URL) {
-        delete filteredConfig.onyx.baseUrl;
-      }
-      if (process.env.ONYX_API_KEY) {
-        delete filteredConfig.onyx.apiKey;
-      }
-      // Clean up empty onyx object
-      if (!filteredConfig.onyx.baseUrl && !filteredConfig.onyx.apiKey) {
-        delete filteredConfig.onyx;
-      }
-    }
+    // Remove fields that have corresponding environment variables
+    if (process.env.GITHUB_TOKEN) delete filteredConfig.githubToken;
+    if (process.env.ATLASSIAN_BASE_URL) delete filteredConfig.atlassianBaseUrl;
+    if (process.env.ATLASSIAN_EMAIL) delete filteredConfig.atlassianEmail;
+    if (process.env.ATLASSIAN_API_TOKEN) delete filteredConfig.atlassianApiToken;
+    if (process.env.TAP_APP_SETUP_INSTRUCTIONS) delete filteredConfig.appSetupInstructions;
+    if (process.env.ANTHROPIC_API_KEY) delete filteredConfig.anthropicApiKey;
+    if (process.env.ONYX_BASE_URL) delete filteredConfig.onyxBaseUrl;
+    if (process.env.ONYX_API_KEY) delete filteredConfig.onyxApiKey;
+    if (process.env.OPEN_INTERPRETER_PATH) delete filteredConfig.openInterpreter;
 
     return filteredConfig;
   }

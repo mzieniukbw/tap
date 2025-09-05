@@ -8,11 +8,6 @@ import chalk from "chalk";
 
 const execAsync = promisify(exec);
 
-export interface InterpreterInfo {
-  path: string;
-  version: string;
-  installedAt: string;
-}
 
 export interface PrerequisiteCheck {
   python311: { available: boolean; path?: string; version?: string };
@@ -91,24 +86,6 @@ export class InterpreterService {
     }
   }
 
-  /**
-   * Get interpreter info from the current installation
-   */
-  async getInterpreterInfo(): Promise<InterpreterInfo | null> {
-    try {
-      const path = await this.resolveInterpreterPath();
-      const { stdout } = await execAsync(`${path} --version`);
-      const version = stdout.trim().split(" ").pop() || "unknown";
-
-      return {
-        path,
-        version,
-        installedAt: new Date().toISOString(),
-      };
-    } catch {
-      return null;
-    }
-  }
 
   /**
    * Check system prerequisites for Open Interpreter installation
@@ -164,7 +141,7 @@ export class InterpreterService {
   /**
    * Install Open Interpreter with OS capabilities to ~/.tap/open-interpreter
    */
-  async installOpenInterpreter(onProgress?: (message: string) => void): Promise<InterpreterInfo> {
+  async installOpenInterpreter(onProgress?: (message: string) => void): Promise<string> {
     const progress = onProgress || console.log;
 
     // Ensure TAP directory exists
@@ -218,22 +195,12 @@ export class InterpreterService {
 
     progress(chalk.blue("💾 Saving installation metadata..."));
 
-    // Get version and create info object
-    const { stdout } = await execAsync(`${this.interpreterBinary} --version`);
-    const version = stdout.trim().split(" ").pop() || "unknown";
-
-    const info: InterpreterInfo = {
-      path: this.interpreterBinary,
-      version,
-      installedAt: new Date().toISOString(),
-    };
-
     // Cache the path
     this.cachedPath = this.interpreterBinary;
 
     progress(chalk.green("✅ Open Interpreter installation complete!"));
 
-    return info;
+    return this.interpreterBinary;
   }
 
   /**
@@ -253,8 +220,7 @@ export class InterpreterService {
     try {
       const { ConfigService } = await import("./config");
       const configService = ConfigService.getInstance();
-      const interpreterConfig = await configService.getOpenInterpreterConfig();
-      return interpreterConfig?.path || null;
+      return await configService.getOpenInterpreterPath();
     } catch {
       // Config not available or not configured
       return null;

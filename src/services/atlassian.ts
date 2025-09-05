@@ -91,7 +91,7 @@ export class AtlassianService {
 
   async getJiraTicket(ticketKey: string): Promise<JiraTicket> {
     const config = await this.getConfig();
-    const url = `${config.atlassian.baseUrl}/rest/api/3/issue/${ticketKey}`;
+    const url = `${config.atlassianBaseUrl}/rest/api/3/issue/${ticketKey}`;
     const response = await this.atlassianRequest(url);
 
     return {
@@ -114,7 +114,7 @@ export class AtlassianService {
   async getLinkedIssues(ticketKey: string): Promise<JiraTicket[]> {
     try {
       const config = await this.getConfig();
-      const url = `${config.atlassian.baseUrl}/rest/api/3/issue/${ticketKey}?expand=issuelinks`;
+      const url = `${config.atlassianBaseUrl}/rest/api/3/issue/${ticketKey}?expand=issuelinks`;
       const response = await this.atlassianRequest(url);
 
       const linkedIssues: JiraTicket[] = [];
@@ -171,7 +171,7 @@ export class AtlassianService {
   async searchConfluencePages(query: string): Promise<ConfluencePage[]> {
     const config = await this.getConfig();
     const encodedQuery = encodeURIComponent(query);
-    const url = `${config.atlassian.baseUrl}/wiki/rest/api/content/search?cql=text~"${encodedQuery}"&expand=body.storage,version,space&limit=5`;
+    const url = `${config.atlassianBaseUrl}/wiki/rest/api/content/search?cql=text~"${encodedQuery}"&expand=body.storage,version,space&limit=5`;
 
     try {
       const response = await this.atlassianRequest(url);
@@ -185,7 +185,7 @@ export class AtlassianService {
         created: page.history?.createdDate || page.version?.when || "",
         updated: page.version?.when || "",
         author: page.version?.by?.displayName || "Unknown",
-        url: `${config.atlassian.baseUrl}/wiki${page._links.webui}`,
+        url: `${config.atlassianBaseUrl}/wiki${page._links.webui}`,
       }));
     } catch (error) {
       console.warn(`Confluence search error:`, error);
