@@ -119,7 +119,6 @@ bun run start execute-scenarios --file ./refined-scenarios.json
 # [Detailed execution results with screenshots and videos]
 ```
 
-
 ## Workflow 2: Claude CLI Unavailable
 
 ### Scenario

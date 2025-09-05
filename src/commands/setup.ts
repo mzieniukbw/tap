@@ -95,7 +95,8 @@ async function executeSetup() {
         field: "openInterpreter",
         displayName: "Open Interpreter Path",
         promptType: "input",
-        message: "Open Interpreter Path (optional - press Enter to skip, will auto-detect and offer installation next):",
+        message:
+          "Open Interpreter Path (optional - press Enter to skip, will auto-detect and offer installation next):",
         defaultMessage: "Open Interpreter Path",
       },
     ];
@@ -237,7 +238,10 @@ async function executeSetup() {
       tempConfig.atlassianApiToken = getFieldValue("atlassianApiToken", "atlassianApiToken");
     }
     if (answers.appSetupInstructions) {
-      tempConfig.appSetupInstructions = getFieldValue("appSetupInstructions", "appSetupInstructions");
+      tempConfig.appSetupInstructions = getFieldValue(
+        "appSetupInstructions",
+        "appSetupInstructions"
+      );
     }
     if (answers.anthropicApiKey) {
       tempConfig.anthropicApiKey = getFieldValue("anthropicApiKey", "anthropicApiKey");

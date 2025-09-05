@@ -258,12 +258,14 @@ Test artifacts are generated in `./test-pr-{PR-number}-{commit-sha}/` directory 
 ## Code Standards
 
 ### TypeScript Configuration
+
 - Strict mode enabled
 - Node.js standard library imports
 - Commander.js library for CLI framework
 - Modern ES modules with top-level await
 
 ### Code Formatting (Prettier)
+
 - 2-space indentation
 - 100 character line width
 - Semicolons required

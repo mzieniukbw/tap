@@ -8,7 +8,6 @@ import chalk from "chalk";
 
 const execAsync = promisify(exec);
 
-
 export interface PrerequisiteCheck {
   python311: { available: boolean; path?: string; version?: string };
   poetry: { available: boolean; path?: string; version?: string };
@@ -89,7 +88,6 @@ export class InterpreterService {
     }
   }
 
-
   /**
    * Check system prerequisites for Open Interpreter installation
    */
@@ -153,19 +151,19 @@ export class InterpreterService {
     // Check if repository already exists
     if (existsSync(this.interpreterDir)) {
       progress(chalk.blue("🔄 Updating existing Open Interpreter repository..."));
-      
+
       try {
         await execAsync("git pull origin main", { cwd: this.interpreterDir });
         progress(chalk.green("✅ Repository updated"));
       } catch (error) {
         throw new Error(
           `Failed to update existing Open Interpreter repository: ${error instanceof Error ? error.message : String(error)}. ` +
-          `Please manually remove ${this.interpreterDir} and run setup again.`
+            `Please manually remove ${this.interpreterDir} and run setup again.`
         );
       }
     } else {
       progress(chalk.blue("📥 Cloning Open Interpreter repository..."));
-      
+
       try {
         await execAsync(
           `git clone https://github.com/openinterpreter/open-interpreter.git "${this.interpreterDir}"`
@@ -286,10 +284,10 @@ export class InterpreterService {
       // Get the actual venv path from Poetry
       const { stdout } = await execAsync("poetry env info --path", { cwd: this.interpreterDir });
       const venvPath = stdout.trim();
-      
+
       // Build interpreter path
       const interpreterPath = join(venvPath, "bin", "interpreter");
-      
+
       return interpreterPath;
     } catch {
       // Poetry not available or no venv configured
@@ -313,7 +311,9 @@ export class InterpreterService {
     } catch (error) {
       // Config saving failed, but don't break the flow
       console.warn(
-        chalk.yellow(`⚠️  Failed to save interpreter path to config: ${error instanceof Error ? error.message : String(error)}`)
+        chalk.yellow(
+          `⚠️  Failed to save interpreter path to config: ${error instanceof Error ? error.message : String(error)}`
+        )
       );
     }
   }

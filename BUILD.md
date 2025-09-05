@@ -90,7 +90,6 @@ bun run build:all:cross    # All platforms
 5. **Execution** → `execute-scenarios` command runs refined scenarios with Open Interpreter
 6. **QA Reporting** → Structured output with test results and artifacts
 
-
 ## Automated Release Process
 
 ### Creating a Release

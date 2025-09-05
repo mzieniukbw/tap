@@ -42,7 +42,7 @@ tap generate-tests <pr-url>
 cd ./test-pr-{PR-number}-{commit-sha}
 ./claude-refine.sh  # Or manually review exported files
 
-# Step 3: Execute refined scenarios  
+# Step 3: Execute refined scenarios
 tap execute-scenarios --file ./refined-scenarios.json
 ```
 
@@ -64,7 +64,7 @@ Run `tap setup` for interactive configuration.
 Or use environment variables:
 
 - `GITHUB_TOKEN` - GitHub Personal Access Token
-- `ATLASSIAN_API_TOKEN` - Unified token for Jira and Confluence  
+- `ATLASSIAN_API_TOKEN` - Unified token for Jira and Confluence
 - `ATLASSIAN_EMAIL` - Atlassian account email
 - `ATLASSIAN_BASE_URL` - Atlassian instance URL
 - `TAP_APP_SETUP_INSTRUCTIONS` - Natural language app setup instructions
@@ -81,7 +81,7 @@ Or use environment variables:
 TAP creates `./test-pr-{PR-number}-{commit-sha}/` directories with:
 
 - **Context Export**: PR analysis, Jira tickets, Confluence docs
-- **AI Scenarios**: Machine and human-readable test scenarios  
+- **AI Scenarios**: Machine and human-readable test scenarios
 - **Refinement Tools**: Claude Code instructions and helper scripts
 - **Execution Results**: Screenshots, videos, QA reports
 

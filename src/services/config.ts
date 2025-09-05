@@ -18,7 +18,7 @@ export interface TapConfig {
 // Environment variable mapping with all supported fields
 const ENV_MAPPING = {
   githubToken: "GITHUB_TOKEN",
-  atlassianBaseUrl: "ATLASSIAN_BASE_URL", 
+  atlassianBaseUrl: "ATLASSIAN_BASE_URL",
   atlassianEmail: "ATLASSIAN_EMAIL",
   atlassianApiToken: "ATLASSIAN_API_TOKEN",
   onyxBaseUrl: "ONYX_BASE_URL",
@@ -324,7 +324,7 @@ export class ConfigService {
           "githubToken",
           "atlassianApiToken",
           "onyxApiKey",
-          "anthropicApiKey"
+          "anthropicApiKey",
         ];
 
         if (sensitiveFields.includes(field)) {
