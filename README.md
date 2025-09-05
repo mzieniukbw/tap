@@ -24,244 +24,65 @@ curl -fsSL https://raw.githubusercontent.com/mzieniuk/tap/main/install.sh | bash
 2. Make it executable: `chmod +x tap-*`
 3. Move to PATH: `sudo mv tap-* /usr/local/bin/tap`
 
-### Development Setup
+## Quick Start
 
-Install bun https://bun.sh
+### 1. Setup (Required)
 
 ```bash
-# Install Claude CLI for AI test generation
-bun install -g @anthropic-ai/claude-cli
-claude auth
-
-# Install Open Interpreter with OS capabilities (requires Python 3.11 only)
-git clone https://github.com/openinterpreter/open-interpreter.git
-cd open-interpreter
-poetry env use 3.11
-eval $(poetry env activate)
-poetry install --extras "os"
-cd ..
-# save the OPEN_INTERPRETER_PATH environment variable (find it with `which interpreter`)
-
-git clone https://github.com/mzieniukbw/tap.git
-cd tap
-bun install
-bun run start setup
+tap setup  # Interactive configuration for API credentials and app setup
 ```
 
-## Usage
+### 2. Human-in-the-Loop Workflow
 
 ```bash
 # Step 1: Generate AI scenarios and export context for review
-bun run start generate-tests <pr-url>             # Creates ./test-pr-{PR-number}-{commit-sha}/ directory
+tap generate-tests <pr-url>
 
-# Step 2: Review and refine scenarios
-# Option A: Use the auto-generated helper script
-cd ./test-pr-{PR-number}-{commit-sha} && ./claude-refine.sh
-# Option B: Use Claude Code to manually review the exported files
+# Step 2: Review and refine scenarios with Claude Code
+cd ./test-pr-{PR-number}-{commit-sha}
+./claude-refine.sh  # Or manually review exported files
 
-# Step 3: Execute refined scenarios
-bun run start execute-scenarios --file ./refined-scenarios.json
+# Step 3: Execute refined scenarios  
+tap execute-scenarios --file ./refined-scenarios.json
 ```
 
-### Command Options
+## Requirements
 
-```bash
-# Enable detailed logging
-bun run start generate-tests <url> --verbose
-
-# Custom output directory (overrides default test-pr-{PR-number}-{commit-sha} naming)
-bun run start generate-tests <url> --output ./custom-output
-
-# Or use compiled executable
-bun run build
-./dist/tap generate-tests <url>
-```
-
-## Available Commands
-
-### Primary Tasks
-
-```bash
-bun run start <command>       # Run TAP commands
-bun run dev                   # Development with file watching
-bun run start setup           # Setup and configuration (interactive)
-```
-
-### Build Commands
-
-```bash
-bun run build                 # Build main TAP executable
-bun run clean                 # Clean build artifacts
-```
-
-## Command Options
-
-### generate-tests
-
-- `<pr-url>` - GitHub PR URL (required)
-- `--output <path>` - Output directory for test artifacts (default: `./test-pr-{PR-number}-{commit-sha}`)
-- `--verbose` - Enable detailed logging with timing information
-
-### execute-scenarios
-
-- `--file <path>` - Path to JSON file containing test scenarios (required)
-- `--output <path>` - Output directory for test artifacts (default: `./{PR-number}-{commit-sha}`)
-- `--verbose` - Enable detailed logging
+- **Claude CLI**: `npm install -g @anthropic-ai/claude-cli && claude auth`
+- **Open Interpreter**: Auto-installed during setup (requires Python 3.11)
 
 ## Configuration
 
-TAP supports two configuration methods:
+TAP requires API credentials and app setup instructions.
 
-### 1. Interactive Setup (Recommended)
+### Interactive
 
-```bash
-bun run start setup
-```
+Run `tap setup` for interactive configuration.
 
-Creates `~/.tap/config.json` with your API credentials.
+### Manual
 
-### 2. Environment Variables (Alternative)
+Or use environment variables:
 
 - `GITHUB_TOKEN` - GitHub Personal Access Token
-- `ATLASSIAN_API_TOKEN` - Unified token for Jira and Confluence
+- `ATLASSIAN_API_TOKEN` - Unified token for Jira and Confluence  
 - `ATLASSIAN_EMAIL` - Atlassian account email
-- `ATLASSIAN_BASE_URL` - Atlassian instance URL (e.g., https://company.atlassian.net)
-- `OPEN_INTERPRETER_PATH` - Path to Open Interpreter binary (optional - auto-detected if installed via setup)
+- `ATLASSIAN_BASE_URL` - Atlassian instance URL
+- `TAP_APP_SETUP_INSTRUCTIONS` - Natural language app setup instructions
+- `ANTHROPIC_API_KEY` - Required for Open Interpreter
 
-### 3. Claude CLI Setup
+## Documentation
 
-```bash
-# Install Claude CLI for AI test generation
-bun install -g @anthropic-ai/claude-cli
-claude auth
-claude --version  # Verify installation
-```
+- 📖 [Complete guides and workflows](https://github.com/mzieniukbw/tap/wiki)
+- 💡 [Usage examples and configuration](EXAMPLES.md)
+- 🏗️ [Development and build instructions](BUILD.md)
 
-### 4. Open Interpreter Setup
+## Output
 
-Open Interpreter with OS capabilities is required for automated test execution with screen automation.
+TAP creates `./test-pr-{PR-number}-{commit-sha}/` directories with:
 
-#### Automatic Installation (Recommended)
+- **Context Export**: PR analysis, Jira tickets, Confluence docs
+- **AI Scenarios**: Machine and human-readable test scenarios  
+- **Refinement Tools**: Claude Code instructions and helper scripts
+- **Execution Results**: Screenshots, videos, QA reports
 
-The easiest way is to let TAP install it automatically during setup:
-
-```bash
-tap setup
-# TAP will detect if Open Interpreter is missing and offer to install it
-# Prerequisites: Python 3.11 and Poetry must be installed first
-```
-
-#### Manual Installation (Alternative)
-
-```bash
-# Install Open Interpreter with OS capabilities (requires Python 3.11 only)
-# Note: Poetry is required as build dependency
-git clone https://github.com/openinterpreter/open-interpreter.git
-cd open-interpreter
-poetry env use 3.11
-eval $(poetry env activate)
-poetry install --extras "os"
-
-# Set the interpreter path for TAP to find it (find it with `which interpreter`
-export OPEN_INTERPRETER_PATH="/path/to/open-interpreter/.venv/bin/interpreter"
-# Add to shell profile for persistence (~/.bashrc, ~/.zshrc, etc.)
-```
-
-#### Prerequisites
-
-Before installation, ensure you have:
-
-```bash
-# Python 3.11 (required)
-python3.11 --version  # or python --version (if it shows 3.11.x)
-
-# Install Python 3.11 if needed:
-# macOS: brew install python@3.11
-# Ubuntu: sudo apt install python3.11
-# Or use pyenv: pyenv install 3.11.0 && pyenv global 3.11.0
-
-# Poetry (required for installation)
-poetry --version
-
-# Install Poetry if needed:
-curl -sSL https://install.python-poetry.org | python3 -
-```
-
-#### Configuration
-
-```bash
-# Set up Anthropic API key for Open Interpreter
-export ANTHROPIC_API_KEY=your_api_key_here
-# Add to shell profile for persistence (~/.bashrc, ~/.zshrc, etc.)
-```
-
-The system automatically tests API connectivity before running commands and validates Open Interpreter setup before test execution.
-
-## Data Flow
-
-1. **Context Gathering** → GitHub PR analysis + Jira tickets + Confluence docs
-2. **AI Generation** → Claude CLI creates intelligent scenarios from full context
-3. **Context Export** → Comprehensive data files + helper scripts for human review
-4. **Human Refinement** → Manual review using Claude Code or automated with helper script
-5. **Execution** → `execute-scenarios` command runs refined scenarios with Open Interpreter
-6. **QA Reporting** → Structured output with test results and artifacts
-
-## Output Structure
-
-### Context Export
-
-TAP exports comprehensive context files for human review:
-
-- `pr-analysis.json` - Complete PR analysis with diffs and metadata
-- `jira-context.json` - Business context from Jira ticket (if available)
-- `confluence-docs.json` - Related documentation (if found)
-- `generated-scenarios.json` - Machine-readable AI-generated scenarios
-- `generated-scenarios.md` - Human-readable scenario descriptions
-- `context-summary.md` - Executive summary of the PR and context
-- `claude-code-instructions.md` - Instructions for Claude Code review
-- `claude-refine.sh` - Auto-generated helper script for Claude CLI refinement
-
-### Test Execution Artifacts
-
-Generated in `./{PR-number}-{commit-sha}/` directory by default:
-
-- **Default naming**: `./{PR-number}-{7-char-commit-sha}/` (e.g., `./123-abc1234/`)
-- **Custom output**: Use `--output <path>` to override default naming
-- **Artifacts**: Screenshots (`*.png`), Videos (`*.mp4`), QA reports
-- **Context files**: All exported context and refinement files
-
-## Verbose Logging
-
-Use the `--verbose` flag to enable detailed logging that includes:
-
-- Step-by-step execution timing
-- Detailed PR analysis (files, commits, labels, descriptions)
-- Complete Jira ticket context (status, priority, linked issues, epics)
-- Confluence page details (titles, spaces, authors, dates)
-- Test scenario generation details (priorities, categories, steps)
-- Test execution and QA report metrics
-- Enhanced error context with stack traces
-
-## Development Notes
-
-- This is a Bun project with Node.js compatibility
-- All external dependencies are managed via package.json and npm registry
-- No permanent test cases - all scenarios are dynamically generated
-- Unified Atlassian authentication uses single API token for both Jira and Confluence
-
-## Architecture
-
-### Core Structure
-
-- `src/main.ts` - CLI entry point using Commander.js framework
-- `src/commands/` - Command implementations (generate-tests, execute-scenarios, setup)
-- `src/services/` - Business logic services
-
-### Key Services
-
-- `GitHubService` - PR analysis and diff processing
-- `AtlassianService` - Jira ticket and Confluence page integration
-- `AITestScenarioGenerator` - AI-powered intelligent test scenario creation using Claude CLI
-- `ContextExporter` - Comprehensive data export for Claude Code review
-- `OpenInterpreterExecutor` - Test execution coordination using Open Interpreter
-- `QAReportGenerator` - Comprehensive test reporting with AI insights
+Use `--verbose` for detailed logging and `--output <path>` for custom directories.

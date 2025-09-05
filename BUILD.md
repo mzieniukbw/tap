@@ -1,8 +1,48 @@
-# Build and Release Guide
+# Build and Development Guide
 
-This document explains how to build and release TAP executables for multiple platforms.
+This document covers development setup, build processes, architecture details, and release management for TAP.
 
-## Quick Start
+## Development Setup
+
+### Prerequisites
+
+Install bun: https://bun.sh
+
+### Environment Setup
+
+```bash
+# Install Claude CLI for AI test generation
+bun install -g @anthropic-ai/claude-cli
+claude auth
+
+# Install Open Interpreter with OS capabilities (requires Python 3.11 only)
+git clone https://github.com/openinterpreter/open-interpreter.git
+cd open-interpreter
+poetry env use 3.11
+eval $(poetry env activate)
+poetry install --extras "os"
+cd ..
+# save the OPEN_INTERPRETER_PATH environment variable (find it with `which interpreter`)
+
+git clone https://github.com/mzieniukbw/tap.git
+cd tap
+bun install
+bun run start setup
+```
+
+### Development Commands
+
+```bash
+# Development and setup
+bun run dev                                        # Development with file watching
+bun run start setup                               # Setup and configuration (interactive, required)
+
+# Code formatting and linting
+bun run format
+bun run lint
+```
+
+## Build Commands
 
 ### Local Development Build
 
@@ -23,6 +63,33 @@ bun run build:macos        # macOS x64 + ARM64
 # Build all cross-platform executables
 bun run build:all:cross    # All platforms
 ```
+
+## Code Architecture
+
+### Core Structure
+
+- `src/main.ts` - CLI entry point using Commander.js framework
+- `src/commands/` - Command implementations (generate-tests, execute-scenarios, setup)
+- `src/services/` - Business logic services
+
+### Key Services
+
+- `GitHubService` - PR analysis and diff processing
+- `AtlassianService` - Jira ticket and Confluence page integration
+- `ContextGatheringService` - Comprehensive context collection from multiple sources
+- `OnyxContextService` - Enhanced product context from Onyx AI (optional)
+- `TestExecutionService` - Test execution coordination and management
+- `ConfigService` - Configuration management for API credentials
+
+### Data Flow Architecture
+
+1. **Context Gathering** → GitHub PR analysis + Jira tickets + Confluence docs
+2. **AI Generation** → Claude CLI creates intelligent scenarios from full context
+3. **Context Export** → Comprehensive data files + helper scripts for human review
+4. **Human Refinement** → Manual review using Claude Code or automated with helper script
+5. **Execution** → `execute-scenarios` command runs refined scenarios with Open Interpreter
+6. **QA Reporting** → Structured output with test results and artifacts
+
 
 ## Automated Release Process
 
