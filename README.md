@@ -2,6 +2,8 @@
 
 A Bun-based CLI tool that uses AI-powered test generation and human-in-the-loop workflow to create and execute ephemeral testing scenarios from GitHub PRs and Jira tickets. TAP combines Claude CLI for intelligent test generation, Claude Code for human refinement, and Open Interpreter for automated test execution with screen automation.
 
+📖 **[View the complete documentation and guides in our wiki](https://github.com/mzieniukbw/tap/wiki)**
+
 ## Installation
 
 ### Homebrew (macOS - Recommended)
