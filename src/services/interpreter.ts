@@ -58,14 +58,17 @@ export class InterpreterService {
     }
 
     // 3. Check TAP-managed installation
-    if (await this.validateInterpreterPath(this.interpreterBinary)) {
-      this.cachedPath = this.interpreterBinary;
-      return this.interpreterBinary;
+    const tapManagedPath = await this.getTapManagedInterpreterPath();
+    if (tapManagedPath && (await this.validateInterpreterPath(tapManagedPath))) {
+      this.cachedPath = tapManagedPath;
+      await this.saveToConfigIfNotFromEnv(tapManagedPath);
+      return tapManagedPath;
     }
 
     // 4. Fall back to global command
     if (await this.validateInterpreterPath("interpreter")) {
       this.cachedPath = "interpreter";
+      await this.saveToConfigIfNotFromEnv("interpreter");
       return "interpreter";
     }
 
@@ -177,13 +180,41 @@ export class InterpreterService {
 
     progress(chalk.blue("🔧 Setting up Poetry environment..."));
 
-    // Set up Poetry environment
+    // Configure Poetry to create venv in project directory and use Python 3.11
     try {
+      await execAsync("poetry config virtualenvs.in-project true", { cwd: this.interpreterDir });
       await execAsync("poetry env use 3.11", { cwd: this.interpreterDir });
       progress(chalk.green("✅ Poetry environment configured"));
     } catch (error) {
       throw new Error(
         `Failed to configure Poetry environment: ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
+
+    // Get the actual virtual environment path
+    let venvPath: string;
+    try {
+      const { stdout } = await execAsync("poetry env info --path", { cwd: this.interpreterDir });
+      venvPath = stdout.trim();
+      progress(chalk.gray(`Virtual environment path: ${venvPath}`));
+    } catch (error) {
+      throw new Error(
+        `Failed to get Poetry virtual environment path: ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
+
+    progress(chalk.blue("🔒 Updating Poetry lock file..."));
+
+    // Update lock file first in case pyproject.toml changed
+    try {
+      await execAsync("poetry lock", {
+        cwd: this.interpreterDir,
+        timeout: 5 * 60 * 1000, // 5 minutes timeout
+      });
+      progress(chalk.green("✅ Poetry lock file updated"));
+    } catch (error) {
+      throw new Error(
+        `Failed to update Poetry lock file: ${error instanceof Error ? error.message : String(error)}`
       );
     }
 
@@ -202,19 +233,20 @@ export class InterpreterService {
       );
     }
 
+    // Build the actual interpreter path using the detected venv
+    const actualInterpreterPath = join(venvPath, "bin", "interpreter");
+
     // Validate installation
-    if (!(await this.validateInterpreterPath(this.interpreterBinary))) {
+    if (!(await this.validateInterpreterPath(actualInterpreterPath))) {
       throw new Error("Installation completed but interpreter binary is not working");
     }
 
-    progress(chalk.blue("💾 Saving installation metadata..."));
-
-    // Cache the path
-    this.cachedPath = this.interpreterBinary;
+    // Cache the actual path
+    this.cachedPath = actualInterpreterPath;
 
     progress(chalk.green("✅ Open Interpreter installation complete!"));
 
-    return this.interpreterBinary;
+    return actualInterpreterPath;
   }
 
   /**
@@ -238,6 +270,51 @@ export class InterpreterService {
     } catch {
       // Config not available or not configured
       return null;
+    }
+  }
+
+  /**
+   * Get TAP-managed interpreter path by detecting Poetry venv
+   */
+  private async getTapManagedInterpreterPath(): Promise<string | null> {
+    try {
+      // Check if TAP interpreter directory exists
+      if (!existsSync(this.interpreterDir)) {
+        return null;
+      }
+
+      // Get the actual venv path from Poetry
+      const { stdout } = await execAsync("poetry env info --path", { cwd: this.interpreterDir });
+      const venvPath = stdout.trim();
+      
+      // Build interpreter path
+      const interpreterPath = join(venvPath, "bin", "interpreter");
+      
+      return interpreterPath;
+    } catch {
+      // Poetry not available or no venv configured
+      return null;
+    }
+  }
+
+  /**
+   * Save interpreter path to config if not using environment variable
+   */
+  private async saveToConfigIfNotFromEnv(interpreterPath: string): Promise<void> {
+    try {
+      // Don't save if using environment variable
+      if (process.env.OPEN_INTERPRETER_PATH) {
+        return;
+      }
+
+      const { ConfigService } = await import("./config");
+      const configService = ConfigService.getInstance();
+      await configService.saveOpenInterpreterPath(interpreterPath);
+    } catch (error) {
+      // Config saving failed, but don't break the flow
+      console.warn(
+        chalk.yellow(`⚠️  Failed to save interpreter path to config: ${error instanceof Error ? error.message : String(error)}`)
+      );
     }
   }
 
