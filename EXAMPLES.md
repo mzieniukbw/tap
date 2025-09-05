@@ -2,8 +2,6 @@
 
 This document provides practical examples of using TAP's AI-powered, human-in-the-loop testing workflow.
 
-**Note**: TAP now has a simplified interface - use `--generate-only` to export context for human review, or run without options for direct execution.
-
 ## Workflow 1: Full Human-in-the-Loop (Recommended)
 
 ### Scenario
@@ -121,24 +119,8 @@ bun run start execute-scenarios --file ./refined-scenarios.json
 # [Detailed execution results with screenshots and videos]
 ```
 
-## Workflow 2: Quick Direct Execution
 
-### Scenario
-
-Simple bug fix that needs quick validation without detailed review.
-
-```bash
-# Direct execution with AI scenarios (no human review)
-# Chain commands for immediate execution:
-bun run start generate-tests https://github.com/company/repo/pull/143 && bun run start execute-scenarios --file ./test-pr-*/generated-scenarios.json
-
-# Output:
-# 🤖 AI-generated 4 intelligent test scenarios
-# 🤖 Executing tests with Claude Desktop...
-# ✅ Testing complete!
-```
-
-## Workflow 3: Claude CLI Unavailable
+## Workflow 2: Claude CLI Unavailable
 
 ### Scenario
 

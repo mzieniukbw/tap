@@ -50,32 +50,26 @@ bun run start setup
 
 ## Usage
 
-### Human-in-the-Loop Workflow (Recommended)
-
 ```bash
 # Step 1: Generate AI scenarios and export context for review
-bun run start generate-tests <pr-url>             # Creates ./{PR-number}-{commit-sha}/ directory
+bun run start generate-tests <pr-url>             # Creates ./test-pr-{PR-number}-{commit-sha}/ directory
 
 # Step 2: Review and refine scenarios
 # Option A: Use the auto-generated helper script
-cd ./{PR-number}-{commit-sha} && ./claude-refine.sh
+cd ./test-pr-{PR-number}-{commit-sha} && ./claude-refine.sh
 # Option B: Use Claude Code to manually review the exported files
 
 # Step 3: Execute refined scenarios
 bun run start execute-scenarios --file ./refined-scenarios.json
 ```
 
-### Direct Execution
+### Command Options
 
 ```bash
-# Execute immediately with AI-generated scenarios (no human review)
-# Chain generate-tests + execute-scenarios commands:
-bun run start generate-tests <pr-url> && bun run start execute-scenarios --file ./test-pr-*/generated-scenarios.json
-
 # Enable detailed logging
 bun run start generate-tests <url> --verbose
 
-# Custom output directory (overrides default {PR-number}-{commit-sha} naming)
+# Custom output directory (overrides default test-pr-{PR-number}-{commit-sha} naming)
 bun run start generate-tests <url> --output ./custom-output
 
 # Or use compiled executable
@@ -105,8 +99,7 @@ bun run clean                 # Clean build artifacts
 ### generate-tests
 
 - `<pr-url>` - GitHub PR URL (required)
-- `--generate-only` - Generate scenarios and export context for Claude Code review
-- `--output <path>` - Output directory for test artifacts (default: `./{PR-number}-{commit-sha}`)
+- `--output <path>` - Output directory for test artifacts (default: `./test-pr-{PR-number}-{commit-sha}`)
 - `--verbose` - Enable detailed logging with timing information
 
 ### execute-scenarios
@@ -206,8 +199,6 @@ The system automatically tests API connectivity before running commands and vali
 
 ## Data Flow
 
-### Human-in-the-Loop Mode (--generate-only)
-
 1. **Context Gathering** → GitHub PR analysis + Jira tickets + Confluence docs
 2. **AI Generation** → Claude CLI creates intelligent scenarios from full context
 3. **Context Export** → Comprehensive data files + helper scripts for human review
@@ -215,18 +206,11 @@ The system automatically tests API connectivity before running commands and vali
 5. **Execution** → `execute-scenarios` command runs refined scenarios with Open Interpreter
 6. **QA Reporting** → Structured output with test results and artifacts
 
-### Direct Execution Mode
-
-1. **Context Gathering** → GitHub PR analysis + Jira tickets + Confluence docs
-2. **AI Generation** → Claude CLI creates intelligent scenarios from full context
-3. **Immediate Execution** → Open Interpreter runs AI scenarios directly
-4. **QA Reporting** → Structured output with test results and artifacts
-
 ## Output Structure
 
-### Context Export (--generate-only mode)
+### Context Export
 
-When using `--generate-only`, TAP exports comprehensive context files:
+TAP exports comprehensive context files for human review:
 
 - `pr-analysis.json` - Complete PR analysis with diffs and metadata
 - `jira-context.json` - Business context from Jira ticket (if available)
