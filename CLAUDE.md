@@ -12,18 +12,20 @@ TAP (Testing Assistant Project) is a Bun-based CLI tool that uses AI-powered tes
 
 ```bash
 # Human-in-the-loop workflow (recommended)
-bun run start test-pr <pr-url> --generate-only    # Generate AI scenarios + export context
+bun run start generate-tests <pr-url>              # Generate AI scenarios + export context
 bun run start execute-scenarios --file <refined>   # Execute refined scenarios
 
-# Direct execution
-bun run start test-pr <pr-url>                     # Full execution without review
+# Direct execution (combines generation + execution)
+# Note: Use generate-tests + execute-scenarios for recommended human-in-the-loop workflow
 
 # Development and setup
 bun run dev                                        # Development with file watching
 bun run start setup                               # Setup and configuration (interactive, required)
 
 # Setup options for test execution
-bun run start test-pr <pr-url> --setup            # Add PR-specific setup instructions
+bun run start generate-tests <pr-url> --setup     # Add PR-specific setup instructions
+# For direct execution, chain the commands:
+# bun run start generate-tests <pr-url> && bun run start execute-scenarios --file ./test-pr-*/generated-scenarios.json
 bun run start execute-scenarios --file <refined> --setup  # Add session-specific setup
 ```
 
@@ -54,7 +56,7 @@ bun run lint
 ### Core Structure
 
 - `src/main.ts` - CLI entry point using Commander.js framework
-- `src/commands/` - Command implementations (test-pr, execute-scenarios, setup)
+- `src/commands/` - Command implementations (generate-tests, execute-scenarios, setup)
 - `src/services/` - Business logic services
 
 ### Key Services
@@ -162,12 +164,12 @@ Example:
 3. Click 'Admin Panel' in top menu to access admin features
 ```
 
-#### 2. PR-Specific Setup (Optional - use `--setup` flag with test-pr)
+#### 2. PR-Specific Setup (Optional - use `--setup` flag with generate-tests)
 
 ```
 Example:
 • This PR requires running: npm run build
-• New feature flag: FEATURE_X=true  
+• New feature flag: FEATURE_X=true
 • Test with port 3001 instead of default 3000
 • Download build artifact from GitHub Actions run #123
 ```
@@ -195,10 +197,10 @@ Example:
 
 ```bash
 # Step 1: Generate AI scenarios and export context for review
-bun run start test-pr <pr-url> --generate-only    # Creates ./test-pr-{PR-number}-{commit-sha}/ directory
+bun run start generate-tests <pr-url>             # Creates ./test-pr-{PR-number}-{commit-sha}/ directory
 
 # Step 1 with PR-specific setup (optional)
-bun run start test-pr <pr-url> --generate-only --setup  # Prompts for PR-specific setup instructions
+bun run start generate-tests <pr-url> --setup     # Prompts for PR-specific setup instructions
 
 # Step 2: Use Claude Code to refine scenarios interactively
 # Run the generated interactive helper script:
@@ -211,11 +213,11 @@ bun run start execute-scenarios --file ./test-pr-{PR-number}-{commit-sha}/refine
 bun run start execute-scenarios --file ./test-pr-{PR-number}-{commit-sha}/refined-scenarios.json --setup
 
 # Alternative: Direct execution (no human review)
-bun run start test-pr <pr-url>                    # Full execution with AI scenarios
-bun run start test-pr <pr-url> --setup            # Direct execution with PR-specific setup
+# Chain commands for immediate execution:
+bun run start generate-tests <pr-url> && bun run start execute-scenarios --file ./test-pr-*/generated-scenarios.json
 
 # Custom output directory (overrides default naming)
-bun run start test-pr <pr-url> --generate-only --output ./custom-dir
+bun run start generate-tests <pr-url> --output ./custom-dir
 ```
 
 ## TypeScript Configuration

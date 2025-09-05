@@ -14,7 +14,7 @@ Testing a PR that adds user authentication with password reset functionality.
 
 ```bash
 # Generate intelligent test scenarios with full context export
-bun run start test-pr https://github.com/bitwarden/clients/pull/15957 --generate-only --output ./15957-pr-context
+bun run start generate-tests https://github.com/bitwarden/clients/pull/15957 --output ./15957-pr-context
 
 # Output shows:
 # 🤖 AI-generated 6 intelligent test scenarios
@@ -129,7 +129,8 @@ Simple bug fix that needs quick validation without detailed review.
 
 ```bash
 # Direct execution with AI scenarios (no human review)
-bun run start test-pr https://github.com/company/repo/pull/143
+# Chain commands for immediate execution:
+bun run start generate-tests https://github.com/company/repo/pull/143 && bun run start execute-scenarios --file ./test-pr-*/generated-scenarios.json
 
 # Output:
 # 🤖 AI-generated 4 intelligent test scenarios
@@ -145,7 +146,7 @@ Claude CLI is not installed or authenticated.
 
 ```bash
 # Command will fail with helpful error message
-bun run start test-pr https://github.com/company/repo/pull/145 --generate-only
+bun run start generate-tests https://github.com/company/repo/pull/145
 
 # Output shows:
 # ❌ AI test generation failed:

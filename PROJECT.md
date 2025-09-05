@@ -58,7 +58,7 @@ Developer Machine
 
 ### Execution Flow (Human-in-the-Loop)
 
-1. **Context Generation**: `bun run start test-pr <pr-url> --generate-only`
+1. **Context Generation**: `bun run start generate-tests <pr-url>`
    - TAP fetches PR diffs and metadata via GitHub API
    - Fetches Jira context and Confluence documentation directly
    - Uses Claude CLI to generate intelligent test scenarios
@@ -110,7 +110,7 @@ testing-assistant-project/
 
 ```bash
 # Step 1: Generate AI scenarios and export context
-bun run start test-pr <pr-url> --generate-only    # Creates ./{PR-number}-{commit-sha}/ directory
+bun run start generate-tests <pr-url>             # Creates ./{PR-number}-{commit-sha}/ directory
 
 # Step 2: Review with Claude Code (in separate terminal)
 claude-code
@@ -124,17 +124,18 @@ bun run start execute-scenarios --file ./refined-scenarios.json
 
 ```bash
 # Execute immediately with AI-generated scenarios (no human review)
-bun run start test-pr <pr-url>
+# Chain commands for immediate execution:
+bun run start generate-tests <pr-url> && bun run start execute-scenarios --file ./test-pr-*/generated-scenarios.json
 
 # Generate scenarios and export context for review (creates ./{PR-number}-{commit-sha}/ directory)
-bun run start test-pr <url> --generate-only
+bun run start generate-tests <url>
 ```
 
 #### Option 3: Compiled Executable
 
 ```bash
 bun run build:all
-./dist/tap test-pr <url> --generate-only
+./dist/tap generate-tests <url>
 ./dist/tap execute-scenarios --file <refined.json>
 ```
 
@@ -277,7 +278,7 @@ export ATLASSIAN_BASE_URL="https://company.atlassian.net"
 ```bash
 cd tap
 bun run start setup          # Initial configuration
-bun run start test-pr <url>  # Test a PR
+bun run start generate-tests <url>  # Generate test scenarios for a PR
 ```
 
 ## Key Features Implemented

@@ -52,7 +52,7 @@ bun run start setup
 
 ```bash
 # Step 1: Generate AI scenarios and export context for review
-bun run start test-pr <pr-url> --generate-only    # Creates ./{PR-number}-{commit-sha}/ directory
+bun run start generate-tests <pr-url>             # Creates ./{PR-number}-{commit-sha}/ directory
 
 # Step 2: Review and refine scenarios
 # Option A: Use the auto-generated helper script
@@ -67,17 +67,18 @@ bun run start execute-scenarios --file ./refined-scenarios.json
 
 ```bash
 # Execute immediately with AI-generated scenarios (no human review)
-bun run start test-pr <pr-url>
+# Chain generate-tests + execute-scenarios commands:
+bun run start generate-tests <pr-url> && bun run start execute-scenarios --file ./test-pr-*/generated-scenarios.json
 
 # Enable detailed logging
-bun run start test-pr <url> --verbose
+bun run start generate-tests <url> --verbose
 
 # Custom output directory (overrides default {PR-number}-{commit-sha} naming)
-bun run start test-pr <url> --output ./custom-output
+bun run start generate-tests <url> --output ./custom-output
 
 # Or use compiled executable
 bun run build
-./dist/tap test-pr <url>
+./dist/tap generate-tests <url>
 ```
 
 ## Available Commands
@@ -99,7 +100,7 @@ bun run clean                 # Clean build artifacts
 
 ## Command Options
 
-### test-pr
+### generate-tests
 
 - `<pr-url>` - GitHub PR URL (required)
 - `--generate-only` - Generate scenarios and export context for Claude Code review
@@ -267,7 +268,7 @@ Use the `--verbose` flag to enable detailed logging that includes:
 ### Core Structure
 
 - `src/main.ts` - CLI entry point using Commander.js framework
-- `src/commands/` - Command implementations (test-pr, execute-scenarios, setup)
+- `src/commands/` - Command implementations (generate-tests, execute-scenarios, setup)
 - `src/services/` - Business logic services
 
 ### Key Services

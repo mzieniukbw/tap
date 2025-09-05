@@ -40,7 +40,6 @@ export class OpenInterpreterExecutor {
     this.contextExporter = new ContextExporter();
   }
 
-
   async executeScenarios(
     scenarios: TestScenario[],
     outputDir: string,
@@ -153,11 +152,13 @@ export class OpenInterpreterExecutor {
       const interpreterService = InterpreterService.getInstance();
       const interpreterPath = await interpreterService.resolveInterpreterPath();
 
-      console.log(`    🔧 Running: ${interpreterPath} --os --model claude-3.5-sonnet --auto_run --stdin`);
+      console.log(
+        `    🔧 Running: ${interpreterPath} --os --model claude-3.5-sonnet --auto_run --stdin`
+      );
 
       const configService = ConfigService.getInstance();
       const anthropicApiKey = await configService.getAnthropicApiKey();
-      
+
       if (!anthropicApiKey) {
         throw new Error(
           "ANTHROPIC_API_KEY not found. Please configure it via 'tap setup' or set the ANTHROPIC_API_KEY environment variable."
@@ -175,32 +176,39 @@ export class OpenInterpreterExecutor {
       }
 
       return new Promise((resolve, reject) => {
-        const child = spawn(interpreterPath, ['--os', '--model', 'claude-3.5-sonnet', '--auto_run', '--stdin'], {
-          cwd: workingDir,
-          env: interpreterEnv,
-          stdio: ['pipe', 'pipe', 'pipe']
-        });
+        const child = spawn(
+          interpreterPath,
+          ["--os", "--model", "claude-3.5-sonnet", "--auto_run", "--stdin"],
+          {
+            cwd: workingDir,
+            env: interpreterEnv,
+            stdio: ["pipe", "pipe", "pipe"],
+          }
+        );
 
-        let stdout = '';
-        let stderr = '';
+        let stdout = "";
+        let stderr = "";
 
         // Set up timeout
-        const timeout = setTimeout(() => {
-          child.kill('SIGTERM');
-          reject(new Error('Open Interpreter execution timed out after 10 minutes'));
-        }, 10 * 60 * 1000); // 10 minutes timeout
+        const timeout = setTimeout(
+          () => {
+            child.kill("SIGTERM");
+            reject(new Error("Open Interpreter execution timed out after 10 minutes"));
+          },
+          10 * 60 * 1000
+        ); // 10 minutes timeout
 
-        child.stdout?.on('data', (data) => {
+        child.stdout?.on("data", (data) => {
           stdout += data.toString();
         });
 
-        child.stderr?.on('data', (data) => {
+        child.stderr?.on("data", (data) => {
           stderr += data.toString();
         });
 
-        child.on('close', async (code) => {
+        child.on("close", async (code) => {
           clearTimeout(timeout);
-          
+
           try {
             // Save execution logs
             await writeFile(`${workingDir}/execution-stdout.log`, stdout, "utf-8");
@@ -218,7 +226,7 @@ export class OpenInterpreterExecutor {
           }
         });
 
-        child.on('error', (error) => {
+        child.on("error", (error) => {
           clearTimeout(timeout);
           reject(error);
         });

@@ -4,12 +4,11 @@ import { existsSync } from "fs";
 import { ContextGatheringService } from "../services/context-gathering";
 import { AITestScenarioGenerator } from "../services/ai-test-generator";
 import { ContextExporter } from "../services/context-exporter";
-import { TestExecutionService } from "../services/test-execution";
 import { GitHubService } from "../services/github";
 
-async function executePRTest(prUrl: string, options: any) {
+async function executeGenerateTests(prUrl: string, options: any) {
   const startTime = Date.now();
-  console.log(chalk.blue("🔍 Testing Assistant Project - PR Analysis"));
+  console.log(chalk.blue("🔍 Testing Assistant Project - Test Generation"));
   console.log(chalk.gray("=".repeat(50)));
 
   if (options.verbose) {
@@ -117,63 +116,47 @@ async function executePRTest(prUrl: string, options: any) {
       console.log(chalk.gray(`Step 2 completed in ${Date.now() - step2Start}ms`));
     }
 
-    // Export context for Claude Code review if --generate-only mode
-    if (options.generateOnly) {
-      console.log(chalk.yellow("📤 Exporting context for Claude Code review..."));
+    // Export context for Claude Code review
+    console.log(chalk.yellow("📤 Exporting context for Claude Code review..."));
 
-      const exporter = new ContextExporter();
-      const contextData = {
-        prAnalysis,
-        jiraContext,
-        confluencePages,
-        onyxContext,
-        generatedScenarios: scenarios,
-        aiSummary,
-        metadata: {
-          exportedAt: new Date().toISOString(),
-          tapVersion: "1.1.0",
-          totalScenarios: scenarios.length,
-        },
-      };
-
-      const exportedFiles = await exporter.exportFullContext(contextData, outputDir);
-
-      console.log(chalk.green("✅ Context exported successfully!"));
-      console.log(chalk.blue(`\n📁 Files created in ${outputDir}:`));
-      exportedFiles.forEach((file) => {
-        console.log(`  • ${file}`);
-      });
-
-      console.log(chalk.blue(`\n🤖 Next steps:`));
-      console.log(
-        `  1. Use Claude Code to refine scenarios based on full context by running: ${outputDir}/claude-refine.sh`
-      );
-      console.log(
-        `  2. Execute your refined test scenarios: tap execute-scenarios --file ${outputDir}/refined-scenarios.json`
-      );
-
-      console.log(chalk.gray(`\n💡 AI Summary:`));
-      console.log(chalk.gray(aiSummary));
-
-      if (options.verbose) {
-        console.log(chalk.gray(`Total execution time: ${Date.now() - startTime}ms`));
-      }
-      return;
-    }
-
-    // Step 3: Execute tests with shared execution service
-    const executionService = new TestExecutionService();
-    await executionService.executeTestScenarios({
+    const exporter = new ContextExporter();
+    const contextData = {
       prAnalysis,
       jiraContext,
       confluencePages,
       onyxContext,
-      scenarios,
-      outputDir: outputDir,
-      verbose: options.verbose,
+      generatedScenarios: scenarios,
+      aiSummary,
+      metadata: {
+        exportedAt: new Date().toISOString(),
+        tapVersion: "1.1.0",
+        totalScenarios: scenarios.length,
+      },
+    };
+
+    const exportedFiles = await exporter.exportFullContext(contextData, outputDir);
+
+    console.log(chalk.green("✅ Context exported successfully!"));
+    console.log(chalk.blue(`\n📁 Files created in ${outputDir}:`));
+    exportedFiles.forEach((file) => {
+      console.log(`  • ${file}`);
     });
+
+    console.log(chalk.blue(`\n🚀 Next step:`));
+    console.log(
+      `  Execute your test scenarios: ${chalk.cyan(`tap execute-scenarios --file ${outputDir}/refined-scenarios.json`)}`
+    );
+    console.log(chalk.gray(`\n💡 Optional: Use Claude Code to refine scenarios first:`));
+    console.log(chalk.gray(`  Run: ${outputDir}/claude-refine.sh`));
+
+    console.log(chalk.gray(`\n💡 AI Summary:`));
+    console.log(chalk.gray(aiSummary));
+
+    if (options.verbose) {
+      console.log(chalk.gray(`Total execution time: ${Date.now() - startTime}ms`));
+    }
   } catch (error) {
-    console.error(chalk.red("❌ Error during PR testing:"));
+    console.error(chalk.red("❌ Error during test generation:"));
     if (options.verbose) {
       console.error(chalk.gray(`Error occurred at: ${new Date().toISOString()}`));
       console.error(chalk.gray(`Total runtime before error: ${Date.now() - startTime}ms`));
@@ -192,14 +175,13 @@ async function executePRTest(prUrl: string, options: any) {
   }
 }
 
-export const testPRCommand = new Command("test-pr")
-  .description("Analyze and test a GitHub PR")
+export const generateTestsCommand = new Command("generate-tests")
+  .description("Generate AI test scenarios from a GitHub PR (no execution)")
   .argument("<pr-url>", "GitHub PR URL")
-  .option("--generate-only", "Generate scenarios and export context for Claude Code review")
   .option(
     "--output <path>",
-    "Output directory for test artifacts (default: ./{PR-number}-{commit-sha})"
+    "Output directory for test artifacts (default: ./test-pr-{PR-number}-{commit-sha})"
   )
   .option("--setup", "Prompt for PR-specific setup instructions")
   .option("--verbose", "Enable detailed logging")
-  .action(executePRTest);
+  .action(executeGenerateTests);

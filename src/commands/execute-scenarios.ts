@@ -47,13 +47,15 @@ async function validateTestExecutionPrerequisites(verbose?: boolean): Promise<vo
   // 2. Check if ANTHROPIC_API_KEY is configured
   const configService = ConfigService.getInstance();
   const anthropicApiKey = await configService.getAnthropicApiKey();
-  
+
   if (!anthropicApiKey) {
     console.error(chalk.red("❌ ANTHROPIC_API_KEY not found"));
     console.log(chalk.yellow("Open Interpreter requires an Anthropic API key for test execution."));
     console.log(chalk.yellow("Please configure your API key:"));
     console.log(chalk.gray("  1. Run 'tap setup' and configure it during setup, OR"));
-    console.log(chalk.gray("  2. Set environment variable: export ANTHROPIC_API_KEY=your_api_key_here"));
+    console.log(
+      chalk.gray("  2. Set environment variable: export ANTHROPIC_API_KEY=your_api_key_here")
+    );
     console.log(chalk.gray("Get your API key from: https://console.anthropic.com/"));
     process.exit(1);
   }
@@ -84,10 +86,11 @@ async function collectSetupInstructions(options: any): Promise<{
         type: "editor",
         name: "prSetup",
         message: "Enter PR-specific setup instructions (or leave empty to skip):",
-        default: "Example:\n• This PR requires running: npm run build\n• New feature flag: FEATURE_X=true\n• Test with port 3001 instead of 3000",
+        default:
+          "Example:\n• This PR requires running: npm run build\n• New feature flag: FEATURE_X=true\n• Test with port 3001 instead of 3000",
       },
     ]);
-    
+
     if (prSetup.trim()) {
       prSpecificSetupInstructions = prSetup.trim();
     }
@@ -143,9 +146,19 @@ async function executeScenarios(options: any) {
     console.log(chalk.gray(`Scenarios file: ${options.file}`));
     console.log(chalk.gray(`Output directory: ${options.output}`));
     console.log(chalk.gray(`Started at: ${new Date(startTime).toISOString()}`));
-    console.log(chalk.gray(`Base setup: ${setupInstructions.baseSetupInstructions ? 'Configured' : 'None'}`));
-    console.log(chalk.gray(`PR-specific setup: ${setupInstructions.prSpecificSetupInstructions ? 'Provided' : 'None'}`));
-    console.log(chalk.gray(`Session setup: ${setupInstructions.sessionSetupInstructions ? 'Provided' : 'None'}`));
+    console.log(
+      chalk.gray(`Base setup: ${setupInstructions.baseSetupInstructions ? "Configured" : "None"}`)
+    );
+    console.log(
+      chalk.gray(
+        `PR-specific setup: ${setupInstructions.prSpecificSetupInstructions ? "Provided" : "None"}`
+      )
+    );
+    console.log(
+      chalk.gray(
+        `Session setup: ${setupInstructions.sessionSetupInstructions ? "Provided" : "None"}`
+      )
+    );
   }
 
   try {
@@ -310,8 +323,14 @@ async function loadOriginalContext(
 
 export const executeScenariosCommand = new Command("execute-scenarios")
   .description("Execute test scenarios from a file using Open Interpreter (requires 'os' extra)")
-  .option("--file <path>", "Path to JSON file containing test scenarios (e.g., ./test-pr-{PR-number}-{commit-sha}/generated-scenarios.json)")
-  .option("--output <path>", "Output directory for test artifacts (default: same directory as scenarios file)")
+  .option(
+    "--file <path>",
+    "Path to JSON file containing test scenarios (e.g., ./test-pr-{PR-number}-{commit-sha}/generated-scenarios.json)"
+  )
+  .option(
+    "--output <path>",
+    "Output directory for test artifacts (default: same directory as scenarios file)"
+  )
   .option("--setup", "Prompt for session-specific setup instructions")
   .option("--verbose", "Enable detailed logging")
   .action(executeScenarios);

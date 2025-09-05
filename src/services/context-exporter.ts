@@ -476,22 +476,23 @@ rm -f interactive-prompt.txt
     // Build setup instructions section
     let setupSection = "";
     if (context?.setupInstructions) {
-      const { baseSetupInstructions, prSpecificSetupInstructions, sessionSetupInstructions } = context.setupInstructions;
-      
+      const { baseSetupInstructions, prSpecificSetupInstructions, sessionSetupInstructions } =
+        context.setupInstructions;
+
       setupSection = "\n\n**SETUP INSTRUCTIONS - Execute these first:**\n\n";
-      
+
       if (baseSetupInstructions) {
         setupSection += `**App Setup (from configuration):**\n${baseSetupInstructions}\n\n`;
       }
-      
+
       if (prSpecificSetupInstructions) {
         setupSection += `**PR-Specific Setup:**\n${prSpecificSetupInstructions}\n\n`;
       }
-      
+
       if (sessionSetupInstructions) {
         setupSection += `**Session-Specific Setup:**\n${sessionSetupInstructions}\n\n`;
       }
-      
+
       setupSection += "**After completing setup, proceed with the test scenario below:**\n\n";
     }
 

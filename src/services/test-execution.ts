@@ -23,8 +23,16 @@ export interface TestExecutionContext {
 
 export class TestExecutionService {
   async executeTestScenarios(context: TestExecutionContext): Promise<void> {
-    const { scenarios, outputDir, verbose, prAnalysis, jiraContext, confluencePages, onyxContext, setupInstructions } =
-      context;
+    const {
+      scenarios,
+      outputDir,
+      verbose,
+      prAnalysis,
+      jiraContext,
+      confluencePages,
+      onyxContext,
+      setupInstructions,
+    } = context;
     const startTime = Date.now();
 
     // Step 1: Execute tests with Open Interpreter

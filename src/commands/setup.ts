@@ -82,8 +82,10 @@ async function executeSetup(options: any) {
       {
         type: "editor",
         name: "appSetupInstructions",
-        message: "App Setup Instructions (required - describe how to open/access your app for testing):\n",
-        default: "Example:\n1. Navigate to https://myapp.com\n2. If logged out, use test account: testuser@company.com / TestPass123\n3. Click 'Dashboard' to access main features",
+        message:
+          "App Setup Instructions (required - describe how to open/access your app for testing):\n",
+        default:
+          "Example:\n1. Navigate to https://myapp.com\n2. If logged out, use test account: testuser@company.com / TestPass123\n3. Click 'Dashboard' to access main features",
         validate: (input: string) => {
           if (!input.trim()) {
             return "App setup instructions are required. Please provide instructions for how to access your application for testing.";
@@ -94,7 +96,8 @@ async function executeSetup(options: any) {
       {
         type: "confirm",
         name: "configureAnthropic",
-        message: "Configure Anthropic API key for test execution? (optional - can also use ANTHROPIC_API_KEY env var)",
+        message:
+          "Configure Anthropic API key for test execution? (optional - can also use ANTHROPIC_API_KEY env var)",
         default: false,
       },
       {
@@ -169,7 +172,7 @@ async function executeSetup(options: any) {
     console.log(chalk.green("🎉 Setup completed successfully!"));
     console.log("");
     console.log(chalk.blue("Next steps:"));
-    console.log("  • Run 'tap test-pr <PR_URL>' to test a specific PR");
+    console.log("  • Run 'tap generate-tests <PR_URL>' to generate test scenarios for a PR");
   } catch (error) {
     console.error(chalk.red("❌ Setup failed:"));
     console.error(error);

@@ -164,7 +164,7 @@ jobs:
             tap setup
 
             # Test a GitHub PR
-            tap test-pr https://github.com/owner/repo/pull/123
+            tap generate-tests https://github.com/owner/repo/pull/123
 
             # Execute refined scenarios
             tap execute-scenarios --file ./scenarios.json
