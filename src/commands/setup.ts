@@ -1,90 +1,89 @@
 import { Command } from "commander";
 import chalk from "chalk";
 import inquirer from "inquirer";
-import { mkdir, access, writeFile, chmod } from "fs/promises";
-import { homedir } from "os";
-import { ConfigService } from "../services/config";
+import { ConfigFieldName, ConfigService } from "../services/config";
 import { InterpreterService } from "../services/interpreter";
 
 interface Config {
-  github: {
-    token: string;
+  github?: {
+    token?: string;
   };
-  atlassian: {
-    baseUrl: string;
-    email: string;
-    apiToken: string;
+  atlassian?: {
+    baseUrl?: string;
+    email?: string;
+    apiToken?: string;
   };
   onyx?: {
-    baseUrl: string;
-    apiKey: string;
+    baseUrl?: string;
+    apiKey?: string;
   };
-  appSetupInstructions: string;
+  appSetupInstructions?: string;
   anthropicApiKey?: string;
 }
 
-async function executeSetup(options: any) {
+async function executeSetup() {
   console.log(chalk.blue("🚀 Testing Assistant Project Setup"));
   console.log(chalk.gray("=".repeat(40)));
 
   try {
-    // Check if already set up
-    const configDir = homedir() + "/.tap";
-    const configExists = await access(configDir + "/config.json")
-      .then(() => true)
-      .catch(() => false);
-
-    if (configExists && !options.force) {
-      const { shouldContinue } = await inquirer.prompt([
-        {
-          type: "confirm",
-          name: "shouldContinue",
-          message: "TAP is already configured. Continue with setup?",
-          default: false,
-        },
-      ]);
-
-      if (!shouldContinue) {
-        console.log(chalk.gray("Setup cancelled."));
-        return;
-      }
-    }
+    const configService = ConfigService.getInstance();
 
     console.log(chalk.yellow("📝 Configuring TAP..."));
 
-    // Ensure config directory exists
-    await mkdir(configDir, { recursive: true });
+    // Collect configuration with smart detection
+    const answers: any = {};
+    const prompts: any[] = [];
 
-    // Collect configuration
-    const answers = await inquirer.prompt([
+    // Define field configurations to iterate over
+    const fieldConfigs: Array<{
+      field: ConfigFieldName;
+      displayName: string;
+      promptType: "input" | "password" | "editor";
+      message: string;
+      defaultMessage: string;
+      mask?: string;
+      defaultValue?: string;
+      validate?: (input: string) => boolean | string;
+      when?: (answers: any) => boolean;
+    }> = [
       {
-        type: "password",
-        name: "githubToken",
+        field: "githubToken",
+        displayName: "GitHub token",
+        promptType: "password",
         message: "GitHub Personal Access Token (with repo permissions):",
+        defaultMessage: "GitHub Personal Access Token",
         mask: "*",
       },
       {
-        type: "input",
-        name: "atlassianBaseUrl",
+        field: "atlassianBaseUrl",
+        displayName: "Atlassian Base URL",
+        promptType: "input",
         message: "Atlassian Base URL (e.g., https://company.atlassian.net):",
+        defaultMessage: "Atlassian Base URL",
       },
       {
-        type: "input",
-        name: "atlassianEmail",
+        field: "atlassianEmail",
+        displayName: "Atlassian Email",
+        promptType: "input",
         message: "Atlassian Email:",
+        defaultMessage: "Atlassian Email",
       },
       {
-        type: "password",
-        name: "atlassianApiToken",
+        field: "atlassianApiToken",
+        displayName: "Atlassian API Token",
+        promptType: "password",
         message: "Atlassian API Token:",
+        defaultMessage: "Atlassian API Token",
         mask: "*",
       },
       {
-        type: "editor",
-        name: "appSetupInstructions",
+        field: "appSetupInstructions",
+        displayName: "App Setup Instructions",
+        promptType: "editor",
         message:
           "App Setup Instructions (required - describe how to open/access your app for testing):\n",
-        default:
+        defaultMessage: "App Setup Instructions",
+        defaultValue:
           "Example:\n1. Navigate to https://myapp.com\n2. If logged out, use test account: testuser@company.com / TestPass123\n3. Click 'Dashboard' to access main features",
         validate: (input: string) => {
           if (!input.trim()) {
@@ -94,77 +93,232 @@ async function executeSetup(options: any) {
         },
       },
       {
-        type: "confirm",
-        name: "configureAnthropic",
-        message:
-          "Configure Anthropic API key for test execution? (optional - can also use ANTHROPIC_API_KEY env var)",
-        default: false,
-      },
-      {
-        type: "password",
-        name: "anthropicApiKey",
-        message: "Anthropic API Key:",
+        field: "anthropicApiKey",
+        displayName: "Anthropic API Key",
+        promptType: "password",
+        message: "Anthropic API Key (optional - for test execution):",
+        defaultMessage: "Anthropic API Key",
         mask: "*",
-        when: (answers) => answers.configureAnthropic,
       },
       {
-        type: "confirm",
-        name: "useOnyx",
-        message: "Configure Onyx AI for enhanced product context? (optional)",
-        default: false,
+        field: "onyxApiKey",
+        displayName: "Onyx AI API Key",
+        promptType: "password",
+        message: "Onyx AI API Key (optional - for enhanced product context):",
+        defaultMessage: "Onyx AI API Key",
+        mask: "*",
       },
-      {
+    ];
+
+    // Process each field configuration
+    for (const config of fieldConfigs) {
+      const status = await configService.getFieldStatus(config.field);
+
+      if (status.fromEnv) {
+        console.log(
+          chalk.green(`✅ ${config.displayName}: Using ${status.envVarName} environment variable`)
+        );
+      } else {
+        const promptConfig: any = {
+          type:
+            status.fromConfig && config.field === "appSetupInstructions"
+              ? "input"
+              : config.promptType,
+          name: config.field,
+          message: status.fromConfig
+            ? `${config.defaultMessage}: ${status.currentValue} [Press Enter to keep, or ${config.field === "appSetupInstructions" ? "'edit' to modify" : "type new value"}]:`
+            : config.message,
+          default: status.fromConfig ? "" : config.defaultValue,
+          filter: (input: string) => {
+            if (input.trim() === "" && status.fromConfig) {
+              return "KEEP_CURRENT";
+            }
+            if (
+              input.trim() === "edit" &&
+              status.fromConfig &&
+              config.field === "appSetupInstructions"
+            ) {
+              return "EDIT_CURRENT";
+            }
+            return input;
+          },
+        };
+
+        if (config.mask) {
+          promptConfig.mask = config.mask;
+        }
+
+        if (config.validate) {
+          promptConfig.validate = (input: string) => {
+            if (status.fromConfig && input.trim() === "") {
+              return true; // Keep current value
+            }
+            if (
+              status.fromConfig &&
+              input.trim() === "edit" &&
+              config.field === "appSetupInstructions"
+            ) {
+              return true; // Will trigger editor
+            }
+            return config.validate!(input);
+          };
+        }
+
+        if (config.when) {
+          promptConfig.when = config.when;
+        }
+
+        prompts.push(promptConfig);
+      }
+    }
+
+    // Handle Onyx Base URL separately since it depends on API key
+    const onyxBaseUrlStatusSeparate = await configService.getFieldStatus("onyxBaseUrl");
+    if (!onyxBaseUrlStatusSeparate.fromEnv) {
+      prompts.push({
         type: "input",
         name: "onyxBaseUrl",
-        message: "Onyx Base URL (e.g., https://your-onyx.company.com):",
-        default: "https://api.onyx.app",
-        when: (answers) => answers.useOnyx,
-      },
-      {
-        type: "password",
-        name: "onyxApiKey",
-        message: "Onyx AI API Key:",
-        mask: "*",
-        when: (answers) => answers.useOnyx,
-      },
-    ]);
+        message: onyxBaseUrlStatusSeparate.fromConfig
+          ? `Onyx Base URL: ${onyxBaseUrlStatusSeparate.currentValue} [Press Enter to keep, or type new value]:`
+          : "Onyx Base URL (e.g., https://your-onyx.company.com):",
+        default: onyxBaseUrlStatusSeparate.fromConfig ? "" : "https://api.onyx.app",
+        filter: (input: string) =>
+          input.trim() === "" && onyxBaseUrlStatusSeparate.fromConfig ? "KEEP_CURRENT" : input,
+        when: (answers: any) =>
+          answers.onyxApiKey && answers.onyxApiKey !== "" && answers.onyxApiKey !== "KEEP_CURRENT",
+      });
+    }
 
-    // Build config object
-    const config: Config = {
-      github: {
-        token: answers.githubToken,
-      },
-      atlassian: {
-        baseUrl: answers.atlassianBaseUrl,
-        email: answers.atlassianEmail,
-        apiToken: answers.atlassianApiToken,
-      },
-      appSetupInstructions: answers.appSetupInstructions,
+    // Run all prompts
+    if (prompts.length > 0) {
+      const promptAnswers = await inquirer.prompt(prompts);
+      Object.assign(answers, promptAnswers);
+    }
+
+    // Handle special case for app setup instructions "edit" trigger
+    if (answers.appSetupInstructions === "EDIT_CURRENT") {
+      const configFileValues = await configService.getConfigFileValues();
+      const currentInstructions = configFileValues?.appSetupInstructions || "";
+
+      const { editedInstructions } = await inquirer.prompt([
+        {
+          type: "editor",
+          name: "editedInstructions",
+          message: "Edit your app setup instructions:",
+          default: currentInstructions,
+          validate: (input: string) => {
+            if (!input.trim()) {
+              return "App setup instructions are required. Please provide instructions for how to access your application for testing.";
+            }
+            return true;
+          },
+        },
+      ]);
+
+      answers.appSetupInstructions = editedInstructions;
+    }
+
+    // Get existing config file values to merge with new values
+    const existingConfig = (await configService.getConfigFileValues()) || {};
+
+    // Helper function to get field value (either from answers or existing config)
+    const getFieldValue = (field: ConfigFieldName, answerKey: string): string => {
+      const answerValue = answers[answerKey];
+      if (answerValue === "KEEP_CURRENT") {
+        // Get value from existing config based on field path
+        switch (field) {
+          case "githubToken":
+            return existingConfig.github?.token || "";
+          case "atlassianBaseUrl":
+            return existingConfig.atlassian?.baseUrl || "";
+          case "atlassianEmail":
+            return existingConfig.atlassian?.email || "";
+          case "atlassianApiToken":
+            return existingConfig.atlassian?.apiToken || "";
+          case "appSetupInstructions":
+            return existingConfig.appSetupInstructions || "";
+          case "anthropicApiKey":
+            return existingConfig.anthropicApiKey || "";
+          case "onyxApiKey":
+            return existingConfig.onyx?.apiKey || "";
+          case "onyxBaseUrl":
+            return existingConfig.onyx?.baseUrl || "https://api.onyx.app";
+          default:
+            return "";
+        }
+      }
+      return answerValue || "";
     };
 
-    // Add Anthropic API key if provided
-    if (answers.configureAnthropic && answers.anthropicApiKey) {
-      config.anthropicApiKey = answers.anthropicApiKey;
+    // Build config from answers first
+    const tempConfig: Config = {
+      github: answers.githubToken
+        ? { token: getFieldValue("githubToken", "githubToken") }
+        : undefined,
+      atlassian:
+        answers.atlassianBaseUrl || answers.atlassianEmail || answers.atlassianApiToken
+          ? {
+              baseUrl: answers.atlassianBaseUrl
+                ? getFieldValue("atlassianBaseUrl", "atlassianBaseUrl")
+                : undefined,
+              email: answers.atlassianEmail
+                ? getFieldValue("atlassianEmail", "atlassianEmail")
+                : undefined,
+              apiToken: answers.atlassianApiToken
+                ? getFieldValue("atlassianApiToken", "atlassianApiToken")
+                : undefined,
+            }
+          : undefined,
+      appSetupInstructions: answers.appSetupInstructions
+        ? getFieldValue("appSetupInstructions", "appSetupInstructions")
+        : undefined,
+      anthropicApiKey: answers.anthropicApiKey
+        ? getFieldValue("anthropicApiKey", "anthropicApiKey")
+        : undefined,
+      onyx:
+        answers.onyxApiKey || answers.onyxBaseUrl
+          ? {
+              baseUrl: answers.onyxBaseUrl
+                ? getFieldValue("onyxBaseUrl", "onyxBaseUrl") || "https://api.onyx.app"
+                : undefined,
+              apiKey: answers.onyxApiKey ? getFieldValue("onyxApiKey", "onyxApiKey") : undefined,
+            }
+          : undefined,
+    };
+
+    // Clean up undefined fields first
+    Object.keys(tempConfig).forEach((key) => {
+      if (tempConfig[key as keyof Config] === undefined) {
+        delete tempConfig[key as keyof Config];
+      }
+    });
+
+    // Clean up nested undefined fields
+    if (tempConfig.atlassian) {
+      Object.keys(tempConfig.atlassian).forEach((key) => {
+        if (tempConfig.atlassian![key as keyof typeof tempConfig.atlassian] === undefined) {
+          delete tempConfig.atlassian![key as keyof typeof tempConfig.atlassian];
+        }
+      });
     }
 
-    // Add Onyx config if provided
-    if (answers.useOnyx && answers.onyxApiKey) {
-      config.onyx = {
-        baseUrl: answers.onyxBaseUrl || "https://api.onyx.app",
-        apiKey: answers.onyxApiKey,
-      };
+    if (tempConfig.onyx) {
+      Object.keys(tempConfig.onyx).forEach((key) => {
+        if (tempConfig.onyx![key as keyof typeof tempConfig.onyx] === undefined) {
+          delete tempConfig.onyx![key as keyof typeof tempConfig.onyx];
+        }
+      });
     }
 
-    // Save config
-    await writeFile(configDir + "/config.json", JSON.stringify(config, null, 2));
-    await chmod(configDir + "/config.json", 0o600);
+    // Save config using centralized method (automatically filters env variables)
+    const configFile = await ConfigService.writeConfigFile(tempConfig);
 
     console.log(chalk.green("✅ Configuration saved successfully!"));
-    console.log(chalk.gray(`Config location: ${configDir}/config.json`));
+    console.log(chalk.gray("Config location: " + configFile));
 
-    // Test connectivity
-    const configService = ConfigService.getInstance();
-    await configService.testConnectivity(config);
+    // Test connectivity - create a complete config object for testing
+    const testConfig = await configService.getConfig();
+    await configService.testConnectivity(testConfig);
 
     // Set up Open Interpreter
     await setupOpenInterpreter(configService);

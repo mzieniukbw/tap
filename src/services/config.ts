@@ -1,4 +1,4 @@
-import { readFile, access, writeFile, mkdir } from "fs/promises";
+import { readFile, access, writeFile, mkdir, chmod } from "fs/promises";
 import { homedir } from "os";
 import { join, dirname } from "path";
 import chalk from "chalk";
@@ -20,6 +20,27 @@ export interface TapConfig {
   openInterpreter?: InterpreterInfo;
   appSetupInstructions: string;
   anthropicApiKey?: string;
+}
+
+// Environment variable mapping with all supported fields
+const ENV_MAPPING = {
+  githubToken: "GITHUB_TOKEN",
+  atlassianBaseUrl: "ATLASSIAN_BASE_URL", 
+  atlassianEmail: "ATLASSIAN_EMAIL",
+  atlassianApiToken: "ATLASSIAN_API_TOKEN",
+  onyxBaseUrl: "ONYX_BASE_URL",
+  onyxApiKey: "ONYX_API_KEY",
+  anthropicApiKey: "ANTHROPIC_API_KEY",
+  appSetupInstructions: "TAP_APP_SETUP_INSTRUCTIONS",
+} as const;
+
+export type ConfigFieldName = keyof typeof ENV_MAPPING;
+
+export interface ConfigFieldStatus {
+  fromEnv: boolean;
+  fromConfig: boolean;
+  currentValue?: string; // masked for sensitive fields
+  envVarName?: string;
 }
 
 export class ConfigService {
@@ -297,14 +318,144 @@ export class ConfigService {
     return config.anthropicApiKey || null;
   }
 
-  // Save config to file
-  private async saveConfig(config: TapConfig): Promise<void> {
+  // Get configuration field status (env vs config file)
+  async getFieldStatus(field: ConfigFieldName): Promise<ConfigFieldStatus> {
+    const envVarName = ENV_MAPPING[field];
+    const fromEnv = !!process.env[envVarName];
+
+    // Get config file values without loading full config
+    const configFileValues = await this.getConfigFileValues();
+    let fromConfig = false;
+    let currentValue: string | undefined;
+
+    if (configFileValues) {
+      switch (field) {
+        case "githubToken":
+          fromConfig = !!configFileValues.github?.token;
+          currentValue = fromConfig ? "***" : undefined;
+          break;
+        case "atlassianBaseUrl":
+          fromConfig = !!configFileValues.atlassian?.baseUrl;
+          currentValue = configFileValues.atlassian?.baseUrl;
+          break;
+        case "atlassianEmail":
+          fromConfig = !!configFileValues.atlassian?.email;
+          currentValue = configFileValues.atlassian?.email;
+          break;
+        case "atlassianApiToken":
+          fromConfig = !!configFileValues.atlassian?.apiToken;
+          currentValue = fromConfig ? "***" : undefined;
+          break;
+        case "onyxBaseUrl":
+          fromConfig = !!configFileValues.onyx?.baseUrl;
+          currentValue = configFileValues.onyx?.baseUrl;
+          break;
+        case "onyxApiKey":
+          fromConfig = !!configFileValues.onyx?.apiKey;
+          currentValue = fromConfig ? "***" : undefined;
+          break;
+        case "anthropicApiKey":
+          fromConfig = !!configFileValues.anthropicApiKey;
+          currentValue = fromConfig ? "***" : undefined;
+          break;
+        case "appSetupInstructions":
+          fromConfig = !!configFileValues.appSetupInstructions;
+          currentValue = fromConfig ? "(configured)" : undefined;
+          break;
+      }
+    }
+
+    return {
+      fromEnv,
+      fromConfig,
+      currentValue,
+      envVarName,
+    };
+  }
+
+  // Get config file values only (without env fallback)
+  async getConfigFileValues(): Promise<Partial<TapConfig> | null> {
+    try {
+      const configPath = `${homedir()}/.tap/config.json`;
+      await access(configPath);
+      const configContent = await readFile(configPath, "utf-8");
+      const config = JSON.parse(configContent);
+      return config;
+    } catch {
+      return null;
+    }
+  }
+
+  // Filter out environment variables from config object
+  static filterEnvVariables(config: any): any {
+    const filteredConfig: any = { ...config };
+
+    // Remove GitHub config if env var exists
+    if (process.env.GITHUB_TOKEN && filteredConfig.github) {
+      delete filteredConfig.github;
+    }
+
+    // Handle Atlassian config
+    if (filteredConfig.atlassian) {
+      if (process.env.ATLASSIAN_BASE_URL) {
+        delete filteredConfig.atlassian.baseUrl;
+      }
+      if (process.env.ATLASSIAN_EMAIL) {
+        delete filteredConfig.atlassian.email;
+      }
+      if (process.env.ATLASSIAN_API_TOKEN) {
+        delete filteredConfig.atlassian.apiToken;
+      }
+      // Clean up empty atlassian object
+      if (!filteredConfig.atlassian.baseUrl && !filteredConfig.atlassian.email && !filteredConfig.atlassian.apiToken) {
+        delete filteredConfig.atlassian;
+      }
+    }
+
+    // Remove app setup instructions if env var exists
+    if (process.env.TAP_APP_SETUP_INSTRUCTIONS) {
+      delete filteredConfig.appSetupInstructions;
+    }
+
+    // Remove Anthropic API key if env var exists
+    if (process.env.ANTHROPIC_API_KEY) {
+      delete filteredConfig.anthropicApiKey;
+    }
+
+    // Handle Onyx config
+    if (filteredConfig.onyx) {
+      if (process.env.ONYX_BASE_URL) {
+        delete filteredConfig.onyx.baseUrl;
+      }
+      if (process.env.ONYX_API_KEY) {
+        delete filteredConfig.onyx.apiKey;
+      }
+      // Clean up empty onyx object
+      if (!filteredConfig.onyx.baseUrl && !filteredConfig.onyx.apiKey) {
+        delete filteredConfig.onyx;
+      }
+    }
+
+    return filteredConfig;
+  }
+
+  // Write config to file (filtering out environment variables)
+  static async writeConfigFile(config: any): Promise<string> {
     const configPath = join(homedir(), ".tap", "config.json");
+    const filteredConfig = ConfigService.filterEnvVariables(config);
 
     // Ensure directory exists
     await mkdir(dirname(configPath), { recursive: true });
 
-    // Write config file
-    await writeFile(configPath, JSON.stringify(config, null, 2), "utf-8");
+    // Write config file with proper permissions
+    await writeFile(configPath, JSON.stringify(filteredConfig, null, 2), "utf-8");
+    await chmod(configPath, 0o600);
+
+    return configPath;
+  }
+
+  // Save config to file (filtering out environment variables)
+  private async saveConfig(config: TapConfig): Promise<void> {
+    await ConfigService.writeConfigFile(config);
   }
 }
