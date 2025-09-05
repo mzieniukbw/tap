@@ -172,13 +172,13 @@ main() {
                 echo "Usage: $0 [OPTIONS]"
                 echo ""
                 echo "Options:"
-                echo "  --version VERSION     Install specific version (e.g., v1.0.0)"
+                echo "  --version VERSION     Install specific version"
                 echo "  --install-dir DIR     Install to custom directory (default: /usr/local/bin)"
                 echo "  --help                Show this help message"
                 echo ""
                 echo "Examples:"
                 echo "  $0                                    # Install latest version"
-                echo "  $0 --version v1.0.0                  # Install specific version"
+                echo "  $0 --version v1.1.0                  # Install specific version"
                 echo "  $0 --install-dir ~/.local/bin        # Install to custom directory"
                 exit 0
                 ;;

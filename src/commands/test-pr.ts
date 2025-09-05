@@ -131,7 +131,7 @@ async function executePRTest(prUrl: string, options: any) {
         aiSummary,
         metadata: {
           exportedAt: new Date().toISOString(),
-          tapVersion: "1.0.0",
+          tapVersion: "1.1.0",
           totalScenarios: scenarios.length,
         },
       };

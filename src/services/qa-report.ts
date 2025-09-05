@@ -49,7 +49,7 @@ export class QAReportGenerator {
       "🧪 QA TESTING NOTES",
       "=".repeat(50),
       `Generated: ${timestamp}`,
-      `Testing Assistant Project v1.0.0`,
+      `Testing Assistant Project v1.1.0`,
     ].join("\n");
   }
 

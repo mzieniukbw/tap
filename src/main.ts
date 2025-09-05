@@ -6,7 +6,7 @@ import { ConfigService } from "./services/config";
 import { homedir } from "os";
 import chalk from "chalk";
 
-const TAP_VERSION = "1.0.0";
+const TAP_VERSION = "1.1.0";
 
 const program = new Command()
   .name("tap")

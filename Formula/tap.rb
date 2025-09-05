@@ -1,7 +1,7 @@
 class Tap < Formula
   desc "Testing Assistant Project - AI-powered test generation from GitHub PRs and Jira tickets"
   homepage "https://github.com/mzieniuk/tap"
-  version "1.0.0"
+  version "1.1.0"
   
   on_macos do
     on_arm do
