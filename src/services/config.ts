@@ -12,7 +12,6 @@ export interface TapConfig {
   anthropicApiKey?: string;
   onyxBaseUrl?: string;
   onyxApiKey?: string;
-  openInterpreter?: string;
 }
 
 // Environment variable mapping with all supported fields
@@ -25,7 +24,6 @@ const ENV_MAPPING = {
   onyxApiKey: "ONYX_API_KEY",
   anthropicApiKey: "ANTHROPIC_API_KEY",
   appSetupInstructions: "TAP_APP_SETUP_INSTRUCTIONS",
-  openInterpreter: "OPEN_INTERPRETER_PATH",
 } as const;
 
 export type ConfigFieldName = keyof typeof ENV_MAPPING;
@@ -77,7 +75,6 @@ export class ConfigService {
       anthropicApiKey: envValues.anthropicApiKey || configFromFile?.anthropicApiKey,
       onyxBaseUrl: envValues.onyxBaseUrl || configFromFile?.onyxBaseUrl,
       onyxApiKey: envValues.onyxApiKey || configFromFile?.onyxApiKey,
-      openInterpreter: envValues.openInterpreter || configFromFile?.openInterpreter,
     };
 
     // Validate that required fields are present and show specific missing ones
@@ -97,7 +94,6 @@ export class ConfigService {
           "  • ONYX_API_KEY (for enhanced product context)\n" +
           "  • TAP_APP_SETUP_INSTRUCTIONS (app setup instructions)\n" +
           "  • ANTHROPIC_API_KEY (required for test execution)\n" +
-          "  • OPEN_INTERPRETER_PATH (path to interpreter binary)\n" +
           "\nInstall dependencies:\n" +
           "  • Claude CLI for AI test generation: npm install -g @anthropic-ai/claude-cli\n" +
           "  • Open Interpreter: Run 'tap setup' for automatic installation"
@@ -131,7 +127,6 @@ export class ConfigService {
       anthropicApiKey: process.env.ANTHROPIC_API_KEY,
       onyxBaseUrl: process.env.ONYX_BASE_URL,
       onyxApiKey: process.env.ONYX_API_KEY,
-      openInterpreter: process.env.OPEN_INTERPRETER_PATH,
     };
   }
 
@@ -258,20 +253,6 @@ export class ConfigService {
     return this.config;
   }
 
-  // Get Open Interpreter path
-  async getOpenInterpreterPath(): Promise<string | null> {
-    const config = await this.getConfig();
-    return config.openInterpreter || null;
-  }
-
-  // Save Open Interpreter path
-  async saveOpenInterpreterPath(interpreterPath: string): Promise<void> {
-    const config = await this.getConfig();
-    config.openInterpreter = interpreterPath;
-
-    await this.saveConfig(config);
-    this.config = config; // Update cached config
-  }
 
   // Get app setup instructions
   async getAppSetupInstructions(): Promise<string> {
@@ -357,7 +338,6 @@ export class ConfigService {
     if (process.env.ANTHROPIC_API_KEY) delete filteredConfig.anthropicApiKey;
     if (process.env.ONYX_BASE_URL) delete filteredConfig.onyxBaseUrl;
     if (process.env.ONYX_API_KEY) delete filteredConfig.onyxApiKey;
-    if (process.env.OPEN_INTERPRETER_PATH) delete filteredConfig.openInterpreter;
 
     return filteredConfig;
   }

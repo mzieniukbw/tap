@@ -99,14 +99,6 @@ async function executeSetup() {
         defaultMessage: "Onyx AI API Key",
         mask: "*",
       },
-      {
-        field: "openInterpreter",
-        displayName: "Open Interpreter Path",
-        promptType: "input",
-        message:
-          "Open Interpreter Path (optional - press Enter to skip, will auto-detect and offer installation next):",
-        defaultMessage: "Open Interpreter Path",
-      },
     ];
 
     // Process each field configuration
@@ -253,9 +245,6 @@ async function executeSetup() {
     }
     if (answers.onyxBaseUrl) {
       tempConfig.onyxBaseUrl = getFieldValue("onyxBaseUrl", "onyxBaseUrl");
-    }
-    if (answers.openInterpreter) {
-      tempConfig.openInterpreter = getFieldValue("openInterpreter", "openInterpreter");
     }
 
     // Save config using centralized method (automatically filters env variables)

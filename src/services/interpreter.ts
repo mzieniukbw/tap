@@ -18,7 +18,6 @@ export class InterpreterService {
   private cachedPath?: string;
   private tapDir = join(homedir(), ".tap");
   private interpreterDir = join(this.tapDir, "open-interpreter");
-  private interpreterBinary = join(this.interpreterDir, ".venv", "bin", "interpreter");
 
   static getInstance(): InterpreterService {
     if (!InterpreterService.instance) {
@@ -29,50 +28,22 @@ export class InterpreterService {
 
   /**
    * Resolve the path to the Open Interpreter executable
-   * Priority: OPEN_INTERPRETER_PATH env var > TAP config > global command
+   * Only supports TAP-managed installations for reliability
    */
   async resolveInterpreterPath(): Promise<string> {
     if (this.cachedPath) {
       return this.cachedPath;
     }
 
-    // 1. Check environment variable (highest priority)
-    const envPath = process.env.OPEN_INTERPRETER_PATH;
-    if (envPath) {
-      if (await this.validateInterpreterPath(envPath)) {
-        this.cachedPath = envPath;
-        return envPath;
-      } else {
-        console.warn(
-          chalk.yellow(`⚠️  OPEN_INTERPRETER_PATH points to invalid interpreter: ${envPath}`)
-        );
-      }
-    }
-
-    // 2. Check TAP config
-    const configPath = await this.getConfiguredPath();
-    if (configPath && (await this.validateInterpreterPath(configPath))) {
-      this.cachedPath = configPath;
-      return configPath;
-    }
-
-    // 3. Check TAP-managed installation
+    // Check TAP-managed installation
     const tapManagedPath = await this.getTapManagedInterpreterPath();
     if (tapManagedPath && (await this.validateInterpreterPath(tapManagedPath))) {
       this.cachedPath = tapManagedPath;
-      await this.saveToConfigIfNotFromEnv(tapManagedPath);
       return tapManagedPath;
     }
 
-    // 4. Fall back to global command
-    if (await this.validateInterpreterPath("interpreter")) {
-      this.cachedPath = "interpreter";
-      await this.saveToConfigIfNotFromEnv("interpreter");
-      return "interpreter";
-    }
-
     throw new Error(
-      "Open Interpreter not found. Run 'tap setup' to install it automatically or set OPEN_INTERPRETER_PATH."
+      "Open Interpreter not found. Run 'tap setup' to install it automatically."
     );
   }
 
@@ -165,6 +136,7 @@ export class InterpreterService {
       progress(chalk.blue("📥 Cloning Open Interpreter repository..."));
 
       try {
+        // TODO development branch ?
         await execAsync(
           `git clone https://github.com/openinterpreter/open-interpreter.git "${this.interpreterDir}"`
         );
@@ -220,7 +192,7 @@ export class InterpreterService {
 
     // Install with OS extras
     try {
-      await execAsync('poetry install --extras "os"', {
+      await execAsync('poetry install --extras=os', {
         cwd: this.interpreterDir,
         timeout: 5 * 60 * 1000, // 5 minutes timeout
       });
@@ -248,30 +220,6 @@ export class InterpreterService {
   }
 
   /**
-   * Check if TAP-managed installation exists and is working
-   */
-  async hasTapManagedInstallation(): Promise<boolean> {
-    return (
-      existsSync(this.interpreterBinary) &&
-      (await this.validateInterpreterPath(this.interpreterBinary))
-    );
-  }
-
-  /**
-   * Get configured interpreter path from TAP config
-   */
-  private async getConfiguredPath(): Promise<string | null> {
-    try {
-      const { ConfigService } = await import("./config");
-      const configService = ConfigService.getInstance();
-      return await configService.getOpenInterpreterPath();
-    } catch {
-      // Config not available or not configured
-      return null;
-    }
-  }
-
-  /**
    * Get TAP-managed interpreter path by detecting Poetry venv
    */
   private async getTapManagedInterpreterPath(): Promise<string | null> {
@@ -286,9 +234,7 @@ export class InterpreterService {
       const venvPath = stdout.trim();
 
       // Build interpreter path
-      const interpreterPath = join(venvPath, "bin", "interpreter");
-
-      return interpreterPath;
+      return join(venvPath, "bin", "interpreter");
     } catch {
       // Poetry not available or no venv configured
       return null;
@@ -296,49 +242,9 @@ export class InterpreterService {
   }
 
   /**
-   * Save interpreter path to config if not using environment variable
-   */
-  private async saveToConfigIfNotFromEnv(interpreterPath: string): Promise<void> {
-    try {
-      // Don't save if using environment variable
-      if (process.env.OPEN_INTERPRETER_PATH) {
-        return;
-      }
-
-      const { ConfigService } = await import("./config");
-      const configService = ConfigService.getInstance();
-      await configService.saveOpenInterpreterPath(interpreterPath);
-    } catch (error) {
-      // Config saving failed, but don't break the flow
-      console.warn(
-        chalk.yellow(
-          `⚠️  Failed to save interpreter path to config: ${error instanceof Error ? error.message : String(error)}`
-        )
-      );
-    }
-  }
-
-  /**
-   * Clear cached path (useful for testing or after configuration changes)
-   */
-  clearCache(): void {
-    this.cachedPath = undefined;
-  }
-
-  /**
    * Get the directory where TAP manages the Open Interpreter installation
    */
   getTapInterpreterDirectory(): string {
     return this.interpreterDir;
-  }
-
-  /**
-   * Remove TAP-managed Open Interpreter installation
-   */
-  async uninstall(): Promise<void> {
-    if (existsSync(this.interpreterDir)) {
-      await execAsync(`rm -rf "${this.interpreterDir}"`);
-      this.clearCache();
-    }
   }
 }

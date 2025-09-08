@@ -147,13 +147,13 @@ export class OpenInterpreterExecutor {
     return result;
   }
 
-  private async executeWithOpenInterpreter(prompt: string, workingDir: string): Promise<string> {
+  private async executeWithOpenInterpreter(prompt: string, outputDir: string): Promise<string> {
     try {
       const interpreterService = InterpreterService.getInstance();
       const interpreterPath = await interpreterService.resolveInterpreterPath();
 
       console.log(
-        `    🔧 Running: ${interpreterPath} --os --model claude-3.5-sonnet --auto_run --stdin`
+        `    🔧 Running: ${interpreterPath} --os --model claude-4-sonnet --auto_run --stdin`
       );
 
       const configService = ConfigService.getInstance();
@@ -176,15 +176,16 @@ export class OpenInterpreterExecutor {
       }
 
       return new Promise((resolve, reject) => {
-        const child = spawn(
-          interpreterPath,
-          ["--os", "--model", "claude-3.5-sonnet", "--auto_run", "--stdin"],
-          {
-            cwd: workingDir,
-            env: interpreterEnv,
-            stdio: ["pipe", "pipe", "pipe"],
-          }
-        );
+        // Use Poetry to run interpreter in the virtual environment
+        // This ensures the venv is properly activated with all OS tools in PATH
+        const interpreterDirectory = interpreterService.getTapInterpreterDirectory();
+        const args = ["run", "interpreter", "--os", "--model", "claude-4-sonnet", "--auto_run", "--stdin"];
+        
+        const child = spawn("poetry", args, {
+          cwd: interpreterDirectory,
+          env: { ...process.env, ...interpreterEnv },
+          stdio: ["pipe", "pipe", "pipe"],
+        });
 
         let stdout = "";
         let stderr = "";
@@ -211,9 +212,9 @@ export class OpenInterpreterExecutor {
 
           try {
             // Save execution logs
-            await writeFile(`${workingDir}/execution-stdout.log`, stdout, "utf-8");
+            await writeFile(`${outputDir}/execution-stdout.log`, stdout, "utf-8");
             if (stderr) {
-              await writeFile(`${workingDir}/execution-stderr.log`, stderr, "utf-8");
+              await writeFile(`${outputDir}/execution-stderr.log`, stderr, "utf-8");
             }
 
             if (code === 0) {
