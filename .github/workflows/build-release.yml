@@ -163,10 +163,10 @@ jobs:
             # Setup configuration
             tap setup
 
-            # Test a GitHub PR
+            # Generate test scenarios for a GitHub PR
             tap generate-tests https://github.com/owner/repo/pull/123
 
-            # Execute refined scenarios
+            # Execute refined scenarios (work in progress, might not work correctly)
             tap execute-scenarios --file ./scenarios.json
             ```
 
