@@ -1,0 +1,52 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:base"],
+  "timezone": "UTC",
+  "schedule": ["before 4am on Monday"],
+  "stabilityDays": 14,
+  "prConcurrentLimit": 3,
+  "prHourlyLimit": 2,
+  "packageRules": [
+    {
+      "description": "Security updates - immediate, ungrouped, high priority",
+      "matchPackagePatterns": ["*"],
+      "matchUpdateTypes": ["patch", "minor", "major"],
+      "vulnerabilitySeverity": ["low", "moderate", "high", "critical"],
+      "groupName": null,
+      "stabilityDays": 0,
+      "schedule": ["at any time"],
+      "prPriority": 10,
+      "labels": ["security"]
+    },
+    {
+      "description": "Group all production dependencies together",
+      "matchDepTypes": ["dependencies"],
+      "matchUpdateTypes": ["patch", "minor", "major"],
+      "groupName": "production dependencies",
+      "groupSlug": "prod-deps",
+      "stabilityDays": 14,
+      "labels": ["dependencies", "production"]
+    },
+    {
+      "description": "Group all dev dependencies together",
+      "matchDepTypes": ["devDependencies"],
+      "matchUpdateTypes": ["patch", "minor", "major"],
+      "groupName": "dev dependencies",
+      "groupSlug": "dev-deps",
+      "stabilityDays": 14,
+      "labels": ["dependencies", "development"]
+    }
+  ],
+  "vulnerabilityAlerts": {
+    "enabled": true,
+    "labels": ["security", "vulnerability"]
+  },
+  "commitMessagePrefix": "chore(deps):",
+  "commitMessageAction": "update",
+  "commitMessageTopic": "{{depName}}",
+  "semanticCommits": "enabled",
+  "dependencyDashboard": true,
+  "dependencyDashboardTitle": "🤖 Dependency Updates Dashboard",
+  "automerge": false,
+  "platformAutomerge": false
+}
