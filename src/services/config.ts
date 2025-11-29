@@ -96,7 +96,7 @@ export class ConfigService {
           "  • ANTHROPIC_API_KEY (required for test execution)\n" +
           "\nInstall dependencies:\n" +
           "  • Claude CLI for AI test generation: npm install -g @anthropic-ai/claude-cli\n" +
-          "  • Open Interpreter: Run 'tap setup' for automatic installation"
+          "  • CUA (Computer Use Agent): Run 'tap setup' for automatic installation"
       );
     }
 
@@ -360,5 +360,30 @@ export class ConfigService {
   // Save config to file (filtering out environment variables)
   private async saveConfig(config: TapConfig): Promise<void> {
     await ConfigService.writeConfigFile(config);
+  }
+
+  /**
+   * Validate that Anthropic API key is configured and display appropriate messages
+   * Exits process if API key is not found
+   * @param verbose Whether to show success message
+   */
+  async validateAnthropicApiKey(verbose?: boolean): Promise<void> {
+    const anthropicApiKey = await this.getAnthropicApiKey();
+
+    if (!anthropicApiKey) {
+      console.error(chalk.red("❌ ANTHROPIC_API_KEY not found"));
+      console.log(chalk.yellow("CUA requires an Anthropic API key for test execution."));
+      console.log(chalk.yellow("Please configure your API key:"));
+      console.log(chalk.gray("  1. Run 'tap setup' and configure it during setup, OR"));
+      console.log(
+        chalk.gray("  2. Set environment variable: export ANTHROPIC_API_KEY=your_api_key_here")
+      );
+      console.log(chalk.gray("Get your API key from: https://console.anthropic.com/"));
+      process.exit(1);
+    }
+
+    if (verbose) {
+      console.log(chalk.green("  ✅ ANTHROPIC_API_KEY configured"));
+    }
   }
 }

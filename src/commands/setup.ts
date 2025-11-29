@@ -2,7 +2,7 @@ import { Command } from "commander";
 import chalk from "chalk";
 import inquirer from "inquirer";
 import { ConfigFieldName, ConfigService, TapConfig } from "../services/config";
-import { InterpreterService } from "../services/interpreter";
+import { ComputerUseService } from "../services/computer-use";
 
 async function executeSetup() {
   console.log(chalk.blue("🚀 Testing Assistant Project Setup"));
@@ -257,8 +257,8 @@ async function executeSetup() {
     const testConfig = await configService.getConfig();
     await configService.testConnectivity(testConfig);
 
-    // Check if Open Interpreter installation is needed
-    await offerOpenInterpreterInstallation();
+    // Check if CUA installation is needed
+    await offerCuaInstallation();
 
     console.log(chalk.green("🎉 Setup completed successfully!"));
     console.log("");
@@ -271,77 +271,80 @@ async function executeSetup() {
   }
 }
 
-async function offerOpenInterpreterInstallation(): Promise<void> {
-  const interpreterService = InterpreterService.getInstance();
+async function offerCuaInstallation(): Promise<void> {
+  const cuaService = ComputerUseService.getInstance();
 
   try {
     // Check if already available
-    await interpreterService.resolveInterpreterPath();
+    await cuaService.resolveVenvPath();
+    await cuaService.resolveAgentScriptPath();
     // If we get here, it's already available
     return;
   } catch {
     // Not found, offer installation
   }
 
-  console.log(chalk.yellow("❌ Open Interpreter not found"));
+  console.log(chalk.yellow("❌ CUA (Computer Use Agent) not found"));
 
   // Check if user wants to install
   const { shouldInstall } = await inquirer.prompt([
     {
       type: "confirm",
       name: "shouldInstall",
-      message: "Install Open Interpreter with OS capabilities automatically?",
+      message: "Install CUA (Computer Use Agent) with Docker support automatically?",
       default: true,
     },
   ]);
 
   if (!shouldInstall) {
-    console.log(chalk.yellow("⚠️  Skipping Open Interpreter setup"));
-    console.log(chalk.gray("You can install it manually later or set OPEN_INTERPRETER_PATH"));
-    console.log(chalk.gray("See README.md for installation instructions"));
+    console.log(chalk.yellow("⚠️  Skipping CUA setup"));
+    console.log(chalk.gray("Run 'tap setup' again when you're ready to install CUA"));
     return;
   }
 
   // Check prerequisites
   console.log(chalk.blue("🔍 Checking prerequisites..."));
-  const prerequisites = await interpreterService.checkPrerequisites();
+  const prerequisites = await cuaService.checkPrerequisites();
 
-  if (!prerequisites.python311.available) {
-    console.log(chalk.red("❌ Python 3.11 not found"));
-    console.log(chalk.yellow("Please install Python 3.11 first:"));
+  if (!prerequisites.python.available) {
+    console.log(chalk.red("❌ Python 3.10+ not found"));
+    console.log(chalk.yellow("Please install Python 3.10 or higher first:"));
     console.log(chalk.gray("  • macOS: brew install python@3.11"));
     console.log(chalk.gray("  • Ubuntu: sudo apt install python3.11"));
     console.log(chalk.gray("  • Or use pyenv: pyenv install 3.11.0 && pyenv global 3.11.0"));
     return;
   }
 
-  if (!prerequisites.poetry.available) {
-    console.log(chalk.red("❌ Poetry not found"));
-    console.log(chalk.yellow("Please install Poetry first:"));
-    console.log(chalk.gray("  curl -sSL https://install.python-poetry.org | python3 -"));
-    console.log(chalk.gray("  Or see: https://python-poetry.org/docs/#installation"));
+  console.log(chalk.green(`✅ Python: ${prerequisites.python.version}`));
+
+  if (!prerequisites.docker.available) {
+    console.log(chalk.red("❌ Docker not found"));
+    console.log(chalk.yellow("Docker is required for CUA test execution."));
+    console.log(chalk.yellow("Please install Docker first:"));
+    console.log(chalk.gray("  • macOS: Install Docker Desktop (https://www.docker.com/products/docker-desktop)"));
+    console.log(chalk.gray("  • Linux: sudo apt install docker.io (or equivalent for your distro)"));
+    console.log(chalk.gray("  • Windows: Install Docker Desktop with WSL2 backend"));
+    console.log(chalk.gray("\nAfter installing Docker, run 'tap setup' again."));
     return;
   }
 
-  console.log(chalk.green(`✅ Python: ${prerequisites.python311.version}`));
-  console.log(chalk.green(`✅ Poetry: ${prerequisites.poetry.version}`));
+  console.log(chalk.green(`✅ Docker: ${prerequisites.docker.version}`));
 
-  // Install Open Interpreter
+  // Install CUA
   try {
-    console.log(chalk.blue("📦 Installing Open Interpreter with OS capabilities..."));
+    console.log(chalk.blue("📦 Installing CUA (Computer Use Agent)..."));
     console.log(chalk.gray("This may take a few minutes..."));
 
-    const installedPath = await interpreterService.installOpenInterpreter((message) => {
+    const installedPath = await cuaService.installCua((message) => {
       console.log(chalk.gray(`  ${message}`));
     });
 
-    console.log(chalk.green("✅ Open Interpreter installation completed!"));
-    console.log(chalk.gray(`Installed at: ${installedPath}`));
+    console.log(chalk.green("✅ CUA installation completed!"));
+    console.log(chalk.gray(`Python venv at: ${installedPath}`));
   } catch (error) {
-    console.error(chalk.red("❌ Failed to install Open Interpreter:"));
+    console.error(chalk.red("❌ Failed to install CUA:"));
     console.error(chalk.red(error instanceof Error ? error.message : String(error)));
-    console.log(chalk.yellow("You can try manual installation or set OPEN_INTERPRETER_PATH"));
-    console.log(chalk.gray("See README.md for installation instructions"));
+    console.log(chalk.yellow("Please ensure Python 3.10+ and Docker are installed, then run 'tap setup' again."));
   }
 }
 

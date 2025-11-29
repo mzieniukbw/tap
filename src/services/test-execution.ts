@@ -2,7 +2,7 @@ import chalk from "chalk";
 import { PRAnalysis } from "./github";
 import { TicketContext, ConfluencePage } from "./atlassian";
 import { TestScenario } from "./ai-test-generator";
-import { OpenInterpreterExecutor } from "./open-interpreter-executor";
+import { ComputerUseExecutor } from "./computer-use-executor";
 import { QAReportGenerator } from "./qa-report";
 import { OnyxContext } from "./onyx-context";
 
@@ -35,10 +35,10 @@ export class TestExecutionService {
     } = context;
     const startTime = Date.now();
 
-    // Step 1: Execute tests with Open Interpreter
-    console.log(chalk.yellow("🤖 Executing tests with Open Interpreter..."));
+    // Step 1: Execute tests with CUA (Computer Use Agent)
+    console.log(chalk.yellow("🤖 Executing tests with CUA (Computer Use Agent)..."));
     if (verbose) {
-      console.log(chalk.gray(`Initializing Open Interpreter executor...`));
+      console.log(chalk.gray(`Initializing CUA executor...`));
       console.log(chalk.gray(`Output directory: ${outputDir}`));
       console.log(chalk.gray(`Scenarios to execute: ${scenarios.length}`));
       if (setupInstructions) {
@@ -46,7 +46,7 @@ export class TestExecutionService {
       }
     }
 
-    const executor = new OpenInterpreterExecutor();
+    const executor = new ComputerUseExecutor();
     const step1Start = Date.now();
     const results = await executor.executeScenarios(scenarios, outputDir, {
       prAnalysis,

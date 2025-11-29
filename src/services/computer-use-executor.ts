@@ -2,7 +2,7 @@ import { TestScenario } from "./ai-test-generator";
 import { PRAnalysis } from "./github";
 import { TicketContext } from "./atlassian";
 import { ContextExporter } from "./context-exporter";
-import { InterpreterService } from "./interpreter";
+import { ComputerUseService } from "./computer-use";
 import { ConfigService } from "./config";
 import { mkdir, writeFile } from "fs/promises";
 import { spawn } from "child_process";
@@ -33,7 +33,7 @@ export interface Artifact {
   timestamp: string;
 }
 
-export class OpenInterpreterExecutor {
+export class ComputerUseExecutor {
   private contextExporter: ContextExporter;
 
   constructor() {
@@ -58,7 +58,7 @@ export class OpenInterpreterExecutor {
     }
 
     const results: TestResult[] = [];
-    console.log(`🤖 Executing ${scenarios.length} test scenarios with Open Interpreter...`);
+    console.log(`🤖 Executing ${scenarios.length} test scenarios with CUA Agent...`);
 
     for (let i = 0; i < scenarios.length; i++) {
       const scenario = scenarios[i];
@@ -91,8 +91,8 @@ export class OpenInterpreterExecutor {
     const timestamp = new Date().toISOString();
 
     // Create organized directory structure
-    const promptsDir = `${outputDir}/interpreter-prompts`;
-    const resultsDir = `${outputDir}/interpreter-results`;
+    const promptsDir = `${outputDir}/cua-prompts`;
+    const resultsDir = `${outputDir}/cua-results`;
     await mkdir(promptsDir, { recursive: true });
     await mkdir(resultsDir, { recursive: true });
 
@@ -116,9 +116,9 @@ export class OpenInterpreterExecutor {
       const promptFile = `${promptsDir}/${scenario.id}.txt`;
       await writeFile(promptFile, executionPrompt, "utf-8");
 
-      // Execute with Open Interpreter
-      console.log(`  🤖 Executing with Open Interpreter...`);
-      const executionResult = await this.executeWithOpenInterpreter(executionPrompt, outputDir);
+      // Execute with CUA Agent
+      console.log(`  🤖 Executing with CUA Agent (Docker + Claude Sonnet 4.5)...`);
+      const executionResult = await this.executeWithCuaAgent(executionPrompt, outputDir);
 
       // Parse execution results
       const parsedResults = this.parseExecutionResults(executionResult, scenario);
@@ -147,13 +147,14 @@ export class OpenInterpreterExecutor {
     return result;
   }
 
-  private async executeWithOpenInterpreter(prompt: string, outputDir: string): Promise<string> {
+  private async executeWithCuaAgent(prompt: string, outputDir: string): Promise<string> {
     try {
-      const interpreterService = InterpreterService.getInstance();
-      const interpreterPath = await interpreterService.resolveInterpreterPath();
+      const cuaService = ComputerUseService.getInstance();
+      const pythonPath = await cuaService.resolveVenvPath();
+      const scriptPath = await cuaService.resolveAgentScriptPath();
 
       console.log(
-        `    🔧 Running: ${interpreterPath} --os --model claude-4-sonnet --auto_run --stdin`
+        `    🔧 Running: ${pythonPath} ${scriptPath} (with Docker container + Claude Sonnet 4.5)`
       );
 
       const configService = ConfigService.getInstance();
@@ -165,39 +166,33 @@ export class OpenInterpreterExecutor {
         );
       }
 
-      // Build environment variables for interpreter
-      const interpreterEnv: Record<string, string> = {
+      // Build environment variables for CUA agent
+      const cuaEnv: Record<string, string> = {
         ANTHROPIC_API_KEY: anthropicApiKey,
       };
 
       // Add SSL_CERT_FILE if set (needed for corporate environments)
       if (process.env.SSL_CERT_FILE) {
-        interpreterEnv.SSL_CERT_FILE = process.env.SSL_CERT_FILE;
+        cuaEnv.SSL_CERT_FILE = process.env.SSL_CERT_FILE;
       }
 
       return new Promise((resolve, reject) => {
-        // Use Poetry to run interpreter in the virtual environment
-        // This ensures the venv is properly activated with all OS tools in PATH
-        const interpreterDirectory = interpreterService.getTapInterpreterDirectory();
-        const args = ["run", "interpreter", "--os", "--model", "claude-4-sonnet", "--auto_run", "--stdin"];
-        
-        const child = spawn("poetry", args, {
-          cwd: interpreterDirectory,
-          env: { ...process.env, ...interpreterEnv },
+        const child = spawn(pythonPath, [scriptPath], {
+          env: { ...process.env, ...cuaEnv },
           stdio: ["pipe", "pipe", "pipe"],
         });
 
         let stdout = "";
         let stderr = "";
 
-        // Set up timeout
+        // Set up timeout (15 minutes for Docker container setup + execution)
         const timeout = setTimeout(
           () => {
             child.kill("SIGTERM");
-            reject(new Error("Open Interpreter execution timed out after 10 minutes"));
+            reject(new Error("CUA Agent execution timed out after 15 minutes"));
           },
-          10 * 60 * 1000
-        ); // 10 minutes timeout
+          15 * 60 * 1000
+        );
 
         child.stdout?.on("data", (data) => {
           stdout += data.toString();
@@ -205,6 +200,13 @@ export class OpenInterpreterExecutor {
 
         child.stderr?.on("data", (data) => {
           stderr += data.toString();
+          // Log progress messages from stderr (where Python prints status)
+          const lines = data.toString().split("\n");
+          for (const line of lines) {
+            if (line.trim()) {
+              console.log(`    ${line.trim()}`);
+            }
+          }
         });
 
         child.on("close", async (code) => {
@@ -220,7 +222,7 @@ export class OpenInterpreterExecutor {
             if (code === 0) {
               resolve(stdout);
             } else {
-              reject(new Error(`Open Interpreter exited with code ${code}. stderr: ${stderr}`));
+              reject(new Error(`CUA Agent exited with code ${code}. stderr: ${stderr}`));
             }
           } catch (writeError) {
             reject(writeError);
@@ -238,7 +240,7 @@ export class OpenInterpreterExecutor {
       });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      console.log(`    ⚠️  Open Interpreter error: ${errorMessage}`);
+      console.log(`    ⚠️  CUA Agent error: ${errorMessage}`);
       throw error;
     }
   }
@@ -256,7 +258,6 @@ export class OpenInterpreterExecutor {
     let notes = "";
 
     // Create step results based on scenario steps
-    // This is a simplified parser - in a real implementation, you'd parse Open Interpreter's output more thoroughly
     scenario.steps.forEach((step, index) => {
       const stepResult: StepResult = {
         stepIndex: index,
@@ -269,10 +270,11 @@ export class OpenInterpreterExecutor {
     });
 
     // Parse output for errors or warnings
-    if (output.toLowerCase().includes("error") || output.toLowerCase().includes("failed")) {
+    const lowerOutput = output.toLowerCase();
+    if (lowerOutput.includes("error") || lowerOutput.includes("failed") || lowerOutput.includes("execution failed")) {
       overallStatus = "failed";
       notes = "Execution encountered errors. See logs for details.";
-    } else if (output.toLowerCase().includes("warning")) {
+    } else if (lowerOutput.includes("warning")) {
       overallStatus = "warning";
       notes = "Execution completed with warnings. See logs for details.";
     } else {

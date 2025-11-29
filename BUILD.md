@@ -15,15 +15,6 @@ Install bun: https://bun.sh
 bun install -g @anthropic-ai/claude-cli
 claude auth
 
-# Install Open Interpreter with OS capabilities (requires Python 3.11 only)
-git clone https://github.com/openinterpreter/open-interpreter.git
-cd open-interpreter
-poetry env use 3.11
-eval $(poetry env activate)
-poetry install --extras "os"
-cd ..
-# save the OPEN_INTERPRETER_PATH environment variable (find it with `which interpreter`)
-
 git clone https://github.com/mzieniukbw/tap.git
 cd tap
 bun install

@@ -3,7 +3,7 @@ import chalk from "chalk";
 import inquirer from "inquirer";
 import { ContextExporter } from "../services/context-exporter";
 import { TestExecutionService } from "../services/test-execution";
-import { InterpreterService } from "../services/interpreter";
+import { ComputerUseService } from "../services/computer-use";
 import { TestScenario } from "../services/ai-test-generator";
 import { PRAnalysis } from "../services/github";
 import { TicketContext, ConfluencePage } from "../services/atlassian";
@@ -14,49 +14,15 @@ import { existsSync } from "fs";
 import { join, dirname } from "path";
 
 async function validateTestExecutionPrerequisites(verbose?: boolean): Promise<void> {
-  if (verbose) {
-    console.log(chalk.yellow("🔍 Validating test execution prerequisites..."));
-  }
+  // Validate CUA and Docker
+  const cuaService = ComputerUseService.getInstance();
+  await cuaService.validateAndReportExecutionReadiness(verbose);
 
-  // 1. Check if Open Interpreter is available
-  const interpreterService = InterpreterService.getInstance();
-  try {
-    const interpreterPath = await interpreterService.resolveInterpreterPath();
-    if (verbose) {
-      console.log(chalk.green(`  ✅ Open Interpreter found: ${interpreterPath}`));
-    }
-  } catch (error) {
-    console.error(chalk.red("❌ Open Interpreter not found"));
-    console.log(chalk.yellow("Open Interpreter with OS capabilities is required."));
-    console.log(chalk.gray("Solutions:"));
-    console.log(chalk.gray("  1. Run 'tap setup' to install automatically"));
-    console.log(chalk.gray("  2. Set OPEN_INTERPRETER_PATH environment variable"));
-    console.log(chalk.gray("  3. See README.md for manual installation instructions"));
-    console.log(chalk.gray(""));
-    console.log(
-      chalk.gray("Error details: " + (error instanceof Error ? error.message : String(error)))
-    );
-    process.exit(1);
-  }
-
-  // 2. Check if ANTHROPIC_API_KEY is configured
+  // Validate Anthropic API key
   const configService = ConfigService.getInstance();
-  const anthropicApiKey = await configService.getAnthropicApiKey();
-
-  if (!anthropicApiKey) {
-    console.error(chalk.red("❌ ANTHROPIC_API_KEY not found"));
-    console.log(chalk.yellow("Open Interpreter requires an Anthropic API key for test execution."));
-    console.log(chalk.yellow("Please configure your API key:"));
-    console.log(chalk.gray("  1. Run 'tap setup' and configure it during setup, OR"));
-    console.log(
-      chalk.gray("  2. Set environment variable: export ANTHROPIC_API_KEY=your_api_key_here")
-    );
-    console.log(chalk.gray("Get your API key from: https://console.anthropic.com/"));
-    process.exit(1);
-  }
+  await configService.validateAnthropicApiKey(verbose);
 
   if (verbose) {
-    console.log(chalk.green("  ✅ ANTHROPIC_API_KEY configured"));
     console.log(chalk.green("✅ All prerequisites validated"));
   }
 }
@@ -317,7 +283,7 @@ async function loadOriginalContext(
 }
 
 export const executeScenariosCommand = new Command("execute-scenarios")
-  .description("Execute test scenarios from a file using Open Interpreter (requires 'os' extra)")
+  .description("Execute test scenarios from a file using CUA (Computer Use Agent) with Docker")
   .option(
     "--file <path>",
     "Path to JSON file containing test scenarios (e.g., ./test-pr-{PR-number}-{commit-sha}/generated-scenarios.json)"

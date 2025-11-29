@@ -1,6 +1,6 @@
 # Testing Assistant Project (TAP)
 
-A Bun-based CLI tool that uses AI-powered test generation and human-in-the-loop workflow to create and execute ephemeral testing scenarios from GitHub PRs and Jira tickets. TAP combines Claude CLI for intelligent test generation, Claude Code for human refinement, and Open Interpreter for automated test execution with screen automation.
+A Bun-based CLI tool that uses AI-powered test generation and human-in-the-loop workflow to create and execute ephemeral testing scenarios from GitHub PRs and Jira tickets. TAP combines Claude CLI for intelligent test generation, Claude Code for human refinement, and CUA (Computer Use Agent) for automated test execution with Docker-based containerized testing.
 
 📖 **[View the complete documentation and guides in our wiki](https://github.com/mzieniukbw/tap/wiki)**
 
@@ -49,7 +49,12 @@ tap execute-scenarios --file ./refined-scenarios.json
 ## Requirements
 
 - **Claude CLI**: `npm install -g @anthropic-ai/claude-cli && claude auth`
-- **Open Interpreter**: Auto-installed during setup (requires Python 3.11)
+- **Python 3.10+**: Required for CUA agent
+- **Docker**: Required for containerized test execution
+  - macOS: [Docker Desktop](https://www.docker.com/products/docker-desktop)
+  - Linux: `sudo apt install docker.io`
+  - Windows: Docker Desktop with WSL2
+- **CUA (Computer Use Agent)**: Auto-installed during setup
 
 ## Configuration
 
@@ -68,7 +73,7 @@ Or use environment variables:
 - `ATLASSIAN_EMAIL` - Atlassian account email
 - `ATLASSIAN_BASE_URL` - Atlassian instance URL
 - `TAP_APP_SETUP_INSTRUCTIONS` - Natural language app setup instructions
-- `ANTHROPIC_API_KEY` - Required for Open Interpreter
+- `ANTHROPIC_API_KEY` - Required for CUA (Computer Use Agent)
 
 ## Documentation
 

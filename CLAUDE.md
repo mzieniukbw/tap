@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-TAP (Testing Assistant Project) is a Bun-based CLI tool that uses AI-powered test generation and human-in-the-loop workflow to create and execute ephemeral testing scenarios from GitHub PRs and Jira tickets. It combines Claude API for intelligent test generation, Claude Code for human refinement, and Open Interpreter for automated test execution with screen automation.
+TAP (Testing Assistant Project) is a Bun-based CLI tool that uses AI-powered test generation and human-in-the-loop workflow to create and execute ephemeral testing scenarios from GitHub PRs and Jira tickets. It combines Claude API for intelligent test generation, Claude Code for human refinement, and CUA (Computer Use Agent) for automated test execution with Docker-based containerized testing.
 
 ## Development Commands
 
@@ -74,7 +74,7 @@ bun run lint
 2. **AI Generation** → Claude API creates intelligent scenarios from full context
 3. **Context Export** → Comprehensive data export for human review
 4. **Human Refinement** → Claude Code assists with scenario review and improvement
-5. **Execution** → Open Interpreter runs refined scenarios with automated screen control
+5. **Execution** → CUA (Computer Use Agent) runs refined scenarios with Docker-based computer control
 6. **QA Reporting** → Structured output with AI insights and execution artifacts
 
 ## Configuration
@@ -98,7 +98,6 @@ Creates `~/.tap/config.json` with your API credentials and **required app setup 
 - `TAP_APP_SETUP_INSTRUCTIONS` - Natural language app setup instructions (required for test execution)
 - `ONYX_BASE_URL` - Onyx instance URL (optional - defaults to https://api.onyx.app)
 - `ONYX_API_KEY` - Onyx AI API key (optional - for enhanced product context)
-- `OPEN_INTERPRETER_PATH` - Path to Open Interpreter binary (optional - auto-detected if installed via setup)
 
 ### 3. Claude CLI for AI Generation (Required)
 
@@ -115,41 +114,36 @@ claude auth
 claude --version
 ```
 
-### 4. Open Interpreter for Test Execution (Required)
+### 4. CUA (Computer Use Agent) for Test Execution (Required)
 
-TAP requires Open Interpreter with OS capabilities for automated test execution with screen automation.
+TAP requires CUA with Docker for automated test execution with containerized computer control.
 
-#### Automatic Installation (Recommended)
+#### Prerequisites
+
+**Required:**
+- **Python 3.10+**: For running CUA agent
+- **Docker**: Required for containerized test execution
+  - macOS: [Docker Desktop](https://www.docker.com/products/docker-desktop)
+  - Linux: `sudo apt install docker.io` (or equivalent)
+  - Windows: Docker Desktop with WSL2 backend
+
+#### Installation
 
 ```bash
 bun run start setup
-# TAP will detect if Open Interpreter is missing and offer to install it automatically
-# Prerequisites: Python 3.11 and Poetry must be installed first
 ```
 
-#### Manual Installation (Alternative)
+TAP will automatically detect if CUA is missing and install it during setup.
 
-```bash
-# Install Open Interpreter with OS capabilities (requires Python 3.11 only)
-# Note: Poetry is required as build dependency
-git clone https://github.com/openinterpreter/open-interpreter.git
-cd open-interpreter
-poetry env use 3.11
-eval $(poetry env activate)
-poetry install --extras "os"
+**Prerequisites:**
+- Python 3.10+ must be installed first
+- Docker must be installed and running
 
-# Set the interpreter path for TAP to find it (find it with `which interpreter`)
-export OPEN_INTERPRETER_PATH="/path/to/open-interpreter/.venv/bin/interpreter"
-
-# Set up Anthropic API key for Open Interpreter
-export ANTHROPIC_API_KEY=your_api_key_here
-```
-
-The system automatically tests API connectivity and validates Open Interpreter setup before running commands.
+The system automatically validates CUA setup and Docker availability before running test execution commands.
 
 ## App Setup Instructions
 
-TAP requires natural language instructions describing how to access and authenticate with your application for testing. These instructions are provided to Open Interpreter as part of the system prompt.
+TAP requires natural language instructions describing how to access and authenticate with your application for testing. These instructions are provided to CUA (Computer Use Agent) as part of the execution context.
 
 ### Setup Layers
 

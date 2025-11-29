@@ -2,7 +2,7 @@ import { PRAnalysis } from "./github";
 import { TicketContext } from "./atlassian";
 import { ConfluencePage } from "./atlassian";
 import { TestScenario } from "./ai-test-generator";
-import { TestResult } from "./open-interpreter-executor";
+import { TestResult } from "./computer-use-executor";
 import { OnyxContext } from "./onyx-context";
 
 export interface QAReportData {
