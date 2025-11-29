@@ -255,7 +255,19 @@ async function executeSetup() {
 
     // Test connectivity - create a complete config object for testing
     const testConfig = await configService.getConfig();
-    await configService.testConnectivity(testConfig);
+    const connectivityPassed = await configService.testConnectivity(testConfig);
+
+    if (!connectivityPassed) {
+      console.log("");
+      console.error(chalk.red("❌ Setup failed: Required API connections are not working"));
+      console.log(chalk.yellow("Please verify your credentials and try again:"));
+      console.log(chalk.gray("  • Check your GitHub token has correct permissions"));
+      console.log(chalk.gray("  • Verify Atlassian credentials are correct"));
+      console.log(chalk.gray("  • Ensure network connectivity to these services"));
+      console.log("");
+      console.log(chalk.gray("Run 'tap setup' again to reconfigure."));
+      process.exit(1);
+    }
 
     // Check if CUA installation is needed
     await offerCuaInstallation();
