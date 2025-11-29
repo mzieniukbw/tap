@@ -1,52 +1,35 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["config:base"],
-  "timezone": "UTC",
-  "schedule": ["before 4am on Monday"],
+  "extends": [
+    "config:recommended",
+    ":dependencyDashboard",
+    ":semanticCommits",
+    ":separateMajorReleases",
+    "schedule:weekly"
+  ],
   "stabilityDays": 14,
-  "prConcurrentLimit": 3,
-  "prHourlyLimit": 2,
+  "vulnerabilityAlerts": {
+    "enabled": true
+  },
   "packageRules": [
     {
-      "description": "Security updates - immediate, ungrouped, high priority",
-      "matchPackagePatterns": ["*"],
+      "description": "Security updates - immediate (high/critical only)",
       "matchUpdateTypes": ["patch", "minor", "major"],
-      "vulnerabilitySeverity": ["low", "moderate", "high", "critical"],
-      "groupName": null,
+      "matchCurrentVersion": "!/^0/",
+      "vulnerabilitySeverity": ["high", "critical"],
       "stabilityDays": 0,
-      "schedule": ["at any time"],
-      "prPriority": 10,
-      "labels": ["security"]
+      "groupName": "Security updates",
+      "schedule": ["at any time"]
     },
     {
-      "description": "Group all production dependencies together",
+      "description": "Group production dependencies",
       "matchDepTypes": ["dependencies"],
-      "matchUpdateTypes": ["patch", "minor", "major"],
-      "groupName": "production dependencies",
-      "groupSlug": "prod-deps",
-      "stabilityDays": 14,
-      "labels": ["dependencies", "production"]
+      "groupName": "Production dependencies"
     },
     {
-      "description": "Group all dev dependencies together",
+      "description": "Group dev dependencies",
       "matchDepTypes": ["devDependencies"],
-      "matchUpdateTypes": ["patch", "minor", "major"],
-      "groupName": "dev dependencies",
-      "groupSlug": "dev-deps",
-      "stabilityDays": 14,
-      "labels": ["dependencies", "development"]
+      "groupName": "Dev dependencies"
     }
-  ],
-  "vulnerabilityAlerts": {
-    "enabled": true,
-    "labels": ["security", "vulnerability"]
-  },
-  "commitMessagePrefix": "chore(deps):",
-  "commitMessageAction": "update",
-  "commitMessageTopic": "{{depName}}",
-  "semanticCommits": "enabled",
-  "dependencyDashboard": true,
-  "dependencyDashboardTitle": "🤖 Dependency Updates Dashboard",
-  "automerge": false,
-  "platformAutomerge": false
+  ]
 }
