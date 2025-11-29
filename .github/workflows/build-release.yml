@@ -52,35 +52,35 @@ jobs:
           echo "Bun Version: ${{ env.BUN_VERSION }}" >> dist/BUILD_INFO.txt
 
       - name: Upload Linux x64 artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: tap-linux-x64
           path: dist/tap-linux-x64
           retention-days: 30
 
       - name: Upload Linux ARM64 artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: tap-linux-arm64
           path: dist/tap-linux-arm64
           retention-days: 30
 
       - name: Upload Windows x64 artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: tap-windows-x64.exe
           path: dist/tap-windows-x64.exe
           retention-days: 30
 
       - name: Upload macOS ARM64 artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: tap-macos-arm64
           path: dist/tap-macos-arm64
           retention-days: 30
 
       - name: Upload build info
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: BUILD_INFO.txt
           path: dist/BUILD_INFO.txt
@@ -98,7 +98,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Download all build artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           path: artifacts
 
