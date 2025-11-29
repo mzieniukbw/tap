@@ -4,21 +4,17 @@
     "config:recommended",
     ":dependencyDashboard",
     ":semanticCommits",
-    ":separateMajorReleases",
     "schedule:weekly"
   ],
   "stabilityDays": 14,
-  "vulnerabilityAlerts": {
-    "enabled": true
-  },
   "packageRules": [
     {
-      "description": "Security updates - immediate (high/critical only)",
-      "matchUpdateTypes": ["patch", "minor", "major"],
-      "matchCurrentVersion": "!/^0/",
-      "vulnerabilitySeverity": ["high", "critical"],
+      "description": "Security updates - immediate",
+      "matchDatasources": ["npm"],
+      "matchUpdateTypes": ["patch"],
+      "isVulnerabilityAlert": true,
       "stabilityDays": 0,
-      "groupName": "Security updates",
+      "groupName": "Security patches",
       "schedule": ["at any time"]
     },
     {
