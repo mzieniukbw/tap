@@ -54,6 +54,7 @@ export class ComputerUseService {
       const pythonPath = join(this.venvDir, "bin", "python");
       if (existsSync(pythonPath)) {
         this.cachedVenvPath = pythonPath;
+        console.log(chalk.gray(`📍 CUA Python venv: ${pythonPath}`));
         return pythonPath;
       }
     }
@@ -72,6 +73,7 @@ export class ComputerUseService {
     const scriptPath = join(this.cuaDir, "cua_agent.py");
     if (existsSync(scriptPath)) {
       this.cachedPythonScriptPath = scriptPath;
+      console.log(chalk.gray(`📍 CUA agent script: ${scriptPath}`));
       return scriptPath;
     }
 
@@ -80,14 +82,18 @@ export class ComputerUseService {
 
   /**
    * Validate if the CUA installation is working
+   * @throws Error if CUA packages cannot be imported with details about what failed
    */
-  async validateCuaInstallation(): Promise<boolean> {
+  async validateCuaInstallation(): Promise<void> {
+    const pythonPath = await this.resolveVenvPath();
+
     try {
-      const pythonPath = await this.resolveVenvPath();
-      const { stdout } = await execAsync(`${pythonPath} -c "import cua_agent; import cua_computer"`);
-      return true;
-    } catch {
-      return false;
+      await execAsync(`${pythonPath} -c "from agent import ComputerAgent; from computer import Computer"`);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      throw new Error(
+        `CUA installation validation failed: Cannot import CUA packages. ${errorMessage}`
+      );
     }
   }
 
@@ -212,10 +218,8 @@ export class ComputerUseService {
     await this.createAgentScript();
     progress(chalk.green("✅ CUA agent script created"));
 
-    // Validate installation
-    if (!(await this.validateCuaInstallation())) {
-      throw new Error("Installation completed but CUA packages are not working");
-    }
+    // Validate installation (will throw if validation fails)
+    await this.validateCuaInstallation();
 
     // Cache paths
     this.cachedVenvPath = pythonPath;
@@ -292,8 +296,9 @@ export class ComputerUseService {
 
   /**
    * Validate execution readiness and display appropriate messages
-   * Exits process if prerequisites are not met
+   * Throws error if prerequisites are not met
    * @param verbose Whether to show detailed success messages
+   * @throws Error with detailed information about missing prerequisites
    */
   async validateAndReportExecutionReadiness(verbose?: boolean): Promise<void> {
     if (verbose) {
@@ -306,14 +311,19 @@ export class ComputerUseService {
       console.error(chalk.red("❌ Prerequisites not met"));
       console.log("");
 
+      // Build detailed error message
+      const missingComponents: string[] = [];
+
       // Show specific missing components
       if (readiness.missingComponents.cuaVenv || readiness.missingComponents.cuaScript) {
         console.log(chalk.yellow("CUA (Computer Use Agent) is not installed:"));
         if (readiness.missingComponents.cuaVenv) {
           console.log(chalk.gray(`  • Virtual environment: ${readiness.missingComponents.cuaVenv}`));
+          missingComponents.push(`CUA venv: ${readiness.missingComponents.cuaVenv}`);
         }
         if (readiness.missingComponents.cuaScript) {
           console.log(chalk.gray(`  • Agent script: ${readiness.missingComponents.cuaScript}`));
+          missingComponents.push(`CUA script: ${readiness.missingComponents.cuaScript}`);
         }
         console.log(chalk.yellow("\nPlease run 'tap setup' to install CUA automatically."));
         console.log("");
@@ -329,9 +339,13 @@ export class ComputerUseService {
         console.log(chalk.gray("  • Linux: sudo apt install docker.io (or equivalent for your distro)"));
         console.log(chalk.gray("  • Windows: Install Docker Desktop with WSL2 backend"));
         console.log("");
+        missingComponents.push(`Docker: ${readiness.missingComponents.docker}`);
       }
 
-      process.exit(1);
+      // Throw error with detailed information
+      throw new Error(
+        `CUA execution prerequisites not met: ${missingComponents.join(", ")}`
+      );
     }
 
     // Log success in verbose mode

@@ -532,27 +532,23 @@ rm -f interactive-prompt.txt
       allSteps.push(stepAction + verification);
     });
 
-    const prompt = `You are executing an automated test scenario on ${scenario.platform} using ${scenario.client}.${platformInfo}${contextInfo}${jiraInfo}
+    const prompt = `Test: ${scenario.title}
+Platform: ${scenario.platform} / ${scenario.client}${platformInfo}${contextInfo}${jiraInfo}
 
-**Test Scenario: ${scenario.title}**
-Description: ${scenario.description}
+${scenario.description}
 
-Expected Outcome: ${scenario.expectedOutcome}
+Expected: ${scenario.expectedOutcome}
 
-Execute the following test steps IN ORDER - setup steps are MANDATORY and must be completed first:
-
+Steps (complete setup steps 0.x first, then test steps):
 ${allSteps.join("\n")}
 
-Important:
-- MUST complete ALL setup steps (Step 0.x) before proceeding to test steps
-- Setup steps are MANDATORY prerequisites - do not skip them
-- Take a screenshot after each significant step (navigation, clicking, form submission)
-- If any step fails or produces unexpected results, stop and report the error
-- Save any files or artifacts to the current working directory
-- Focus on testing what this PR actually changes, not basic UI functionality
-- The test should complete successfully with the expected outcome: ${scenario.expectedOutcome}
+Notes:
+- Complete ALL setup steps before test steps
+- Screenshot after navigation, clicks, submissions
+- Stop immediately if any step fails
+- Test completes when: ${scenario.expectedOutcome}
 
-Execute this test scenario now.`;
+Execute now.`;
 
     return prompt;
   }

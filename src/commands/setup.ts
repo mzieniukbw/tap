@@ -286,67 +286,45 @@ async function executeSetup() {
 async function offerCuaInstallation(): Promise<void> {
   const cuaService = ComputerUseService.getInstance();
 
-  try {
-    // Check if already available
-    await cuaService.resolveVenvPath();
-    await cuaService.resolveAgentScriptPath();
-    // If we get here, it's already available
-    return;
-  } catch {
-    // Not found, offer installation
-  }
-
-  console.log(chalk.yellow("❌ CUA (Computer Use Agent) not found"));
-
-  // Check if user wants to install
-  const { shouldInstall } = await inquirer.prompt([
-    {
-      type: "confirm",
-      name: "shouldInstall",
-      message: "Install CUA (Computer Use Agent) with Docker support automatically?",
-      default: true,
-    },
-  ]);
-
-  if (!shouldInstall) {
-    console.log(chalk.yellow("⚠️  Skipping CUA setup"));
-    console.log(chalk.gray("Run 'tap setup' again when you're ready to install CUA"));
-    return;
-  }
+  console.log(chalk.blue("📦 CUA (Computer Use Agent) not found - installing automatically..."));
 
   // Check prerequisites
   console.log(chalk.blue("🔍 Checking prerequisites..."));
   const prerequisites = await cuaService.checkPrerequisites();
 
   if (!prerequisites.python.available) {
-    console.log(chalk.red("❌ Python 3.10+ not found"));
+    console.error(chalk.red("❌ Python 3.10+ not found"));
+    console.log(chalk.yellow("Python is required for CUA test execution."));
     console.log(chalk.yellow("Please install Python 3.10 or higher first:"));
     console.log(chalk.gray("  • macOS: brew install python@3.11"));
     console.log(chalk.gray("  • Ubuntu: sudo apt install python3.11"));
     console.log(chalk.gray("  • Or use pyenv: pyenv install 3.11.0 && pyenv global 3.11.0"));
-    return;
+    console.log("");
+    console.log(chalk.gray("After installing Python, run 'tap setup' again."));
+    process.exit(1);
   }
 
   console.log(chalk.green(`✅ Python: ${prerequisites.python.version}`));
 
   if (!prerequisites.docker.available) {
-    console.log(chalk.red("❌ Docker not found"));
+    console.error(chalk.red("❌ Docker not found"));
     console.log(chalk.yellow("Docker is required for CUA test execution."));
     console.log(chalk.yellow("Please install Docker first:"));
     console.log(chalk.gray("  • macOS: Install Docker Desktop (https://www.docker.com/products/docker-desktop)"));
     console.log(chalk.gray("  • Linux: sudo apt install docker.io (or equivalent for your distro)"));
     console.log(chalk.gray("  • Windows: Install Docker Desktop with WSL2 backend"));
-    console.log(chalk.gray("\nAfter installing Docker, run 'tap setup' again."));
-    return;
+    console.log("");
+    console.log(chalk.gray("After installing Docker, run 'tap setup' again."));
+    process.exit(1);
   }
 
   console.log(chalk.green(`✅ Docker: ${prerequisites.docker.version}`));
 
   // Install CUA
-  try {
-    console.log(chalk.blue("📦 Installing CUA (Computer Use Agent)..."));
-    console.log(chalk.gray("This may take a few minutes..."));
+  console.log(chalk.blue("📦 Installing CUA (Computer Use Agent)..."));
+  console.log(chalk.gray("This may take a few minutes..."));
 
+  try {
     const installedPath = await cuaService.installCua((message) => {
       console.log(chalk.gray(`  ${message}`));
     });
@@ -354,9 +332,12 @@ async function offerCuaInstallation(): Promise<void> {
     console.log(chalk.green("✅ CUA installation completed!"));
     console.log(chalk.gray(`Python venv at: ${installedPath}`));
   } catch (error) {
+    console.log("");
     console.error(chalk.red("❌ Failed to install CUA:"));
     console.error(chalk.red(error instanceof Error ? error.message : String(error)));
+    console.log("");
     console.log(chalk.yellow("Please ensure Python 3.10+ and Docker are installed, then run 'tap setup' again."));
+    process.exit(1);
   }
 }
 

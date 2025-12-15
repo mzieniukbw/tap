@@ -14,16 +14,22 @@ import { existsSync } from "fs";
 import { join, dirname } from "path";
 
 async function validateTestExecutionPrerequisites(verbose?: boolean): Promise<void> {
-  // Validate CUA and Docker
-  const cuaService = ComputerUseService.getInstance();
-  await cuaService.validateAndReportExecutionReadiness(verbose);
+  try {
+    // Validate CUA and Docker
+    const cuaService = ComputerUseService.getInstance();
+    await cuaService.validateAndReportExecutionReadiness(verbose);
 
-  // Validate Anthropic API key
-  const configService = ConfigService.getInstance();
-  await configService.validateAnthropicApiKey(verbose);
+    // Validate Anthropic API key
+    const configService = ConfigService.getInstance();
+    await configService.validateAnthropicApiKey(verbose);
 
-  if (verbose) {
-    console.log(chalk.green("✅ All prerequisites validated"));
+    if (verbose) {
+      console.log(chalk.green("✅ All prerequisites validated"));
+    }
+  } catch (error) {
+    // Services have already shown user-friendly messages
+    // Just exit with error code
+    process.exit(1);
   }
 }
 

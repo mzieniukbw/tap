@@ -5,13 +5,14 @@ Connects to a Docker container and executes test scenarios using Claude Sonnet 4
 """
 
 import asyncio
+import logging
 import sys
 import os
 from pathlib import Path
 
 try:
-    from cua_agent import ComputerAgent
-    from cua_computer import Computer
+    from agent import ComputerAgent
+    from computer import Computer
 except ImportError as e:
     print(f"Error: Failed to import CUA modules: {e}", file=sys.stderr)
     print("Please ensure CUA is installed: pip install cua-agent[all] cua-computer", file=sys.stderr)
@@ -34,11 +35,14 @@ async def execute_scenario(instructions: str) -> dict:
     computer = None
 
     try:
-        # Initialize Linux Docker computer
+        # Initialize Linux Docker computer with lower resolution to reduce request size
         computer = Computer(
             os_type="linux",
             provider_type="docker",
-            name="tap-test-container"
+            name="tap-test-container",
+            verbosity=logging.DEBUG,
+            telemetry_enabled=False,
+            ephemeral=True,
         )
 
         # Start the computer container
@@ -49,9 +53,15 @@ async def execute_scenario(instructions: str) -> dict:
         # Initialize CUA agent with Claude Sonnet 4.5
         # CUA automatically reads ANTHROPIC_API_KEY from environment
         agent = ComputerAgent(
-            model="anthropic/claude-sonnet-4-5-20250929",
+            model="anthropic/claude-haiku-4-5-20251001",
             tools=[computer],
-            max_trajectory_budget=10.0,  # Budget in dollars
+            telemetry_enabled=False,
+            only_n_most_recent_images=3,
+            use_prompt_caching=True,
+            max_trajectory_budget=2.0,  # Budget in dollars
+            max_tokens=4096,  # Limit response size to reduce overall request size
+            max_retries=1,
+            verbosity=logging.DEBUG,
         )
 
         # Prepare messages
@@ -96,10 +106,10 @@ async def execute_scenario(instructions: str) -> dict:
         if computer:
             try:
                 print("🧹 Cleaning up container...", file=sys.stderr)
-                await computer.close()
-                print("✅ Container closed", file=sys.stderr)
+                await computer.stop()
+                print("✅ Container stopped", file=sys.stderr)
             except Exception as e:
-                print(f"⚠️  Warning: Failed to close container: {e}", file=sys.stderr)
+                print(f"⚠️  Warning: Failed to stop container: {e}", file=sys.stderr)
 
 
 async def main():

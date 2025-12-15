@@ -364,8 +364,9 @@ export class ConfigService {
 
   /**
    * Validate that Anthropic API key is configured and display appropriate messages
-   * Exits process if API key is not found
+   * Throws error if API key is not found
    * @param verbose Whether to show success message
+   * @throws Error if ANTHROPIC_API_KEY is not configured
    */
   async validateAnthropicApiKey(verbose?: boolean): Promise<void> {
     const anthropicApiKey = await this.getAnthropicApiKey();
@@ -379,7 +380,8 @@ export class ConfigService {
         chalk.gray("  2. Set environment variable: export ANTHROPIC_API_KEY=your_api_key_here")
       );
       console.log(chalk.gray("Get your API key from: https://console.anthropic.com/"));
-      process.exit(1);
+
+      throw new Error("ANTHROPIC_API_KEY is not configured");
     }
 
     if (verbose) {
