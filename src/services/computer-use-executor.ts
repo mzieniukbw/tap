@@ -4,7 +4,7 @@ import { TicketContext } from "./atlassian";
 import { ContextExporter } from "./context-exporter";
 import { ComputerUseService } from "./computer-use";
 import { ConfigService } from "./config";
-import { mkdir, writeFile } from "fs/promises";
+import { mkdir, writeFile, rm } from "fs/promises";
 import { spawn } from "child_process";
 import { existsSync } from "fs";
 
@@ -52,10 +52,32 @@ export class ComputerUseExecutor {
         sessionSetupInstructions?: string;
       };
       verbose?: boolean;
+      timeoutMinutes?: number;
     }
   ): Promise<TestResult[]> {
     if (!existsSync(outputDir)) {
       await mkdir(outputDir, { recursive: true });
+    }
+
+    // Clean up previous execution artifacts before starting new run
+    const promptsDir = `${outputDir}/cua-prompts`;
+    const resultsDir = `${outputDir}/cua-results`;
+
+    try {
+      if (existsSync(promptsDir)) {
+        await rm(promptsDir, { recursive: true, force: true });
+        if (context?.verbose) {
+          console.log(`🧹 Cleaned up previous prompts from ${promptsDir}`);
+        }
+      }
+      if (existsSync(resultsDir)) {
+        await rm(resultsDir, { recursive: true, force: true });
+        if (context?.verbose) {
+          console.log(`🧹 Cleaned up previous results from ${resultsDir}`);
+        }
+      }
+    } catch (error) {
+      console.warn(`⚠️  Warning: Failed to clean up previous artifacts: ${error}`);
     }
 
     const results: TestResult[] = [];
@@ -87,6 +109,7 @@ export class ComputerUseExecutor {
         sessionSetupInstructions?: string;
       };
       verbose?: boolean;
+      timeoutMinutes?: number;
     }
   ): Promise<TestResult> {
     const startTime = Date.now();
@@ -119,11 +142,17 @@ export class ComputerUseExecutor {
       await writeFile(promptFile, executionPrompt, "utf-8");
 
       // Execute with CUA Agent
-      console.log(`  🤖 Executing with CUA Agent (Docker + Claude Sonnet 4.5)...`);
+      const timeoutMinutes = context?.timeoutMinutes || 1;
+      const timeoutSeconds = Math.round(timeoutMinutes * 60);
+      console.log(
+        `  🤖 Executing with CUA Agent (Docker + Claude Sonnet 4.5, timeout: ${timeoutMinutes}min)...`
+      );
       const executionResult = await this.executeWithCuaAgent(
         executionPrompt,
         outputDir,
-        60,  // 60 second timeout for testing
+        scenario,
+        context,
+        timeoutSeconds,
         context?.verbose
       );
 
@@ -157,6 +186,17 @@ export class ComputerUseExecutor {
   private async executeWithCuaAgent(
     prompt: string,
     outputDir: string,
+    scenario: TestScenario,
+    context?: {
+      prAnalysis?: PRAnalysis;
+      jiraContext?: TicketContext | null;
+      setupInstructions?: {
+        baseSetupInstructions: string;
+        prSpecificSetupInstructions?: string;
+        sessionSetupInstructions?: string;
+      };
+      verbose?: boolean;
+    },
     timeoutSeconds: number = 60,
     verbose: boolean = false
   ): Promise<string> {
@@ -165,9 +205,7 @@ export class ComputerUseExecutor {
       const pythonPath = await cuaService.resolveVenvPath();
       const scriptPath = await cuaService.resolveAgentScriptPath();
 
-      console.log(
-        `    🔧 Running: ${pythonPath} ${scriptPath} (timeout: ${timeoutSeconds}s)`
-      );
+      console.log(`    🔧 Running: ${pythonPath} ${scriptPath} (timeout: ${timeoutSeconds}s)`);
 
       const configService = ConfigService.getInstance();
       const anthropicApiKey = await configService.getAnthropicApiKey();
@@ -184,8 +222,37 @@ export class ComputerUseExecutor {
         CUA_TIMEOUT_SECONDS: timeoutSeconds.toString(),
         CUA_OUTPUT_DIR: outputDir,
         CUA_VERBOSITY: verbose ? "DEBUG" : "INFO",
-        CUA_SCENARIO_ID: scenario.id,  // Pass scenario ID for organizing artifacts
+        CUA_SCENARIO_ID: scenario.id, // Pass scenario ID for organizing artifacts
       };
+
+      // Add GitHub token for artifact download tools
+      try {
+        const githubAuthHeader = await configService.getGitHubAuthHeader();
+        // Extract token from "token <value>" format
+        const githubToken = githubAuthHeader.replace(/^token\s+/i, "");
+        cuaEnv.GITHUB_TOKEN = githubToken;
+      } catch {
+        // Token not available - artifact tools will return error if used
+        if (verbose) {
+          console.warn("⚠️  GitHub token not available - artifact download tools will not work");
+        }
+      }
+
+      // Add PR context if available (for GitHub artifact tools)
+      if (context?.prAnalysis) {
+        const prAnalysis = context.prAnalysis;
+        // Parse owner and repo from PR URL
+        try {
+          const match = prAnalysis.url.match(/github\.com\/(.+?)\/(.+?)\/pull\/(\d+)/);
+          if (match) {
+            cuaEnv.GITHUB_PR_OWNER = match[1];
+            cuaEnv.GITHUB_PR_REPO = match[2];
+            cuaEnv.GITHUB_PR_NUMBER = match[3];
+          }
+        } catch {
+          // PR context parsing failed - not critical
+        }
+      }
 
       // Add SSL_CERT_FILE if set (needed for corporate environments)
       if (process.env.SSL_CERT_FILE) {
@@ -204,17 +271,14 @@ export class ComputerUseExecutor {
         // Set up backup timeout (Python handles the main timeout, this is just a safety net)
         // Give 30 extra seconds for container cleanup after Python timeout
         const backupTimeoutMs = (timeoutSeconds + 30) * 1000;
-        const timeout = setTimeout(
-          () => {
-            child.kill("SIGTERM");
-            reject(
-              new Error(
-                `CUA Agent process did not terminate after ${timeoutSeconds}s + 30s cleanup grace period`
-              )
-            );
-          },
-          backupTimeoutMs
-        );
+        const timeout = setTimeout(() => {
+          child.kill("SIGTERM");
+          reject(
+            new Error(
+              `CUA Agent process did not terminate after ${timeoutSeconds}s + 30s cleanup grace period`
+            )
+          );
+        }, backupTimeoutMs);
 
         child.stdout?.on("data", (data) => {
           stdout += data.toString();

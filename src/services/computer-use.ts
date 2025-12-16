@@ -103,7 +103,9 @@ export class ComputerUseService {
     const pythonPath = await this.resolveVenvPath();
 
     try {
-      await execAsync(`${pythonPath} -c "from agent import ComputerAgent; from computer import Computer"`);
+      await execAsync(
+        `${pythonPath} -c "from agent import ComputerAgent; from computer import Computer"`
+      );
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       throw new Error(
@@ -122,7 +124,14 @@ export class ComputerUseService {
     };
 
     // Check Python 3.10+
-    const pythonCommands = ["python3.13", "python3.12", "python3.11", "python3.10", "python3", "python"];
+    const pythonCommands = [
+      "python3.13",
+      "python3.12",
+      "python3.11",
+      "python3.10",
+      "python3",
+      "python",
+    ];
 
     for (const cmd of pythonCommands) {
       try {
@@ -215,13 +224,13 @@ export class ComputerUseService {
       );
     }
 
-    // Install CUA packages
-    progress(chalk.blue("📥 Installing CUA agent and computer packages..."));
+    // Install/upgrade CUA packages and dependencies
+    progress(chalk.blue("📥 Installing/upgrading CUA agent, computer packages, and dependencies..."));
     try {
-      await execAsync(`${pipPath} install "cua-agent[all]" cua-computer`, {
+      await execAsync(`${pipPath} install --upgrade "cua-agent[all]" cua-computer requests numpydoc`, {
         timeout: 5 * 60 * 1000, // 5 minutes timeout
       });
-      progress(chalk.green("✅ CUA packages installed"));
+      progress(chalk.green("✅ CUA packages and dependencies installed/upgraded"));
     } catch (error) {
       throw new Error(
         `Failed to install CUA packages: ${error instanceof Error ? error.message : String(error)}`
@@ -339,7 +348,9 @@ export class ComputerUseService {
       if (readiness.missingComponents.cuaVenv || readiness.missingComponents.cuaScript) {
         console.log(chalk.yellow("CUA (Computer Use Agent) is not installed:"));
         if (readiness.missingComponents.cuaVenv) {
-          console.log(chalk.gray(`  • Virtual environment: ${readiness.missingComponents.cuaVenv}`));
+          console.log(
+            chalk.gray(`  • Virtual environment: ${readiness.missingComponents.cuaVenv}`)
+          );
           missingComponents.push(`CUA venv: ${readiness.missingComponents.cuaVenv}`);
         }
         if (readiness.missingComponents.cuaScript) {
@@ -355,18 +366,20 @@ export class ComputerUseService {
         console.log(chalk.gray(`  • ${readiness.missingComponents.docker}`));
         console.log(chalk.yellow("\nPlease install Docker first:"));
         console.log(
-          chalk.gray("  • macOS: Install Docker Desktop (https://www.docker.com/products/docker-desktop)")
+          chalk.gray(
+            "  • macOS: Install Docker Desktop (https://www.docker.com/products/docker-desktop)"
+          )
         );
-        console.log(chalk.gray("  • Linux: sudo apt install docker.io (or equivalent for your distro)"));
+        console.log(
+          chalk.gray("  • Linux: sudo apt install docker.io (or equivalent for your distro)")
+        );
         console.log(chalk.gray("  • Windows: Install Docker Desktop with WSL2 backend"));
         console.log("");
         missingComponents.push(`Docker: ${readiness.missingComponents.docker}`);
       }
 
       // Throw error with detailed information
-      throw new Error(
-        `CUA execution prerequisites not met: ${missingComponents.join(", ")}`
-      );
+      throw new Error(`CUA execution prerequisites not met: ${missingComponents.join(", ")}`);
     }
 
     // Log success in verbose mode

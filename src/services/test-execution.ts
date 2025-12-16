@@ -14,6 +14,7 @@ export interface TestExecutionContext {
   scenarios: TestScenario[];
   outputDir: string;
   verbose?: boolean;
+  timeoutMinutes?: number;
   setupInstructions?: {
     baseSetupInstructions: string;
     prSpecificSetupInstructions?: string;
@@ -32,6 +33,7 @@ export class TestExecutionService {
       confluencePages,
       onyxContext,
       setupInstructions,
+      timeoutMinutes,
     } = context;
     const startTime = Date.now();
 
@@ -41,6 +43,7 @@ export class TestExecutionService {
       console.log(chalk.gray(`Initializing CUA executor...`));
       console.log(chalk.gray(`Output directory: ${outputDir}`));
       console.log(chalk.gray(`Scenarios to execute: ${scenarios.length}`));
+      console.log(chalk.gray(`Timeout per scenario: ${timeoutMinutes || 1} minute(s)`));
       if (setupInstructions) {
         console.log(chalk.gray(`Setup instructions will be included in execution prompts`));
       }
@@ -53,6 +56,7 @@ export class TestExecutionService {
       jiraContext,
       setupInstructions,
       verbose,
+      timeoutMinutes,
     });
 
     if (verbose) {

@@ -26,7 +26,7 @@ async function validateTestExecutionPrerequisites(verbose?: boolean): Promise<vo
     if (verbose) {
       console.log(chalk.green("✅ All prerequisites validated"));
     }
-  } catch (error) {
+  } catch {
     // Services have already shown user-friendly messages
     // Just exit with error code
     process.exit(1);
@@ -45,8 +45,8 @@ async function collectSetupInstructions(options: any): Promise<{
   let prSpecificSetupInstructions: string | undefined;
   let sessionSetupInstructions: string | undefined;
 
-  // Prompt for PR-specific setup if --setup flag is used
-  if (options.setup) {
+  // Prompt for PR-specific setup if --instructions flag is used
+  if (options.instructions) {
     console.log(chalk.yellow("📝 PR-Specific Setup Instructions"));
     const { prSetup } = await inquirer.prompt([
       {
@@ -168,6 +168,7 @@ async function executeScenarios(options: any) {
     // Step 3: Execute scenarios using shared execution service
     console.log(chalk.yellow("🤖 Executing test scenarios..."));
     const executionService = new TestExecutionService();
+    const timeoutMinutes = parseFloat(options.timeout);
     await executionService.executeTestScenarios({
       prAnalysis: context.prAnalysis,
       jiraContext: context.jiraContext,
@@ -177,6 +178,7 @@ async function executeScenarios(options: any) {
       outputDir: options.output,
       verbose: options.verbose,
       setupInstructions,
+      timeoutMinutes,
     });
   } catch (error) {
     console.error(chalk.red("❌ Error during scenario execution:"));
@@ -298,6 +300,7 @@ export const executeScenariosCommand = new Command("execute-scenarios")
     "--output <path>",
     "Output directory for test artifacts (default: same directory as scenarios file)"
   )
-  .option("--setup", "Prompt for session-specific setup instructions")
+  .option("--instructions", "Prompt for PR-specific setup instructions")
+  .option("--timeout <minutes>", "Timeout for each scenario in minutes (default: 1)", "1")
   .option("--verbose", "Enable detailed logging")
   .action(executeScenarios);

@@ -449,6 +449,28 @@ rm -f interactive-prompt.txt
     }
   }
 
+  private hasArtifactDownloadInSetup(context?: {
+    setupInstructions?: {
+      baseSetupInstructions: string;
+      prSpecificSetupInstructions?: string;
+      sessionSetupInstructions?: string;
+    };
+  }): boolean {
+    if (!context?.setupInstructions) return false;
+
+    const allInstructions = [
+      context.setupInstructions.baseSetupInstructions,
+      context.setupInstructions.prSpecificSetupInstructions,
+      context.setupInstructions.sessionSetupInstructions,
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase();
+
+    const keywords = ["artifact", "download", "workflow", "build output", "github actions"];
+    return keywords.some((keyword) => allInstructions.includes(keyword));
+  }
+
   generateExecutionPrompt(
     scenario: TestScenario,
     context?: {
@@ -461,12 +483,14 @@ rm -f interactive-prompt.txt
       };
     }
   ): string {
-    const platformInfo = scenario.platformSpecifics?.length
-      ? ` Platform-specific features: ${scenario.platformSpecifics.join(", ")}.`
-      : "";
+    // Always include architecture information for the test container
+    let platformInfo = "\nTest Environment: Linux on arm64 (aarch64) architecture in Docker container.";
+    if (scenario.platformSpecifics?.length) {
+      platformInfo += ` Platform-specific features: ${scenario.platformSpecifics.join(", ")}.`;
+    }
 
     const contextInfo = context?.prAnalysis
-      ? `\n\nContext: This test is for PR "${context.prAnalysis.title}" by ${context.prAnalysis.author}.`
+      ? `\n\nContext: This test is for PR "${context.prAnalysis.title}" by ${context.prAnalysis.author}.\nPR URL: ${context.prAnalysis.url}`
       : "";
 
     const jiraInfo = context?.jiraContext
@@ -532,8 +556,41 @@ rm -f interactive-prompt.txt
       allSteps.push(stepAction + verification);
     });
 
+    // Add tool instructions if artifact download is detected in setup
+    let toolInstructions = "";
+    if (this.hasArtifactDownloadInSetup(context)) {
+      toolInstructions = `\n\nAVAILABLE TOOLS FOR EFFICIENCY:
+
+GitHub Actions Artifact Download Tools (MANDATORY - do not use browser):
+- list_github_workflows() - List recent workflow runs for THIS PR's branch (automatically filtered)
+- list_github_artifacts(workflow_run_id) - List artifacts for a specific workflow run
+- download_github_artifact(artifact_id, filename) - Download artifact and transfer it to the container
+
+CRITICAL WORKFLOW - Complete ALL steps:
+1. FIRST: Check container architecture by running: uname -m
+   - The test container runs on arm64 (aarch64) architecture
+   - If downloading executables/binaries, ensure they are compatible with arm64
+   - If only x86_64/amd64 artifacts are available, note this limitation in your results
+2. Call list_github_workflows() to see recent runs for this PR
+3. Find the workflow run you need (by name or status)
+4. Call list_github_artifacts("workflow_run_id") to see available artifacts
+5. Select the artifact that matches the container's architecture (prefer arm64/aarch64)
+6. IMMEDIATELY call download_github_artifact("artifact_id", "filename.zip") - DO NOT skip this step!
+7. The file will be automatically transferred to the container at /tmp/filename.zip
+8. Use terminal commands to extract and work with the artifact
+   Example: cd /tmp && unzip filename.zip
+
+IMPORTANT:
+- You MUST use these tools, NOT the browser
+- The container is running Linux on arm64 (aarch64) - verify artifact compatibility before testing
+- After finding artifacts in step 4, you MUST download them in step 6
+- The download tool automatically transfers files to the container - just use the container_path from the response
+- Do not take screenshots of GitHub - use the tools directly
+- Tools are 10x faster than browser navigation`;
+    }
+
     const prompt = `Test: ${scenario.title}
-Platform: ${scenario.platform} / ${scenario.client}${platformInfo}${contextInfo}${jiraInfo}
+Platform: ${scenario.platform} / ${scenario.client}${platformInfo}${contextInfo}${jiraInfo}${toolInstructions}
 
 ${scenario.description}
 
@@ -544,6 +601,8 @@ ${allSteps.join("\n")}
 
 IMPORTANT:
 - Complete ALL setup steps before test steps
+- When downloading GitHub artifacts, ALWAYS use the artifact download tools (list_github_workflows, list_github_artifacts, download_github_artifact)
+- DO NOT navigate to GitHub in browser for artifacts - tools are 10x faster
 - Take a screenshot using the computer tool after EVERY significant action (navigation, button clicks, form submissions)
 - Save screenshots with descriptive names: screenshot_step{N}_description.png
 - Stop immediately if any step fails

@@ -310,8 +310,14 @@ async function offerCuaInstallation(): Promise<void> {
     console.error(chalk.red("❌ Docker not found"));
     console.log(chalk.yellow("Docker is required for CUA test execution."));
     console.log(chalk.yellow("Please install Docker first:"));
-    console.log(chalk.gray("  • macOS: Install Docker Desktop (https://www.docker.com/products/docker-desktop)"));
-    console.log(chalk.gray("  • Linux: sudo apt install docker.io (or equivalent for your distro)"));
+    console.log(
+      chalk.gray(
+        "  • macOS: Install Docker Desktop (https://www.docker.com/products/docker-desktop)"
+      )
+    );
+    console.log(
+      chalk.gray("  • Linux: sudo apt install docker.io (or equivalent for your distro)")
+    );
     console.log(chalk.gray("  • Windows: Install Docker Desktop with WSL2 backend"));
     console.log("");
     console.log(chalk.gray("After installing Docker, run 'tap setup' again."));
@@ -336,7 +342,11 @@ async function offerCuaInstallation(): Promise<void> {
     console.error(chalk.red("❌ Failed to install CUA:"));
     console.error(chalk.red(error instanceof Error ? error.message : String(error)));
     console.log("");
-    console.log(chalk.yellow("Please ensure Python 3.10+ and Docker are installed, then run 'tap setup' again."));
+    console.log(
+      chalk.yellow(
+        "Please ensure Python 3.10+ and Docker are installed, then run 'tap setup' again."
+      )
+    );
     process.exit(1);
   }
 }

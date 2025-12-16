@@ -9,9 +9,9 @@ export interface TestScenario {
   description: string;
   priority: "high" | "medium" | "low";
   category: "functionality" | "regression" | "integration" | "ui" | "performance" | "security";
-  platform: "macOS" | "Windows" | "Linux" | "Web" | "iOS" | "Android";
-  client: "Desktop" | "Browser Extension" | "Web App" | "Mobile App";
-  platformSpecifics?: string[]; // e.g., ["TouchID"], ["Windows Hello"], ["Fingerprint Scanner"]
+  platform: "macOS" | "Windows" | "Linux" | "Web" | "iOS" | "Android"; // Only "Linux" is currently supported
+  client: "Desktop" | "Browser Extension" | "Web App" | "Mobile App" | "CLI"; // Desktop, Browser Extension, Web App, and CLI are supported
+  platformSpecifics?: string[]; // Linux-specific features (usually empty)
   steps: TestStep[];
   expectedOutcome: string;
   focusAreas: string[];
@@ -149,10 +149,18 @@ ${onyxContext.responses
 Based on the above context, generate 5-8 comprehensive test scenarios as a JSON array with the exact structure shown below:
 
 **CRITICAL PLATFORM/CLIENT REQUIREMENTS:**
-- Each test scenario MUST target exactly ONE platform + client combination
-- NEVER create scenarios that span multiple platforms or clients
-- Create separate scenarios for platform-specific features (e.g., separate tests for TouchID on macOS vs Windows Hello on Windows)
-- Use platform-specific terminology in titles and steps
+- **ONLY "Linux" platform IS SUPPORTED** - TAP currently only supports testing on Linux
+- **DO NOT generate scenarios for other platforms** (macOS, Windows, Web, iOS, Android) - they will be rejected
+- ALL test scenarios MUST use: "platform": "Linux"
+- **SUPPORTED CLIENTS**: "Desktop", "Browser Extension", "Web App", "CLI"
+- **NOT SUPPORTED**: "Mobile App" (requires iOS/Android)
+- Choose the appropriate client type based on what the PR is testing:
+  - Desktop applications → "Desktop"
+  - Browser extensions (Chrome, Firefox, etc.) → "Browser Extension"
+  - Web applications accessed via browser → "Web App"
+  - Command-line tools and terminal applications → "CLI"
+- Even if the PR mentions other OS platforms, generate Linux-based scenarios only
+- Platform support for macOS, Windows, iOS, and Android may be added in future releases
 
 **CRITICAL APPLICATION-FIRST TESTING REQUIREMENTS:**
 - FOCUS ON APPLICATION BEHAVIOR, not OS configuration
@@ -185,9 +193,9 @@ Based on the above context, generate 5-8 comprehensive test scenarios as a JSON 
     "description": "Detailed description of what this scenario tests and why it's important",
     "priority": "high",
     "category": "functionality",
-    "platform": "macOS",
+    "platform": "Linux",
     "client": "Desktop",
-    "platformSpecifics": ["TouchID"],
+    "platformSpecifics": [],
     "steps": [
       {
         "action": "navigate",
@@ -210,9 +218,9 @@ Based on the above context, generate 5-8 comprehensive test scenarios as a JSON 
 - **description**: 2-3 sentences explaining what this tests and why
 - **priority**: Must be exactly "high", "medium", or "low" 
 - **category**: Must be exactly one of: "functionality", "regression", "integration", "ui", "performance", "security"
-- **platform**: Must be exactly one of: "macOS", "Windows", "Linux", "Web", "iOS", "Android"
-- **client**: Must be exactly one of: "Desktop", "Browser Extension", "Web App", "Mobile App"
-- **platformSpecifics**: Array of platform-specific features (e.g., ["TouchID"], ["Windows Hello"], ["Fingerprint Scanner"]) - optional
+- **platform**: MUST be "Linux" (only supported platform currently)
+- **client**: Must be one of: "Desktop", "Browser Extension", "Web App", "CLI" (choose based on what's being tested)
+- **platformSpecifics**: Array of Linux-specific features if needed (usually empty) - optional
 - **steps**: Array of test steps (minimum 3 steps)
   - **action**: Must be one of: "navigate", "click", "input", "verify", "call", "test"
   - **target**: Specific UI element, page, API endpoint, or file path
@@ -284,16 +292,34 @@ Based on the above context, generate 5-8 comprehensive test scenarios as a JSON 
       "security",
     ];
     const validAutomationLevels = ["manual", "semi-automated", "automated"];
-    const validPlatforms = ["macOS", "Windows", "Linux", "Web", "iOS", "Android"];
-    const validClients = ["Desktop", "Browser Extension", "Web App", "Mobile App"];
+
+    // Platform/Client validation
+    const unsupportedPlatforms = ["macOS", "Windows", "Web", "iOS", "Android"];
+    const unsupportedClients = ["Mobile App"]; // Mobile apps require iOS/Android
+    const supportedClients = ["Desktop", "Browser Extension", "Web App", "CLI"];
+
+    // Warn if unsupported platform was attempted
+    if (unsupportedPlatforms.includes(scenario.platform)) {
+      console.warn(
+        `⚠️  Scenario "${scenario.title}" attempted unsupported platform "${scenario.platform}" - forcing to "Linux"`
+      );
+    }
+    if (unsupportedClients.includes(scenario.client)) {
+      console.warn(
+        `⚠️  Scenario "${scenario.title}" attempted unsupported client "${scenario.client}" - forcing to "Desktop"`
+      );
+    }
+
+    // Determine client: use provided if supported, otherwise default to Desktop
+    const validatedClient = supportedClients.includes(scenario.client) ? scenario.client : "Desktop";
 
     return {
       ...scenario,
       id: scenario.id || `generated-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
       priority: validPriorities.includes(scenario.priority) ? scenario.priority : "medium",
       category: validCategories.includes(scenario.category) ? scenario.category : "functionality",
-      platform: validPlatforms.includes(scenario.platform) ? scenario.platform : "Web",
-      client: validClients.includes(scenario.client) ? scenario.client : "Web App",
+      platform: "Linux", // Only Linux platform is supported
+      client: validatedClient, // Desktop, Browser Extension, Web App, or CLI
       platformSpecifics: scenario.platformSpecifics || [],
       automationLevel: validAutomationLevels.includes(scenario.automationLevel)
         ? scenario.automationLevel

@@ -253,7 +253,6 @@ export class ConfigService {
     return this.config;
   }
 
-
   // Get app setup instructions
   async getAppSetupInstructions(): Promise<string> {
     const config = await this.getConfig();
