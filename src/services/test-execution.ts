@@ -52,6 +52,7 @@ export class TestExecutionService {
       prAnalysis,
       jiraContext,
       setupInstructions,
+      verbose,
     });
 
     if (verbose) {

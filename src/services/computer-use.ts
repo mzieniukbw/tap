@@ -81,6 +81,21 @@ export class ComputerUseService {
   }
 
   /**
+   * Sync the CUA agent script from source to cache location
+   * This ensures the cached script is always up to date with the latest changes
+   */
+  async syncAgentScript(): Promise<void> {
+    const scriptPath = join(this.cuaDir, "cua_agent.py");
+
+    // Always write the latest version from the embedded template
+    await mkdir(this.cuaDir, { recursive: true });
+    await writeFile(scriptPath, cuaAgentScriptTemplate, "utf-8");
+
+    // Update the cache
+    this.cachedPythonScriptPath = scriptPath;
+  }
+
+  /**
    * Validate if the CUA installation is working
    * @throws Error if CUA packages cannot be imported with details about what failed
    */
@@ -304,6 +319,12 @@ export class ComputerUseService {
     if (verbose) {
       console.log(chalk.yellow("🔍 Validating test execution prerequisites..."));
     }
+
+    // Sync the agent script from source to ensure latest version is used
+    if (verbose) {
+      console.log(chalk.gray("  📝 Syncing CUA agent script from source..."));
+    }
+    await this.syncAgentScript();
 
     const readiness = await this.validateExecutionReadiness();
 

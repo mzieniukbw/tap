@@ -542,13 +542,14 @@ Expected: ${scenario.expectedOutcome}
 Steps (complete setup steps 0.x first, then test steps):
 ${allSteps.join("\n")}
 
-Notes:
+IMPORTANT:
 - Complete ALL setup steps before test steps
-- Screenshot after navigation, clicks, submissions
+- Take a screenshot using the computer tool after EVERY significant action (navigation, button clicks, form submissions)
+- Save screenshots with descriptive names: screenshot_step{N}_description.png
 - Stop immediately if any step fails
 - Test completes when: ${scenario.expectedOutcome}
 
-Execute now.`;
+Execute now and provide screenshots of each step.`;
 
     return prompt;
   }

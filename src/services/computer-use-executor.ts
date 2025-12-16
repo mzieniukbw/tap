@@ -51,6 +51,7 @@ export class ComputerUseExecutor {
         prSpecificSetupInstructions?: string;
         sessionSetupInstructions?: string;
       };
+      verbose?: boolean;
     }
   ): Promise<TestResult[]> {
     if (!existsSync(outputDir)) {
@@ -85,6 +86,7 @@ export class ComputerUseExecutor {
         prSpecificSetupInstructions?: string;
         sessionSetupInstructions?: string;
       };
+      verbose?: boolean;
     }
   ): Promise<TestResult> {
     const startTime = Date.now();
@@ -118,7 +120,12 @@ export class ComputerUseExecutor {
 
       // Execute with CUA Agent
       console.log(`  🤖 Executing with CUA Agent (Docker + Claude Sonnet 4.5)...`);
-      const executionResult = await this.executeWithCuaAgent(executionPrompt, outputDir);
+      const executionResult = await this.executeWithCuaAgent(
+        executionPrompt,
+        outputDir,
+        60,  // 60 second timeout for testing
+        context?.verbose
+      );
 
       // Parse execution results
       const parsedResults = this.parseExecutionResults(executionResult, scenario);
@@ -147,14 +154,19 @@ export class ComputerUseExecutor {
     return result;
   }
 
-  private async executeWithCuaAgent(prompt: string, outputDir: string): Promise<string> {
+  private async executeWithCuaAgent(
+    prompt: string,
+    outputDir: string,
+    timeoutSeconds: number = 60,
+    verbose: boolean = false
+  ): Promise<string> {
     try {
       const cuaService = ComputerUseService.getInstance();
       const pythonPath = await cuaService.resolveVenvPath();
       const scriptPath = await cuaService.resolveAgentScriptPath();
 
       console.log(
-        `    🔧 Running: ${pythonPath} ${scriptPath} (with Docker container + Claude Sonnet 4.5)`
+        `    🔧 Running: ${pythonPath} ${scriptPath} (timeout: ${timeoutSeconds}s)`
       );
 
       const configService = ConfigService.getInstance();
@@ -169,6 +181,10 @@ export class ComputerUseExecutor {
       // Build environment variables for CUA agent
       const cuaEnv: Record<string, string> = {
         ANTHROPIC_API_KEY: anthropicApiKey,
+        CUA_TIMEOUT_SECONDS: timeoutSeconds.toString(),
+        CUA_OUTPUT_DIR: outputDir,
+        CUA_VERBOSITY: verbose ? "DEBUG" : "INFO",
+        CUA_SCENARIO_ID: scenario.id,  // Pass scenario ID for organizing artifacts
       };
 
       // Add SSL_CERT_FILE if set (needed for corporate environments)
@@ -185,13 +201,19 @@ export class ComputerUseExecutor {
         let stdout = "";
         let stderr = "";
 
-        // Set up timeout (15 minutes for Docker container setup + execution)
+        // Set up backup timeout (Python handles the main timeout, this is just a safety net)
+        // Give 30 extra seconds for container cleanup after Python timeout
+        const backupTimeoutMs = (timeoutSeconds + 30) * 1000;
         const timeout = setTimeout(
           () => {
             child.kill("SIGTERM");
-            reject(new Error("CUA Agent execution timed out after 15 minutes"));
+            reject(
+              new Error(
+                `CUA Agent process did not terminate after ${timeoutSeconds}s + 30s cleanup grace period`
+              )
+            );
           },
-          15 * 60 * 1000
+          backupTimeoutMs
         );
 
         child.stdout?.on("data", (data) => {
@@ -271,12 +293,25 @@ export class ComputerUseExecutor {
 
     // Parse output for errors or warnings
     const lowerOutput = output.toLowerCase();
-    if (lowerOutput.includes("error") || lowerOutput.includes("failed") || lowerOutput.includes("execution failed")) {
+    if (
+      lowerOutput.includes("error") ||
+      lowerOutput.includes("failed") ||
+      lowerOutput.includes("execution failed")
+    ) {
       overallStatus = "failed";
       notes = "Execution encountered errors. See logs for details.";
-    } else if (lowerOutput.includes("warning")) {
+    } else if (
+      lowerOutput.includes("warning") ||
+      lowerOutput.includes("timed out") ||
+      lowerOutput.includes("timeout")
+    ) {
       overallStatus = "warning";
-      notes = "Execution completed with warnings. See logs for details.";
+      if (lowerOutput.includes("timeout")) {
+        notes =
+          "Execution timed out - partial results available. Check screenshots/videos for progress.";
+      } else {
+        notes = "Execution completed with warnings. See logs for details.";
+      }
     } else {
       overallStatus = "passed";
       notes = "Execution completed successfully.";
